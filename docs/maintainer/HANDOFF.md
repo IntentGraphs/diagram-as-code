@@ -7,7 +7,7 @@ _Resume here._ Product truth: `docs/STATUS.md`. Numbered items: `docs/maintainer
 | | |
 |---|---|
 | Branch | `main` at the current direction/pagination integration snapshot; direction, semantic pagination, PPTX/DOCX export hardening, and CLI diagnostics are committed. |
-| Release snapshot | The clean public snapshot targets `v1.0.0`; the earlier private workspace history is intentionally not copied into the public repository. |
+| Release snapshot | The clean public snapshot was released as `v1.0.0`; the current public maintenance release targets `v1.0.1`. Earlier private workspace history is intentionally not copied into the public repository. |
 | Tests | Current integration verification: 95 test files and 778 tests PASS, all 26 workspace builds PASS, style PASS, and `git diff --check` PASS. The older coverage/Playwright/clean-install evidence remains recorded below; full exact-snapshot, consumer, and prerelease verification is still required. |
 | Remote | The staging workspace remains on its existing remote. The clean public snapshot targets `https://github.com/IntentGraphs/diagram-as-code.git`; GitHub visibility, Pages, branch rules, and security settings remain owner-controlled setup steps. |
 | Merge status | No feature merge is pending on `main`; direction, pagination, export-hardening, and CLI follow-up commits are present in the integration history. The three older WIP histories are archived locally under `archive/...` branch names. The linked QA worktree is preserved at `.worktrees/archive-mindmap-browser-qa` with its untracked QA artifacts. |

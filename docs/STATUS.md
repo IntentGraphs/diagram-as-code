@@ -1,6 +1,6 @@
 # Project Status
 
-_Release line: public v1.0.0 snapshot. Last updated: 2026-08-23._
+_Release line: public v1.0.1 maintenance release. Last updated: 2026-08-23._
 
 The workspace is versioned as a whole through release tags; package `0.0.1` values are internal workspace metadata because packages are not published to npm. The public release is documented in [`CHANGELOG.md`](../CHANGELOG.md). The organization repository is `IntentGraphs/diagram-as-code`; maintainer deployment details are in [`maintainer/GITHUB-RELEASE-PLAN.md`](maintainer/GITHUB-RELEASE-PLAN.md).
 

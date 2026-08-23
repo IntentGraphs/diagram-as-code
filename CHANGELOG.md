@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/) via git tags.
 
+## [1.0.1] - 2026-08-23
+
+### Fixed
+
+- Stabilized the external BPMN import browser regression test so project bootstrap cannot race its review-preservation assertions in CI.
+
 ## [1.0.0] - 2026-08-23
 
 First public release of the clean `IntentGraphs/diagram-as-code` repository.

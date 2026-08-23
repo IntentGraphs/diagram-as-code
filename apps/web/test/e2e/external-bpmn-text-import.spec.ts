@@ -27,7 +27,15 @@ const lossyExternalBpmn = `<?xml version="1.0" encoding="UTF-8"?>
   </process>
 </definitions>`;
 
+async function waitForProjectBootstrap(page: import('@playwright/test').Page): Promise<void> {
+  await expect(page.locator('#project-name')).toHaveText('Untitled project');
+}
+
 async function openExternalBpmn(page: import('@playwright/test').Page): Promise<void> {
+  // Wait for project bootstrap before opening a file. Without this, a fast
+  // runner can capture the initially empty textarea and then let bootstrap
+  // race the import preview assertions.
+  await waitForProjectBootstrap(page);
   await page.locator('#source-open-input').setInputFiles({
     name: 'external-review.bpmn',
     mimeType: 'application/xml',
@@ -40,6 +48,7 @@ async function openExternalBpmn(page: import('@playwright/test').Page): Promise<
 
 test('external BPMN import shows a reviewable DSL preview and replaces Text only after explicit confirmation', async ({ page }) => {
   await page.goto('/');
+  await waitForProjectBootstrap(page);
   const originalText = await page.locator('#editor').inputValue();
 
   await openExternalBpmn(page);
@@ -58,6 +67,7 @@ test('external BPMN import shows a reviewable DSL preview and replaces Text only
 
 test('cancelling external BPMN review closes the panel and preserves the existing Text source', async ({ page }) => {
   await page.goto('/');
+  await waitForProjectBootstrap(page);
   const editor = page.locator('#editor');
   const originalText = await editor.inputValue();
 
