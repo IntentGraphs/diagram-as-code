@@ -51,6 +51,8 @@ test('source import failure is shown in the project error area and controls reco
 
 test('diagram XML load and export report completion and restore diagram controls', async ({ page }) => {
   await page.goto('/');
+  await expect(page.locator('#project-name')).toHaveText('IntentGraphs Workspace Tour');
+  await expect(page.locator('#editor')).toHaveValue(/Open/);
   await page.locator('#mode-diagram-btn').click();
   await page.locator('#diagram-open-input').setInputFiles({
     name: 'loaded.bpmn',

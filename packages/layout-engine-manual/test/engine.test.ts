@@ -76,7 +76,7 @@ describe('layoutManual — flat (non-pool) diagrams', () => {
 
 describe('layoutManual — explicit via waypoints', () => {
   // Regression coverage for a real bug found via apps/web/test/e2e/diagram-import-roundtrip.spec.ts
-  // (roadmap item 16): layoutManual's edge router used to ignore `via` entirely and always
+  // layoutManual's edge router used to ignore `via` entirely and always
   // recompute its own obstacle-avoiding path, silently discarding any routing the DSL author (or
   // an importer round-tripping a bpmn-js edit) had specified.
 

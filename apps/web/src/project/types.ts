@@ -35,6 +35,16 @@ export interface SessionState {
   activeDiagram: StoredDiagram;
 }
 
+export interface ProjectSeedDiagram {
+  name: string;
+  body: string;
+}
+
+export interface ProjectSeed {
+  name: string;
+  diagrams: readonly ProjectSeedDiagram[];
+}
+
 export const PROJECT_BUNDLE_FORMAT = 'bpm-project' as const;
 export const PROJECT_BUNDLE_VERSION = 1 as const;
 

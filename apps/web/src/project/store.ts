@@ -5,6 +5,7 @@ import {
   type Project,
   type ProjectBundle,
   type ProjectBundleDiagram,
+  type ProjectSeed,
   type SessionMeta,
   type StoredDiagram,
 } from './types.js';
@@ -277,42 +278,51 @@ async function listProjects(): Promise<Project[]> {
   });
 }
 
-export async function createDefaultProject(starterBody: string): Promise<{ project: Project; diagram: StoredDiagram }> {
-  if (!bodyWithinLimit(starterBody)) throw new Error(`Diagram body exceeds ${PROJECT_LIMITS.bodyBytes} bytes`);
+export async function createDefaultProject(starter: string | ProjectSeed): Promise<{ project: Project; diagram: StoredDiagram; diagrams: StoredDiagram[]; activeDiagram: StoredDiagram }> {
+  const seed: ProjectSeed = typeof starter === 'string'
+    ? { name: 'Untitled project', diagrams: [{ name: 'main', body: starter }] }
+    : starter;
+  if (!seed.name.trim() || seed.name.length > PROJECT_LIMITS.nameLength) throw new Error('Project seed name is invalid');
+  if (seed.diagrams.length === 0) throw new Error('Project seed must contain at least one diagram');
+  for (const entry of seed.diagrams) {
+    if (!entry.name.trim() || entry.name.length > PROJECT_LIMITS.nameLength) throw new Error('Project seed diagram name is invalid');
+    if (!bodyWithinLimit(entry.body)) throw new Error(`Diagram body exceeds ${PROJECT_LIMITS.bodyBytes} bytes`);
+  }
   const timestamp = nowIso();
   const projectId = newId();
-  const diagramId = newId();
+  const diagrams: StoredDiagram[] = seed.diagrams.map((entry) => ({
+    id: newId(),
+    projectId,
+    name: entry.name.trim(),
+    kind: 'text',
+    body: entry.body,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    family: readDiagramHeader(entry.body).family,
+  }));
+  const activeDiagram = diagrams[0];
   const project: Project = {
     id: projectId,
-    name: 'Untitled project',
+    name: seed.name.trim(),
     createdAt: timestamp,
     updatedAt: timestamp,
-    family: readDiagramHeader(starterBody).family,
-    activeDiagramId: diagramId,
+    family: activeDiagram.family,
+    activeDiagramId: activeDiagram.id,
   };
-  const diagram: StoredDiagram = {
-    id: diagramId,
-    projectId,
-    name: 'main',
-    kind: 'text',
-    body: starterBody,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  };
-  const session = { activeProjectId: projectId, activeDiagramId: diagramId };
+  const session = { activeProjectId: projectId, activeDiagramId: activeDiagram.id };
   if (useMemoryBackend()) {
     const memory = getMemoryBackend();
     memory.projects.set(project.id, project);
-    memory.diagrams.set(diagram.id, diagram);
+    for (const diagram of diagrams) memory.diagrams.set(diagram.id, diagram);
     memory.session = session;
   } else {
     await withStores([STORE_PROJECTS, STORE_DIAGRAMS, STORE_META], 'readwrite', (stores) => {
       stores[STORE_PROJECTS].put(project);
-      stores[STORE_DIAGRAMS].put(diagram);
+      for (const diagram of diagrams) stores[STORE_DIAGRAMS].put(diagram);
       stores[STORE_META].put(session, META_SESSION_KEY);
     });
   }
-  return { project, diagram };
+  return { project, diagram: activeDiagram, diagrams, activeDiagram };
 }
 
 export async function updateDiagramBody(id: string, body: string): Promise<void> {
@@ -541,7 +551,7 @@ export async function setActiveDiagram(projectId: string, diagramId: string): Pr
   }
   const project = await getProject(projectId);
   if (!project) throw new Error(`Project not found: ${projectId}`);
-  const nextProject = { ...project, activeDiagramId: diagramId, updatedAt: nowIso() };
+  const nextProject = { ...project, family: diagram.family ?? readDiagramHeader(diagram.body).family, activeDiagramId: diagramId, updatedAt: nowIso() };
   const session = { activeProjectId: projectId, activeDiagramId: diagramId };
   if (useMemoryBackend()) {
     const memory = getMemoryBackend();

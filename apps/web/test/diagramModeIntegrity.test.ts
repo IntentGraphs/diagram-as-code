@@ -16,7 +16,7 @@ describe('checkRequiredNamespaces', () => {
     expect(checkRequiredNamespaces(withDcAndDi)).toEqual([]);
   });
 
-  it('flags content that uses "di:" but never declares "xmlns:di" — the documented namespace-loss corruption mode from roadmap item 12', () => {
+  it('flags content that uses "di:" but never declares "xmlns:di" — the documented namespace-loss corruption mode', () => {
     const corrupted = withDcAndDi.replace(' xmlns:di="http://x"', '');
     const issues = checkRequiredNamespaces(corrupted);
     expect(issues).toHaveLength(1);

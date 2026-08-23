@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test('Import to Text: happy path — edit in Diagram mode, convert, preview, confirm, land back in Text mode', async ({ page }) => {
   await page.goto('/');
   await page.locator('#edit-as-diagram').click();
-  await expect(page.locator('#diagram-canvas [data-element-id="g1"]')).toBeVisible();
+  await expect(page.locator('#diagram-canvas [data-element-id="choose"]')).toBeVisible();
 
   await page.locator('#diagram-import-text').click();
   await expect(page.locator('#import-panel')).toBeVisible();
@@ -38,6 +38,8 @@ test('Import to Text: converting alone never touches the Text editor before an e
   // simplest possible diagram (a lone start event, no edges), which also regression-tests that
   // the integrity gate doesn't block this ordinary case.
   await page.goto('/');
+  await expect(page.locator('#project-name')).toHaveText('IntentGraphs Workspace Tour');
+  await expect(page.locator('#editor')).toHaveValue(/Open/);
   await page.locator('#mode-diagram-btn').click();
   await page.locator('#diagram-new').click();
   await expect(page.locator('#diagram-import-text')).toBeEnabled();

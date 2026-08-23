@@ -47,13 +47,12 @@ interface RegistryElement {
 }
 
 /**
- * Corruption safety net for the historical Diagram-mode XML issue: bpmn-js's DI overlay is a documented
+ * Corruption safety net for a historical Diagram-mode XML issue: bpmn-js's DI overlay is a documented
  * corruption vector (namespace loss on re-export, waypoint/DI corruption causing edges to vanish
  * on re-import). This combines a cheap namespace check with a real round-trip: re-import the
  * exported XML into a scratch, detached viewer and diff its elements against the live model's.
- * Anything present live but missing after round-tripping through its own export is exactly the
- * failure mode item 12 documents, caught before it ever reaches a downstream consumer (e.g. the
- * DSL importer, roadmap item 16).
+ * Anything present live but missing after round-tripping through its own export is caught before it
+ * reaches a downstream consumer such as the DSL importer.
  */
 /** Pure, DOM-free check — the cheap first half of the safety net. Exported for direct unit testing. */
 export function checkRequiredNamespaces(xml: string): string[] {
@@ -62,7 +61,7 @@ export function checkRequiredNamespaces(xml: string): string[] {
     const usesPrefix = new RegExp(`[<\\s]${prefix}:`).test(xml);
     const declaresPrefix = xml.includes(`xmlns:${prefix}=`);
     if (usesPrefix && !declaresPrefix) {
-      issues.push(`XML uses the "${prefix}:" prefix but never declares "xmlns:${prefix}" — a namespace-loss corruption signature (roadmap item 12)`);
+      issues.push(`XML uses the "${prefix}:" prefix but never declares "xmlns:${prefix}" — a namespace-loss corruption signature`);
     }
   }
   return issues;

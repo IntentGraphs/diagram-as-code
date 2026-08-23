@@ -45,9 +45,9 @@ test('Edit as Diagram seeds the bpmn-js canvas from the current text diagram', a
 
   await page.locator('#edit-as-diagram').click();
   await expect(page.locator('#diagram-body')).toBeVisible();
-  await expect(page.locator('#diagram-canvas [data-element-id="n1"]')).toBeVisible();
-  await expect(page.locator('#diagram-canvas [data-element-id="n2"]')).toBeVisible();
-  await expect(page.locator('#diagram-canvas [data-element-id="g1"]')).toBeVisible();
+  await expect(page.locator('#diagram-canvas [data-element-id="start"]')).toBeVisible();
+  await expect(page.locator('#diagram-canvas [data-element-id="choose"]')).toBeVisible();
+  await expect(page.locator('#diagram-canvas [data-element-id="edit"]')).toBeVisible();
   await expect(page.locator('#diagram-errors .error-item')).toHaveCount(0);
 });
 
@@ -77,7 +77,7 @@ test('Open loads a valid .bpmn file exported from Text mode', async ({ page }) =
     mimeType: 'application/xml',
     buffer: Buffer.from(xml),
   });
-  await expect(page.locator('#diagram-canvas [data-element-id="n1"]')).toBeVisible();
+  await expect(page.locator('#diagram-canvas [data-element-id="start"]')).toBeVisible();
   await expect(page.locator('#diagram-errors .error-item')).toHaveCount(0);
 });
 
@@ -186,7 +186,7 @@ test('a browser download failure is surfaced and never reported as saved', async
 test('Save survives the round-trip check on a diagram with real edges (di:waypoint actually used)', async ({ page }) => {
   await page.goto('/');
   await page.locator('#edit-as-diagram').click();
-  await expect(page.locator('#diagram-canvas [data-element-id="g1"]')).toBeVisible();
+  await expect(page.locator('#diagram-canvas [data-element-id="choose"]')).toBeVisible();
 
   const [download] = await Promise.all([
     page.waitForEvent('download'),

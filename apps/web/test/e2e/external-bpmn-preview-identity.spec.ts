@@ -3,16 +3,17 @@ import { test, expect } from '@playwright/test';
 test('external BPMN preview is rejected when the active diagram changes', async ({ page }) => {
   const activeDiagram = page.locator('.diagram-item.active .diagram-select');
   await page.goto('/');
+  await expect(page.locator('#project-name')).toHaveText('IntentGraphs Workspace Tour');
   await page.locator('#diagram-new-btn').click();
   await page.locator('#diagram-name-input').fill('second');
   await page.locator('#diagram-name-confirm').click();
-  await page.locator('.diagram-select', { hasText: /^main/ }).click();
-  await expect(activeDiagram).toHaveText(/^main/);
+  await page.locator('.diagram-select', { hasText: /^01 Workspace Overview/ }).click();
+  await expect(activeDiagram).toHaveText(/^01 Workspace Overview/);
   await page.locator('.diagram-select', { hasText: /^second/ }).click();
   await expect(activeDiagram).toHaveText(/^second/);
   const activeText = await page.locator('#editor').inputValue();
-  await page.locator('.diagram-select', { hasText: /^main/ }).click();
-  await expect(activeDiagram).toHaveText(/^main/);
+  await page.locator('.diagram-select', { hasText: /^01 Workspace Overview/ }).click();
+  await expect(activeDiagram).toHaveText(/^01 Workspace Overview/);
 
   await page.locator('#source-open-input').setInputFiles({
     name: 'changed.bpmn',

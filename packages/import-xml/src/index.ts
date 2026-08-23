@@ -532,7 +532,7 @@ function mapEdge(el: ModdleElement, ctx: MapContext, flowType: FlowType, default
  * these connections were invisible to the importer entirely — not even reaching the "unsupported
  * element" warning, since nothing ever looked inside an activity for them (found via a real user
  * round trip, verified by the import/export contract tests.
- * fidelity checking, roadmap item 16).
+ * fidelity checking, while keeping the visual-to-text handoff explicit.
  */
 function mapDataAssociations(el: ModdleElement, ctx: MapContext, originOffset: Position): DiagramEdge[] {
   if (!el.id) return [];

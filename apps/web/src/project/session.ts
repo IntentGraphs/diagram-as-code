@@ -1,18 +1,21 @@
 import { createDefaultProject, isStorageAvailable, loadSession, enableMemoryBackend } from './store.js';
-import type { SessionState } from './types.js';
+import { validateProjectSeed } from './starterProject.js';
+import type { ProjectSeed, SessionState } from './types.js';
 
 export { isStorageAvailable };
 
-export async function initSession(starterBody: string): Promise<SessionState> {
+export async function initSession(starter: string | ProjectSeed): Promise<SessionState> {
   if (!isStorageAvailable()) {
     enableMemoryBackend();
     const existing = await loadSession();
     if (existing) return existing;
-    const { project, diagram } = await createDefaultProject(starterBody);
-    return { project, diagrams: [diagram], activeDiagram: diagram };
+    if (typeof starter !== 'string') await validateProjectSeed(starter);
+    const { project, diagrams, activeDiagram } = await createDefaultProject(starter);
+    return { project, diagrams, activeDiagram };
   }
   const existing = await loadSession();
   if (existing) return existing;
-  const { project, diagram } = await createDefaultProject(starterBody);
-  return { project, diagrams: [diagram], activeDiagram: diagram };
+  if (typeof starter !== 'string') await validateProjectSeed(starter);
+  const { project, diagrams, activeDiagram } = await createDefaultProject(starter);
+  return { project, diagrams, activeDiagram };
 }

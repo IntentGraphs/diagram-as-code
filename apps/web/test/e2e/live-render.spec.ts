@@ -3,10 +3,10 @@ import { test, expect } from '@playwright/test';
 test('typing valid diagram text renders an svg with the full notation set', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('#preview svg')).toBeVisible();
-  await expect(page.locator('[data-node-id="n1"]')).toBeVisible(); // start message event
-  await expect(page.locator('[data-node-id="b1"]')).toBeVisible(); // boundary event
-  await expect(page.locator('[data-node-id="g1"]')).toBeVisible(); // exclusive gateway
-  await expect(page.locator('[data-node-id="d1"]')).toBeVisible(); // data object
+  await expect(page.locator('[data-node-id="start"]')).toBeVisible(); // start event
+  await expect(page.locator('[data-node-id="choose"]')).toBeVisible(); // first task
+  await expect(page.locator('[data-node-id="edit"]')).toBeVisible(); // second task
+  await expect(page.locator('[data-node-id="done"]')).toBeVisible(); // end event
   await expect(page.locator('[data-edge-id]').first()).toBeVisible();
 });
 
@@ -115,14 +115,14 @@ test('invalid mindmap text shows its diagnostic and keeps the preview stale', as
 
 test('invalid text shows an inline error and keeps the last valid diagram', async ({ page }) => {
   await page.goto('/');
-  await expect(page.locator('[data-node-id="n2"]')).toBeVisible();
+  await expect(page.locator('[data-node-id="choose"]')).toBeVisible();
 
   const editor = page.locator('#editor');
   await editor.fill('bogus "x" as n9');
   await page.waitForTimeout(400); // debounce window
 
   await expect(page.locator('#errors')).toContainText('Could not parse line');
-  await expect(page.locator('[data-node-id="n2"]')).toBeVisible();
+  await expect(page.locator('[data-node-id="choose"]')).toBeVisible();
 });
 
 test('toolbar shows the auto-selected engine name and the editor uses monospace styling', async ({ page }) => {
@@ -135,7 +135,7 @@ test('toolbar shows the auto-selected engine name and the editor uses monospace 
 
 test('invalid text dims the stale preview and shows a structured error item', async ({ page }) => {
   await page.goto('/');
-  await expect(page.locator('[data-node-id="n2"]')).toBeVisible();
+  await expect(page.locator('[data-node-id="choose"]')).toBeVisible();
 
   const editor = page.locator('#editor');
   await editor.fill('bogus "x" as n9');
@@ -169,7 +169,7 @@ test('dense BPMN input pauses automatic layout and disables render-dependent act
   await expect(page.locator('#edit-as-diagram')).toBeDisabled();
   await expect(page.locator('#mode-diagram-btn')).toBeDisabled();
   await expect(page.locator('#errors .error-item')).toHaveCount(0);
-  await expect(page.locator('#preview svg')).toContainText('Order placed');
+  await expect(page.locator('#preview svg')).toContainText('Open');
   await page.locator('#heavy-render-close').click();
   await expect(page.locator('#heavy-render-dialog')).toBeHidden();
 });
@@ -319,7 +319,7 @@ test('dragging the splitter resizes the editor and persists across reload', asyn
 
 test('clear button empties the editor, keeps SVG export enabled for the empty diagram, and disables BPMN-only actions', async ({ page }) => {
   await page.goto('/');
-  await expect(page.locator('[data-node-id="n1"]')).toBeVisible();
+  await expect(page.locator('[data-node-id="start"]')).toBeVisible();
 
   await page.locator('#clear-btn').click();
 

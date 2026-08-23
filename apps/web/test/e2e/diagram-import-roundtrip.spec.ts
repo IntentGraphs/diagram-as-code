@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * T7 (roadmap item 16): integration-level verification across the whole wired-together path —
+ * Integration-level verification across the whole wired-together path —
  * Text -> Diagram mode (existing "Edit as Diagram") -> Diagram mode -> Text (new "Import to
  * Text", T5), driven through the real browser UI, not by calling package functions directly
  * (T2/T3/T4 already have their own unit/package-level tests for that). See the design doc,

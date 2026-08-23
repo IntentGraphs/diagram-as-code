@@ -24,7 +24,7 @@ function isExpandedSubprocess(node: DiagramNode): boolean {
  * space via `waypointMapper`, the same convention `@bpm/layout-core`'s `overridePinnedNodes` uses.
  * Without this, a manual-positioning diagram's `via` hints were silently ignored entirely — the
  * router always recomputed its own path — found via apps/web/test/e2e/diagram-import-roundtrip.spec.ts
- * and confirmed against real bpmn-js round-trip data (roadmap item 16).
+ * and confirmed against real bpmn-js round-trip data.
  */
 function routeFlatEdges(
   edges: Diagram['edges'],
