@@ -10,6 +10,6 @@
     "@bpm/diagram-core": "*",
     "@bpm/export-drawio": "*",
     "@bpm/render-core": "*",
-    "elkjs": "^0.9.3"
+    "elkjs": "^0.12.0"
   }
 }
