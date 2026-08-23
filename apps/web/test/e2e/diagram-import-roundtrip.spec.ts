@@ -5,7 +5,7 @@ import { test, expect } from '@playwright/test';
  * Text -> Diagram mode (existing "Edit as Diagram") -> Diagram mode -> Text (new "Import to
  * Text", T5), driven through the real browser UI, not by calling package functions directly
  * (T2/T3/T4 already have their own unit/package-level tests for that). See the design doc,
- * docs/superpowers/specs/2026-08-17-diagram-mode-text-import-design.md, for what's in v1 scope.
+ * the public Import to Text behavior documented in STATUS.md, for what's in v1 scope.
  */
 
 async function roundTripThroughDiagramMode(
@@ -87,7 +87,7 @@ test('pools and lanes survive the round trip', async ({ page }) => {
 });
 
 test('nested subprocess content survives the round trip', async ({ page }) => {
-  // expectCleanGeometry: false — see docs/superpowers/specs/2026-08-17-diagram-mode-text-import-
+  // expectCleanGeometry: false — the cross-renderer geometry limitation is documented by this fixture.
   // design.md's findings note. An expanded subprocess's box is recomputed from its children's
   // positions by this tool's own layout engine (docs/LANGUAGE.md §6.5), ignoring any declared
   // size(); bpmn-js's own internal padding convention for subprocess content isn't guaranteed to

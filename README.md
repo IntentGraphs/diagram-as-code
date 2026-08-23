@@ -8,9 +8,8 @@ A text-first diagramming tool for five supported families — BPMN, mind maps, f
 
 **Try it:** the browser playground will be available at [intentgraphs.github.io/diagram-as-code](https://intentgraphs.github.io/diagram-as-code/) after the IntentGraphs repository and GitHub Pages deployment are enabled. For a local five-minute path, follow the [quick start](#quick-start) below. The current public snapshot is version 1.0.2; see [`docs/STATUS.md`](docs/STATUS.md) for verified capabilities and limitations.
 
-![Hello diagram rendered in the Diagram Editor](docs/assets/hello-diagram.png)
-
-The screenshot shows the default hello process in the split text-and-diagram editor. A short screen recording can replace it later without changing the public-v1 promise.
+_A refreshed Diagram Editor screenshot will be added in a follow-up once the final public
+editor view is selected._
 
 ## Who this is for
 
@@ -75,7 +74,7 @@ This is a positioning guide, not a claim that other tools are static or incomple
 - **AI behavior:** AI is optional and BYOK/local-provider based. Review and generation are bounded, cancellable, and explicit; no provider is contacted by default and there is no default telemetry.
 - **Support contract:** Node 20–22 with npm 10 is supported for development; Linux CI is authoritative and macOS is maintainer-verified. Windows, mobile browsers, and Firefox/WebKit are not v1 promises.
 
-For the most relevant migration path from visual tools, see [`docs/COMING-FROM-DRAWIO-BPMNJS.md`](docs/COMING-FROM-DRAWIO-BPMNJS.md). For an optional Mermaid-user syntax comparison, see [`docs/MERMAID-SYNTAX-COMPARISON.md`](docs/MERMAID-SYNTAX-COMPARISON.md). For the full product truth, see [`docs/STATUS.md`](docs/STATUS.md) and [`SECURITY.md`](SECURITY.md).
+For the most relevant migration path from visual tools, see [`docs/COMING-FROM-DRAWIO-BPMNJS.md`](docs/COMING-FROM-DRAWIO-BPMNJS.md). For the full product truth, see [`docs/STATUS.md`](docs/STATUS.md) and [`SECURITY.md`](SECURITY.md).
 
 ## Quick start
 
@@ -106,7 +105,7 @@ npm run dev -w @bpm/web
 cd apps/web && npm run dev
 ```
 
-This is an npm workspaces monorepo (`packages/*`, `apps/*`). Packages are **not** published to npm yet; the project is versioned as a whole via git tags. The documentation map separates stable product guidance from maintainer release material: see [`docs/README.md`](docs/README.md).
+This is an npm workspaces monorepo (`packages/*`, `apps/*`). Packages are **not** published to npm yet; the project is versioned as a whole via git tags. See the [documentation map](docs/README.md) for the stable product and contributor guides.
 
 For contributors who want a reproducible setup without installing Node directly, open the repository in the included [Dev Container](.devcontainer/devcontainer.json). The browser playground and scoped npm package publication are separate release tracks; the first public repository does not promise a zero-install CLI until packages are intentionally published.
 
@@ -126,11 +125,11 @@ For contributors who want a reproducible setup without installing Node directly,
 | [`docs/CLI.md`](docs/CLI.md) | CLI validate / render / export / review / generate / import-diagram / freeze |
 | [`docs/RELEASING.md`](docs/RELEASING.md) | Exact verification and GitHub publication sequence |
 | [`docs/COMING-FROM-DRAWIO-BPMNJS.md`](docs/COMING-FROM-DRAWIO-BPMNJS.md) | draw.io/bpmn-js-to-`bpm` migration guide |
-| [`docs/MERMAID-SYNTAX-COMPARISON.md`](docs/MERMAID-SYNTAX-COMPARISON.md) | optional side-by-side Mermaid syntax comparison |
-| [`docs/README.md`](docs/README.md) | Public, maintainer, and historical documentation map |
+| [`docs/README.md`](docs/README.md) | Product and contributor documentation map |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | How to develop and open PRs |
 | [`SECURITY.md`](SECURITY.md) | Threat model and vulnerability reporting |
-| [`examples/`](examples/) | Getting-started and manual-mode samples |
+| [`examples/getting-started/hello.bpm`](examples/getting-started/hello.bpm) | Minimal getting-started diagram |
+| [`examples/manual-mode/`](examples/manual-mode/) | Explicit-coordinate BPMN examples |
 
 ## Development
 

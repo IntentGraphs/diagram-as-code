@@ -30,7 +30,8 @@ function notifyZoomChange(): void {
  * DI-related namespace prefixes. A diagram legitimately omits a prefix's declaration when nothing
  * in it uses that prefix (e.g. a single node with no edges never emits `di:waypoint`, so omitting
  * `xmlns:di` is valid, not corruption) — the actual "namespace loss" failure mode from
- * `docs/ROADMAP.md` item 12 is content that *uses* a prefix whose declaration went missing.
+ * Earlier Diagram-mode XML corruption reports involved content using a prefix whose
+ * declaration went missing.
  */
 const DI_NAMESPACE_PREFIXES = ['dc', 'di', 'bpmndi'];
 
@@ -46,7 +47,7 @@ interface RegistryElement {
 }
 
 /**
- * Corruption safety net for `docs/ROADMAP.md` item 12: bpmn-js's DI overlay is a documented
+ * Corruption safety net for the historical Diagram-mode XML issue: bpmn-js's DI overlay is a documented
  * corruption vector (namespace loss on re-export, waypoint/DI corruption causing edges to vanish
  * on re-import). This combines a cheap namespace check with a real round-trip: re-import the
  * exported XML into a scratch, detached viewer and diff its elements against the live model's.

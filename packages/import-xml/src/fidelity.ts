@@ -185,7 +185,7 @@ function compareInventories(source: Inventory, result: Inventory, tolerance: num
  * Compares a BPMN XML file against what `importXml()` converts it to, using the DI's own
  * shapes/edges as ground truth (not @bpm/import-xml's own element-type mapping) so this check
  * catches gaps in that mapping rather than agreeing with them. Also serves the "back conversion"
- * direction (docs/superpowers/specs/2026-08-17-diagram-mode-text-import-design.md's T7 findings):
+ * direction (covered by the import/export contract tests):
  * `extractResultInventory()` operates on any `Diagram`, so the same comparator can validate an
  * `@bpm/export-xml`-produced XML against the hand-written `.bpm` text it came from.
  */
