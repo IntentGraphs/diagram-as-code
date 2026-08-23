@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/) via git tags.
 
+## [1.0.2] - 2026-08-23
+
+### Fixed
+
+- Preserve editor changes made while IndexedDB project bootstrap is still loading instead of overwriting them with the starter diagram.
+
 ## [1.0.1] - 2026-08-23
 
 ### Fixed

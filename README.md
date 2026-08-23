@@ -6,7 +6,7 @@ A text-first diagramming tool for five supported families — BPMN, mind maps, f
 
 > **Public-v1 promise:** describe a BPMN process, project timeline, or technical diagram as text; validate and render it locally or in the browser; export a canonical BPMN model or an editable presentation; and keep the source reviewable in Git. `bpm` is aimed at teams that want diagram-as-code workflows without giving up BPMN semantics or a visual editor.
 
-**Try it:** the browser playground will be available at [intentgraphs.github.io/diagram-as-code](https://intentgraphs.github.io/diagram-as-code/) after the IntentGraphs repository and GitHub Pages deployment are enabled. For a local five-minute path, follow the [quick start](#quick-start) below. The current public snapshot is version 1.0.1; see [`docs/STATUS.md`](docs/STATUS.md) for verified capabilities and limitations.
+**Try it:** the browser playground will be available at [intentgraphs.github.io/diagram-as-code](https://intentgraphs.github.io/diagram-as-code/) after the IntentGraphs repository and GitHub Pages deployment are enabled. For a local five-minute path, follow the [quick start](#quick-start) below. The current public snapshot is version 1.0.2; see [`docs/STATUS.md`](docs/STATUS.md) for verified capabilities and limitations.
 
 ![Hello diagram rendered in the Diagram Editor](docs/assets/hello-diagram.png)
 

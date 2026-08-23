@@ -280,11 +280,18 @@ export function createProjectController(options: ProjectControllerOptions): Proj
   return {
     async bootstrap() {
       setStatus(isStorageAvailable() ? 'clean' : 'error');
+      const editorValueBeforeBootstrap = options.editor.value;
       sessionState = await initSession(options.starterText);
       const savedBody = sessionState.activeDiagram.body;
       const draftBody = readDraft(sessionState.activeDiagram.id);
       const recoveredDraft = draftBody !== undefined && draftBody !== savedBody;
-      options.editor.value = recoveredDraft ? draftBody : savedBody;
+      // IndexedDB bootstrap is asynchronous. Preserve a user edit that lands
+      // while it is in flight instead of replacing it with the starter/saved
+      // body after the page has become interactive.
+      const editorChangedDuringBootstrap = options.editor.value !== editorValueBeforeBootstrap;
+      if (!editorChangedDuringBootstrap) {
+        options.editor.value = recoveredDraft ? draftBody : savedBody;
+      }
       renderDiagramList();
       autosave = createAutosave(
         () => options.editor.value,
@@ -294,7 +301,7 @@ export function createProjectController(options: ProjectControllerOptions): Proj
         (status, error) => setStatus(status, error),
         () => clearDraft(sessionState!.activeDiagram.id),
       );
-      if (recoveredDraft) autosave.schedule();
+      if (recoveredDraft || editorChangedDuringBootstrap) autosave.schedule();
     },
     isDirty() {
       return autosave?.isDirty() ?? false;
