@@ -13,14 +13,15 @@ BPMN 2.0, SVG, or editable PowerPoint. Use the browser editor or the `bpm` CLI.
 - [CLI guide](docs/CLI.md)
 - [Public roadmap](ROADMAP.md)
 
-The playground link is the intended public path; use the local quick start below when Pages is unavailable.
+The Pages deployment responds at the public URL; use the local quick start below when you want to work from
+the repository checkout.
 
 ![IntentGraphs Diagram Editor showing the Workspace Tour project, named BPMN diagrams, text source, and rendered preview](docs/assets/diagram-editor-workspace-tour.png)
 
 *Verified local editor capture: the Workspace Tour is visible with its first BPMN diagram rendered immediately.*
 
-The Pages deployment could not be reached from this environment, so the public URL remains an explicit link
-until its live deployment is independently verified.
+The deployment was verified with a public HTTP 200 check. A clean-session visual browser check was unavailable
+in this environment, so the screenshot above is explicitly identified as a local-app capture.
 
 ## Workspace Tour
 
