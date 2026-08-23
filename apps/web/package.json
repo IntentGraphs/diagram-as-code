@@ -20,7 +20,7 @@
     "@bpm/print-dsl": "*",
     "@bpm/render": "*",
     "@bpm/validate": "*",
-    "bpmn-js": "^17.11.1"
+    "bpmn-js": "^18.25.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.47.0",
