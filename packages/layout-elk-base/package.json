@@ -8,6 +8,6 @@
   "dependencies": {
     "@bpm/ast": "*",
     "@bpm/layout-core": "*",
-    "elkjs": "^0.9.3"
+    "elkjs": "^0.12.0"
   }
 }
