@@ -1,7 +1,7 @@
 import { createAutosave, type AutosaveHandle, type AutosaveStatus } from './project/autosave.js';
 import { initSession, isStorageAvailable } from './project/session.js';
 import { createDiagram, deleteDiagram, importProjectBundle, loadSession, renameDiagram, renameProject, setActiveDiagram, updateDiagramXml } from './project/store.js';
-import type { ProjectBundle, SessionState, StoredDiagram } from './project/types.js';
+import type { ProjectBundle, ProjectSeed, SessionState, StoredDiagram } from './project/types.js';
 
 export interface ProjectControllerOptions {
   editor: HTMLTextAreaElement;
@@ -11,7 +11,7 @@ export interface ProjectControllerOptions {
   newDiagramButton: HTMLButtonElement;
   warningEl: HTMLDivElement;
   retryButton: HTMLButtonElement;
-  starterText: string;
+  starterText: string | ProjectSeed;
   confirmDiscard: () => boolean;
   invalidateRender: () => void;
   requestRender: (delayMs: number) => void;

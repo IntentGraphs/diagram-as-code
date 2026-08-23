@@ -1,6 +1,9 @@
 # Documentation map
 
-This directory contains the stable product and contributor documentation for `bpm`.
+This directory contains the stable product and contributor documentation for IntentGraphs Diagram-as-Code.
+
+The repository-level [`ROADMAP.md`](../ROADMAP.md) is the single public roadmap. It describes direction and
+boundaries without duplicating execution plans in individual documents.
 
 ## Public v1 documentation
 

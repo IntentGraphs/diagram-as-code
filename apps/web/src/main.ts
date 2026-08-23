@@ -30,6 +30,7 @@ import { mountDiagramAgentPanel, showDiagramAgentPanel, hideDiagramAgentPanel, r
 import { assessRenderCost, renderDebounceMs, type RenderAssessment } from './renderPolicy.js';
 import { isProjectBundle, PROJECT_LIMITS } from './project/store.js';
 import { PROJECT_BUNDLE_FORMAT, PROJECT_BUNDLE_VERSION, type ProjectBundle, type ProjectBundleDiagram } from './project/types.js';
+import { WORKSPACE_TOUR } from './project/starterProject.js';
 import { createOperationStateCoordinator } from './operationState.js';
 
 const editor = document.querySelector<HTMLTextAreaElement>('#editor')!;
@@ -351,25 +352,6 @@ fullscreenBtn.addEventListener('click', () => {
 document.addEventListener('fullscreenchange', () => {
   fullscreenBtn.textContent = document.fullscreenElement ? 'Exit Fullscreen' : 'Fullscreen';
 });
-
-const STARTER_TEXT = [
-  'event start message "Order placed" as n1',
-  'task "Review order" as n2',
-  'boundary timer nonInterrupting "SLA breach" as b1 on n2',
-  'gateway exclusive "Approved?" as g1',
-  'task "Ship order" as n3',
-  'event end none "Done" as n4',
-  'event end terminate "Rejected" as n5',
-  'dataObject "Invoice" as d1',
-  '',
-  'n1 -> n2',
-  'n2 -> g1',
-  'g1 => n3 : "yes"',
-  'g1 ->> n5',
-  'n3 -> n4',
-  'd1 ..> n2',
-  'b1 ~> n5',
-].join('\n');
 
 let renderDebounceHandle: ReturnType<typeof setTimeout> | undefined;
 let currentRenderAssessment: RenderAssessment = assessRenderCost('');
@@ -1035,7 +1017,7 @@ projectController = createProjectController({
   newDiagramButton: projectDiagramNewBtn,
   warningEl: projectWarningEl,
   retryButton: projectRetryBtn,
-  starterText: STARTER_TEXT,
+  starterText: WORKSPACE_TOUR,
   confirmDiscard: confirmDiscardTextUnsaved,
   invalidateRender: () => {
     renderController.invalidate();

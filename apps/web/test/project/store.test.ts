@@ -9,11 +9,13 @@ import {
   renameDiagram,
   renameProject,
   resetStoreForTests,
+  setActiveDiagram,
   updateDiagramBody,
   updateDiagramXml,
 } from '../../src/project/store.js';
 import { PROJECT_BUNDLE_FORMAT, PROJECT_BUNDLE_VERSION } from '../../src/project/types.js';
 import { initSession } from '../../src/project/session.js';
+import { WORKSPACE_TOUR } from '../../src/project/starterProject.js';
 
 const STARTER = 'task "Hello" as n1';
 
@@ -132,6 +134,32 @@ describe('project store', () => {
     await updateDiagramBody(first.activeDiagram.id, 'task "Persisted" as n9');
     const second = await initSession('ignored on reload');
     expect(second.activeDiagram.body).toBe('task "Persisted" as n9');
+  });
+
+  it('creates the Workspace Tour only for a fresh session', async () => {
+    const first = await initSession(WORKSPACE_TOUR);
+    expect(first.project.name).toBe('IntentGraphs Workspace Tour');
+    expect(first.diagrams.map((diagram) => diagram.name)).toEqual(WORKSPACE_TOUR.diagrams.map((diagram) => diagram.name));
+    expect(first.activeDiagram.id).toBe(first.diagrams[0].id);
+
+    await updateDiagramBody(first.activeDiagram.id, 'task "Existing project" as existing');
+    const second = await initSession(WORKSPACE_TOUR);
+    expect(second.project.name).toBe('IntentGraphs Workspace Tour');
+    expect(second.diagrams).toHaveLength(WORKSPACE_TOUR.diagrams.length);
+    expect(second.activeDiagram.body).toContain('Existing project');
+  });
+
+  it('tracks the selected diagram family without making Diagram mode available to non-BPMN text', async () => {
+    const { project, diagram } = await createDefaultProject(STARTER);
+    const mindmap = await createDiagram(project.id, 'mindmap', 'diagram: mindmap\nmindmap "Root" as root');
+    await setActiveDiagram(project.id, mindmap.id);
+    const session = await loadSession();
+    expect(session?.activeDiagram.id).toBe(mindmap.id);
+    expect(session?.activeDiagram.family).toBe('mindmap');
+    expect(session?.project.family).toBe('mindmap');
+
+    await setActiveDiagram(project.id, diagram.id);
+    expect((await loadSession())?.project.family).toBe('bpmn');
   });
 
   it('recovers when persisted session metadata points at a missing diagram', async () => {

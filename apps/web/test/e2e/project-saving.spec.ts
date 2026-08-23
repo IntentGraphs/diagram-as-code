@@ -1,8 +1,45 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
+
+async function openEditor(page: Page): Promise<void> {
+  await page.goto('/');
+  await expect(page.locator('#project-name')).toHaveText('IntentGraphs Workspace Tour');
+}
 
 test.describe('project-based saving', () => {
+  test('fresh sessions open the Workspace Tour with an immediately rendered first diagram', async ({ page }) => {
+    await openEditor(page);
+    await expect(page.locator('#project-name')).toHaveText('IntentGraphs Workspace Tour');
+    await expect(page.locator('.diagram-item')).toHaveCount(6);
+    await expect(page.locator('.diagram-item.active .diagram-select')).toHaveText('01 Workspace Overview');
+    await expect(page.locator('#preview svg')).toContainText('Open');
+    await expect(page.locator('#editor')).toHaveValue(/Choose diagram/);
+  });
+
+  test('switching tour diagrams loads the matching source and saves every diagram', async ({ page }) => {
+    await openEditor(page);
+    await page.locator('.diagram-select', { hasText: '04 Diagram Editor Handoff' }).click();
+    await expect(page.locator('#editor')).toHaveValue(/Confirm source update/);
+    await expect(page.locator('#preview svg')).toContainText('Open BPMN');
+    await expect(page.locator('#preview svg')).toContainText('Diagram Editor');
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('#project-save-btn').click();
+    const download = await downloadPromise;
+    const savedPath = await download.path();
+    expect(savedPath).toBeTruthy();
+    const bundle = JSON.parse(await readFile(savedPath!, 'utf8')) as { diagrams: Array<{ name: string }> };
+    expect(bundle.diagrams.map((diagram) => diagram.name)).toEqual([
+      '01 Workspace Overview',
+      '02 Text to Render',
+      '03 Validate and Repair',
+      '04 Diagram Editor Handoff',
+      '05 Export Handoff',
+      '06 AI Agent Loop',
+    ]);
+  });
   test('renames the project and downloads a reproducible project bundle', async ({ page }) => {
-    await page.goto('/');
+    await openEditor(page);
     await page.locator('#project-rename-btn').click();
     await page.locator('#diagram-name-input').fill('Release diagrams');
     await page.locator('#diagram-name-confirm').click();
@@ -15,7 +52,7 @@ test.describe('project-based saving', () => {
   });
 
   test('opens a .bpm source file and renders it in the text editor', async ({ page }) => {
-    await page.goto('/');
+    await openEditor(page);
     await page.locator('#source-open-input').setInputFiles({
       name: 'imported.bpm',
       mimeType: 'text/plain',
@@ -43,7 +80,7 @@ test.describe('project-based saving', () => {
     <bpmndi:BPMNEdge id="Edge_2" bpmnElement="Flow_2"><di:waypoint x="300" y="130" /><di:waypoint x="360" y="118" /></bpmndi:BPMNEdge>
   </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
 </definitions>`;
-    await page.goto('/');
+    await openEditor(page);
     await page.locator('#source-open-input').setInputFiles({
       name: 'imported.bpmn',
       mimeType: 'application/xml',
@@ -52,11 +89,11 @@ test.describe('project-based saving', () => {
     await expect(page.locator('#import-panel .generate-result-badge')).toHaveText('Ready to review imported.bpmn');
     await expect(page.locator('#import-panel .generate-result-text')).toContainText('Imported task');
     await expect(page.locator('#import-panel .generate-result-text')).toContainText('positioning: manual');
-    await expect(page.locator('#editor')).toHaveValue(/Order placed/);
-    await expect(page.locator('#editor')).toHaveValue(/Review order/);
+    await expect(page.locator('#editor')).toHaveValue(/Open/);
+    await expect(page.locator('#editor')).toHaveValue(/Choose diagram/);
     await expect(page.locator('#editor')).not.toHaveValue(/positioning: manual/);
-    await expect(page.locator('#preview svg')).toContainText('Order placed');
-    await expect(page.locator('#preview svg')).toContainText('Review order');
+    await expect(page.locator('#preview svg')).toContainText('Open');
+    await expect(page.locator('#preview svg')).toContainText('Choose diagram');
   });
 
   test('opens a saved project bundle and renders its replay source', async ({ page }) => {
@@ -85,7 +122,7 @@ test.describe('project-based saving', () => {
         updatedAt: timestamp,
       }],
     };
-    await page.goto('/');
+    await openEditor(page);
     await page.locator('#source-open-input').setInputFiles({
       name: 'imported.bpm-project.json',
       mimeType: 'application/json',
@@ -97,7 +134,7 @@ test.describe('project-based saving', () => {
   });
 
   test('text diagram persists across reload', async ({ page }) => {
-    await page.goto('/');
+    await openEditor(page);
     const editor = page.locator('#editor');
     await editor.fill([
       'pool P',
@@ -114,7 +151,7 @@ test.describe('project-based saving', () => {
   });
 
   test('recovers a just-typed draft even if the page reloads before IndexedDB debounce', async ({ page }) => {
-    await page.goto('/');
+    await openEditor(page);
     const editor = page.locator('#editor');
     await editor.fill('pool "Rapid draft"\n  lane "Work"\n    task "Still here" as draft');
     await page.reload();
@@ -123,7 +160,7 @@ test.describe('project-based saving', () => {
   });
 
   test('create, switch, rename, and delete diagrams', async ({ page }) => {
-    await page.goto('/');
+    await openEditor(page);
     const editor = page.locator('#editor');
 
     await page.locator('#diagram-new-btn').click();
@@ -135,7 +172,7 @@ test.describe('project-based saving', () => {
     await editor.fill('task "Only in details" as d1');
     await expect(page.locator('#project-warning')).toContainText('Saved locally.', { timeout: 5000 });
 
-    await page.locator('.diagram-select', { hasText: /^main/ }).click();
+    await page.locator('.diagram-select', { hasText: /^01 Workspace Overview/ }).click();
     await expect(editor).not.toHaveValue(/Only in details/);
 
     await page.locator('.diagram-select', { hasText: /^details/ }).click();
@@ -148,17 +185,17 @@ test.describe('project-based saving', () => {
 
     page.once('dialog', (dialog) => dialog.accept());
     await page.locator('.diagram-item').filter({ hasText: 'renamed-flow' }).locator('[aria-label="Delete diagram"]').click();
-    await expect(page.locator('.diagram-item')).toHaveCount(1);
-    await expect(page.locator('.diagram-select')).toHaveText('main');
+    await expect(page.locator('.diagram-item')).toHaveCount(6);
+    await expect(page.locator('.diagram-item.active .diagram-select')).toHaveText('01 Workspace Overview');
   });
 
   test('renamed diagram name persists across reload', async ({ page }) => {
-    await page.goto('/');
-    await page.locator('.diagram-item').filter({ hasText: 'main' }).locator('[aria-label="Rename diagram"]').click();
+    await openEditor(page);
+    await page.locator('.diagram-item').filter({ hasText: '01 Workspace Overview' }).locator('[aria-label="Rename diagram"]').click();
     await page.locator('#diagram-name-input').fill('saved-name');
     await page.locator('#diagram-name-confirm').click();
     await page.waitForTimeout(500);
     await page.reload();
-    await expect(page.locator('.diagram-select')).toHaveText('saved-name');
+    await expect(page.locator('.diagram-item.active .diagram-select')).toHaveText('saved-name');
   });
 });

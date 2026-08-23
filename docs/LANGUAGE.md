@@ -230,7 +230,7 @@ gateway-target checks.
 
 ### 2.2 Direction and BPMN lane orientation
 
-Roadmap item 19 defines two deliberately separate controls:
+The public editor keeps two deliberately separate controls:
 
 - `direction` controls process/tree growth for flowcharts and mind maps. Flowcharts and mind maps default to `down` and `right` respectively, and both support `right`, `left`, `down`, and `up`. BPMN supports `right` and defaults to it.
 - `laneDirection` controls the arrangement of lanes inside a BPMN pool. BPMN defaults to `horizontal`; `vertical` arranges lanes left-to-right while keeping process-flow direction independent.

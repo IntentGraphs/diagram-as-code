@@ -28,7 +28,8 @@ const lossyExternalBpmn = `<?xml version="1.0" encoding="UTF-8"?>
 </definitions>`;
 
 async function waitForProjectBootstrap(page: import('@playwright/test').Page): Promise<void> {
-  await expect(page.locator('#project-name')).toHaveText('Untitled project');
+  await expect(page.locator('#project-name')).toHaveText('IntentGraphs Workspace Tour');
+  await expect(page.locator('#editor')).toHaveValue(/Open/);
 }
 
 async function openExternalBpmn(page: import('@playwright/test').Page): Promise<void> {
@@ -82,6 +83,7 @@ test('cancelling external BPMN review closes the panel and preserves the existin
 
 test('external BPMN review exposes structured semantic conversion loss', async ({ page }) => {
   await page.goto('/');
+  await waitForProjectBootstrap(page);
   await page.locator('#source-open-input').setInputFiles({
     name: 'lossy.bpmn',
     mimeType: 'application/xml',
@@ -95,6 +97,7 @@ test('external BPMN review exposes structured semantic conversion loss', async (
 
 test('external BPMN replacement is revision-safe when Text changes while the preview is open', async ({ page }) => {
   await page.goto('/');
+  await waitForProjectBootstrap(page);
   const editor = page.locator('#editor');
 
   await openExternalBpmn(page);

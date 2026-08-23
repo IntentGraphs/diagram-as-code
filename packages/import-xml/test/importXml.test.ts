@@ -220,7 +220,7 @@ describe('importXml — malformed input handling', () => {
 
   it('re-bases an edge\'s via waypoints into its lane-nested source\'s own frame, matching its node position', async () => {
     // Regression for a real bug found via apps/web/test/e2e/diagram-import-roundtrip.spec.ts
-    // (roadmap item 16): @bpm/layout-core's waypointMapper convention expects "via" in the same
+    // The waypointMapper convention expects "via" in the same
     // frame as the source node's own "at (x, y)" — lane-relative when the source is in a lane.
     // DI bounds/waypoints are always canvas-absolute, so both need the same lane-origin
     // subtraction, or the router (once it started respecting "via" at all) mis-routes edges from

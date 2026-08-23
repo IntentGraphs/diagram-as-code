@@ -40,7 +40,7 @@ The supported v1 development contract is Node.js 20–22 with npm 10 on a Unix-l
 
 ## Formatting and style
 
-The repository does not currently impose an opinionated formatter. The CI style gate checks authored source/config files for carriage returns and trailing whitespace; contributors should preserve the surrounding TypeScript style and run `npm run check:style` plus `git diff --check` before opening a pull request. A full formatter decision remains tracked in the maintainer roadmap.
+The repository does not currently impose an opinionated formatter. The CI style gate checks authored source/config files for carriage returns and trailing whitespace; contributors should preserve the surrounding TypeScript style and run `npm run check:style` plus `git diff --check` before opening a pull request. Formatting conventions may evolve through the public roadmap and normal issue discussion.
 
 ## Large changes
 
