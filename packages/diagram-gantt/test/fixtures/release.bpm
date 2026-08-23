@@ -1,0 +1,10 @@
+diagram: gantt
+calendar: weekdays
+group "Discovery" as discovery
+  task "Interview users" as interviews start 2026-09-01 duration 3d
+  task "Approve scope" as scope start 2026-09-04 duration 2d
+  interviews -> scope
+task "Build release" as build start 2026-09-08 end 2026-09-18
+scope -> build
+milestone "Public v1" as release start 2026-09-21
+build -> release

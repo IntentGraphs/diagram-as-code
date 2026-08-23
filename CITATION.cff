@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+title: bpm
+type: software
+authors:
+  - name: IntentGraphs
+repository-code: https://github.com/IntentGraphs/diagram-as-code
+license: MIT
+keywords:
+  - BPMN
+  - diagram-as-code
+  - diagramming

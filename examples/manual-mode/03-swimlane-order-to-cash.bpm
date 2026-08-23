@@ -1,0 +1,38 @@
+positioning: manual
+
+pool "Order-to-Cash"
+  lane "Sales"
+    event start message "Order submitted" as s1 at (40, 40)
+    task "Validate order" as s2 at (140, 30)
+    gateway exclusive "Credit OK?" as s3 at (360, 35)
+    task "Create sales order" as s4 at (500, 30)
+    event end terminate "Rejected" as s5 at (500, 140)
+  lane "Finance"
+    task "Check credit" as f1 at (140, 40)
+    task "Capture payment" as f2 at (660, 40)
+    boundary timer interrupting "Pay timeout" as fb1 on f2
+    task "Issue refund" as f3 at (860, 40)
+    dataObject "Invoice" as fd1 at (540, 160)
+  lane "Warehouse"
+    gateway parallel "Split pick/pack" as w1 at (660, 50)
+    task "Pick items" as w2 at (820, 20)
+    task "Pack shipment" as w3 at (820, 120)
+    gateway parallel "Join" as w4 at (1000, 50)
+    task "Ship order" as w5 at (1160, 40)
+    event end none "Shipped" as w6 at (1340, 50)
+
+s1 -> s2
+s2 -> f1
+f1 -> s3
+s3 => s4: "yes"
+s3 ->> s5: "no" [from: bottom, to: left]
+s4 -> f2
+f2 -> w1
+fb1 -> f3 [style: dashed]
+fd1 ..> f2
+w1 -> w2 [from: top, to: left]
+w1 -> w3 [from: bottom, to: left]
+w2 -> w4
+w3 -> w4
+w4 -> w5
+w5 -> w6

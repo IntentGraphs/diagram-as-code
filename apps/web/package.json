@@ -1,0 +1,32 @@
+{
+  "name": "@bpm/web",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@bpm/ast": "*",
+    "@bpm/diagram-runtime": "*",
+    "@bpm/export-pptx": "*",
+    "@bpm/export-xml": "*",
+    "@bpm/import-xml": "*",
+    "@bpm/layout": "*",
+    "@bpm/layout-core": "*",
+    "@bpm/parser": "*",
+    "@bpm/print-dsl": "*",
+    "@bpm/render": "*",
+    "@bpm/validate": "*",
+    "bpmn-js": "^17.11.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.47.0",
+    "@vitest/coverage-v8": "^4.1.11",
+    "fake-indexeddb": "^6.2.5",
+    "vite": "^8.2.1",
+    "vitest": "^4.1.10"
+  }
+}

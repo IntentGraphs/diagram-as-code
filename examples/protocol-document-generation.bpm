@@ -1,0 +1,46 @@
+layout: swimlane
+layoutSpacing: relaxed
+
+pool "Operations document development"
+  lane "Document owner / operations team"
+    event start none "New or updated document needed" as start
+    userTask "Define scope, document type, and audience" as scope
+    task "Provide approved source package" as provide
+    userTask "Manually review draft and AI review inputs" as humanReview
+    gateway exclusive "Is it as expected?" as accepted
+    userTask "Resolve comments and clarify requirements" as comments
+    userTask "Approve final document set" as approve
+    event end none "Complete and ready to use" as end
+
+  lane "Grounded AI assistant"
+    serviceTask "Retrieve only relevant approved information" as retrieve
+    serviceTask "Draft the requested document section" as draft
+    serviceTask "Check draft against the same approved information" as aiReview
+    task "Apply approved changes and assemble document" as assemble
+    task "Deliver master documents" as deliver
+
+  lane "Controlled source library"
+    dataStore "Source package" as sources
+
+  lane "Document set"
+    dataObject "Protocol" as protocol
+    dataObject "Consent form" as consent
+    dataObject "Other docs" as otherDocs
+
+start -> scope
+scope -> provide
+provide -> retrieve
+sources ..> retrieve
+retrieve -> draft
+draft -> aiReview
+aiReview -> assemble
+assemble -> humanReview
+humanReview -> accepted
+accepted => approve: "Yes"
+accepted ->> comments: "No"
+comments -> draft: "Revise only from approved sources"
+approve -> deliver
+deliver -> end
+protocol ..> deliver
+consent ..> deliver
+otherDocs ..> deliver

@@ -1,0 +1,30 @@
+{
+  "name": "@bpm/cli",
+  "version": "0.0.1",
+  "type": "module",
+  "bin": {
+    "bpm": "./dist/bin.js"
+  },
+  "main": "dist/bin.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@bpm/diagram-runtime": "*",
+    "@bpm/export-docx": "*",
+    "@bpm/export-pptx": "*",
+    "@bpm/export-xml": "*",
+    "@bpm/import-xml": "*",
+    "@bpm/layout": "*",
+    "@bpm/layout-core": "*",
+    "@bpm/parser": "*",
+    "@bpm/print-dsl": "*",
+    "@bpm/render": "*",
+    "@bpm/review": "*",
+    "@bpm/validate": "*",
+    "@resvg/resvg-js": "^2.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0"
+  }
+}

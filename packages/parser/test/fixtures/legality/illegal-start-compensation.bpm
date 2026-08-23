@@ -1,0 +1,3 @@
+event start compensation "Bad start" as s1
+task "Work" as t1
+s1 -> t1

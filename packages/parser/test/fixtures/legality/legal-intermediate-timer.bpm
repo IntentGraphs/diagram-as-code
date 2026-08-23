@@ -1,0 +1,7 @@
+event start none "Begin" as s1
+task "Wait for approval" as t1
+event intermediate timer "Timeout" as i1
+event end none "Done" as e1
+s1 -> t1
+t1 -> i1
+i1 -> e1

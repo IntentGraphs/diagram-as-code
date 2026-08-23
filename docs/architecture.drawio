@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="drawio" version="26.0.0">
+  <diagram name="BPM Architecture">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="tier_interfaces" value="Interfaces &amp; Local State" style="swimlane;startSize=30;horizontal=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="1140" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="web_editor" value="Web Editor&#xa;Text mode + BPMN Diagram mode&#xa;IndexedDB project persistence" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#1f2d3d;" vertex="1" parent="tier_interfaces">
+          <mxGeometry x="30" y="50" width="300" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="cli" value="CLI&#xa;validate / render / export&#xa;review / generate / import / freeze" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#1f2d3d;" vertex="1" parent="tier_interfaces">
+          <mxGeometry x="380" y="50" width="300" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="local_files" value="Local Files&#xa;.bpm / .bpmn / SVG / PNG / draw.io XML" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#274e27;" vertex="1" parent="tier_interfaces">
+          <mxGeometry x="850" y="50" width="220" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tier_runtime" value="Runtime Composition &amp; AI" style="swimlane;startSize=30;horizontal=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="20" y="210" width="1140" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="runtime" value="Diagram Runtime&#xa;Header resolution, family registry,&#xa;parse → layout → render → export dispatch" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontColor=#5a3d00;" vertex="1" parent="tier_runtime">
+          <mxGeometry x="150" y="50" width="340" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ai" value="Review &amp; Generation&#xa;Geometry findings + repair loop&#xa;Manual / Ollama / OpenAI providers" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#432b4d;" vertex="1" parent="tier_runtime">
+          <mxGeometry x="620" y="50" width="340" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tier_semantics" value="Language &amp; Semantics" style="swimlane;startSize=30;horizontal=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="20" y="400" width="1140" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="families" value="Family Adapters&#xa;BPMN / mindmap / flowchart / architecture&#xa;Family parsers, layouts, renderers, exports" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#1f2d3d;" vertex="1" parent="tier_semantics">
+          <mxGeometry x="40" y="50" width="340" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="contracts" value="AST &amp; Contracts&#xa;Shared BPMN AST, family ASTs,&#xa;capability and diagnostic interfaces" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#274e27;" vertex="1" parent="tier_semantics">
+          <mxGeometry x="420" y="50" width="300" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="validation" value="Validation &amp; Geometry&#xa;Syntax / legality / limits&#xa;overlaps, crossings, route quality" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#5a4b00;" vertex="1" parent="tier_semantics">
+          <mxGeometry x="760" y="50" width="300" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tier_delivery" value="Layout, Rendering &amp; Export" style="swimlane;startSize=30;horizontal=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="20" y="590" width="1140" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="layout" value="Layout Facade &amp; Engines&#xa;ELK flat / swimlane / manual&#xa;shared orthogonal routing" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontColor=#5a3d00;" vertex="1" parent="tier_delivery">
+          <mxGeometry x="40" y="50" width="320" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="render_export" value="SVG Renderer + Structured Export&#xa;SVG / PNG, BPMN 2.0 XML,&#xa;lossy draw.io XML and architecture C4 JSON" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#274e27;" vertex="1" parent="tier_delivery">
+          <mxGeometry x="420" y="50" width="360" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="diagram_mode" value="bpmn-js Diagram Mode&#xa;visual editing, import/open,&#xa;XML/SVG export and one-shot text import" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#432b4d;" vertex="1" parent="tier_delivery">
+          <mxGeometry x="840" y="50" width="260" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="provider_boundary" value="External AI endpoints&#xa;OpenAI-compatible API / Ollama&#xa;user-selected data boundary" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="250" width="220" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_web_runtime" value="source" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="web_editor" target="runtime"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_cli_runtime" value="source / commands" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;exitX=1;exitY=0.5;entryX=0;entryY=0.75;" edge="1" parent="1" source="cli" target="runtime"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_web_files" value="read / write" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;dashed=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="web_editor" target="local_files"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_runtime_families" value="dispatch" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="runtime" target="families"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_runtime_ai" value="review / generate" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="runtime" target="ai"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_ai_validation" value="validate / inspect" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;exitX=0.75;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="ai" target="validation"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_ai_provider" value="source + rendered image" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;dashed=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="ai" target="provider_boundary"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_families_contracts" value="parse" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="families" target="contracts"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_contracts_validation" value="semantic model" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="contracts" target="validation"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_contracts_layout" value="position" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="contracts" target="layout"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_validation_layout" value="quality checks" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;dashed=1;exitX=0.25;exitY=1;entryX=0.75;entryY=0;" edge="1" parent="1" source="validation" target="layout"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_layout_render" value="positioned diagram" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="layout" target="render_export"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_render_web" value="SVG / exports" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;exitX=0.25;exitY=0;entryX=0.5;entryY=1;" edge="1" parent="1" source="render_export" target="web_editor"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_web_diagram" value="BPMN XML" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;exitX=0.75;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="web_editor" target="diagram_mode"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,5 @@
+event start none "Begin" as s1
+task "Work" as t1
+event intermediate terminate "Bad intermediate" as i1
+s1 -> t1
+t1 -> i1

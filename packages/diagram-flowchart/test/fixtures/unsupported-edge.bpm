@@ -1,0 +1,3 @@
+box "One" as one
+box "Two" as two
+one ~> two

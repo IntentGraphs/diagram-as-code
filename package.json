@@ -1,0 +1,31 @@
+{
+  "name": "bpm",
+  "private": true,
+  "engines": {
+    "node": ">=20 <23",
+    "npm": ">=10 <11"
+  },
+  "packageManager": "npm@10.9.8",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "node scripts/build-workspaces.mjs",
+    "build:cli": "node scripts/build-cli.mjs",
+    "test": "vitest run --passWithNoTests",
+    "test:coverage": "node scripts/check-coverage.mjs",
+    "check:style": "node scripts/check-style.mjs",
+    "check:third-party-notices": "node scripts/check-third-party-notices.mjs",
+    "validate:workflows": "node scripts/validate-workflows.mjs",
+    "bpm": "npm run build:cli --silent && node packages/cli/dist/bin.js"
+  },
+  "dependencies": {
+    "image-size": "file:vendor/image-size-safe"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.11",
+    "typescript": "^5.5.0",
+    "vitest": "^4.1.11"
+  }
+}

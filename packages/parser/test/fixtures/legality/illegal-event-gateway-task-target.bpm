@@ -1,0 +1,7 @@
+event start none "Begin" as s1
+gateway eventBased "Wait for event" as g1
+task "Handle message" as t1
+event end none "Done" as e1
+s1 -> g1
+g1 -> t1
+t1 -> e1

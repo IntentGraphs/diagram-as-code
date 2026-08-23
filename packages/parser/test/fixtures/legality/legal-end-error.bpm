@@ -1,0 +1,5 @@
+event start none "Begin" as s1
+task "Work" as t1
+event end error "Failed" as e1
+s1 -> t1
+t1 -> e1

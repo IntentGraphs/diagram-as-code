@@ -1,0 +1,8 @@
+diagram: flowchart
+box "Receive request" as receive
+decision "Approved?" as approved
+box "Fulfil request" as fulfil
+box "Send rejection" as reject
+receive -> approved
+approved => fulfil: "yes"
+approved ->> reject: "no"

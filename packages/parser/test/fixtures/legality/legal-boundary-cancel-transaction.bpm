@@ -1,0 +1,7 @@
+transaction "Pay" as tx1
+  boundary cancel interrupting "Abort payment" as b1 on tx1
+  event start none "Begin" as s1
+  task "Charge card" as t1
+  event end none "Done" as e1
+  s1 -> t1
+  t1 -> e1

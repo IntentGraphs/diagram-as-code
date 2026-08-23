@@ -1,0 +1,10 @@
+positioning: manual
+
+task "Review application" as review at (40, 40) size (180, 70) [label: inside, wrap: 3]
+gateway exclusive "Approved?" as g1 at (280, 50) size (70, 70) [label: below]
+task "Approve" as approve at (420, 50) size (120, 50)
+event end none "Done" as e1 at (600, 55)
+
+review -> g1 [from: right, to: left, via: (240,75) (260,75)]
+g1 -> approve: "yes" [labelAt: 0.35, labelSide: above]
+approve -> e1

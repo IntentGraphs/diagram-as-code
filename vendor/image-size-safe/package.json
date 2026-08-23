@@ -1,0 +1,12 @@
+{
+  "name": "image-size-safe",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.cjs",
+  "exports": {
+    ".": {
+      "require": "./index.cjs",
+      "default": "./index.cjs"
+    }
+  }
+}

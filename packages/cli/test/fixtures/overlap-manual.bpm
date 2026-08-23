@@ -1,0 +1,4 @@
+positioning: manual
+
+gateway exclusive "A" as a at (0, 0)
+gateway exclusive "B" as b at (10, 10)

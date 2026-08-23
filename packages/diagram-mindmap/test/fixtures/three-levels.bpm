@@ -1,0 +1,4 @@
+mindmap "Root" as root
+  mindmap "Branch A" as a
+    mindmap "Leaf A1" as a1
+  mindmap "Branch B" as b

@@ -1,0 +1,3 @@
+diagram: mindmap
+mindmap "Root" as root
+   mindmap "Bad" as bad

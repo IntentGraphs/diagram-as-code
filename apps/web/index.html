@@ -1,0 +1,984 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Diagram Editor</title>
+    <style>
+      :root {
+        --bg: #14171a;
+        --surface: #1c2024;
+        --border: #2a2f34;
+        --ink: #e8eaec;
+        --muted: #8b939a;
+        --accent: #4fc1c9;
+        --accent-ink: #08181a;
+        --error: #e2685a;
+        --error-bg: rgba(226, 104, 90, 0.12);
+        --warning: #e3b341;
+        --warning-bg: rgba(227, 179, 65, 0.14);
+        --grid-line: rgba(232, 234, 236, 0.045);
+        --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: #f2f4f5;
+          --surface: #ffffff;
+          --border: #d8dcdf;
+          --ink: #1c2024;
+          --muted: #5b6570;
+          --accent: #1f8a95;
+          --accent-ink: #ffffff;
+          --error: #b5433a;
+          --error-bg: rgba(181, 67, 58, 0.08);
+          --warning: #8a6500;
+          --warning-bg: rgba(227, 179, 65, 0.16);
+          --grid-line: rgba(28, 32, 36, 0.045);
+        }
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; }
+      body {
+        display: flex;
+        flex-direction: column;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: var(--font-mono);
+      }
+
+      #toolbar {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        column-gap: 20px;
+        row-gap: 8px;
+        min-height: 44px;
+        height: auto;
+        padding: 8px 16px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+      }
+      #brand {
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+      }
+      #toolbar-actions, #diagram-toolbar-actions {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        row-gap: 6px;
+      }
+      #toolbar-actions {
+        flex: 1 1 760px;
+        min-width: 0;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+          "status navigation"
+          "primary secondary";
+        align-items: center;
+        gap: 6px 12px;
+      }
+      #toolbar-actions > .toolbar-group {
+        min-width: 0;
+        padding-left: 0;
+        border-left: none;
+        gap: 6px;
+      }
+      #toolbar-actions > .toolbar-group:nth-child(1) { grid-area: status; }
+      #toolbar-actions > .toolbar-group:nth-child(2) { grid-area: navigation; justify-content: flex-end; }
+      #toolbar-actions > .toolbar-group:nth-child(3) { grid-area: primary; }
+      #toolbar-actions > .toolbar-group:nth-child(4) { grid-area: secondary; justify-content: flex-end; }
+      #toolbar-actions .toolbar-status-group { overflow: hidden; }
+      #toolbar-actions .toolbar-status-group .badge { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      #render-btn:not(:disabled) { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+      #clear-btn { color: var(--muted); }
+      .toolbar-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding-left: 16px;
+      }
+      .toolbar-group:first-child { padding-left: 0; }
+      .toolbar-group:not(:first-child) { border-left: 1px solid var(--border); }
+      #mode-toggle { display: flex; gap: 4px; }
+      .mode-btn {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--muted);
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        padding: 6px 12px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+      }
+      .mode-btn[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+      .mode-btn:hover { border-color: var(--accent); }
+      .mode-btn-icon { margin-right: 5px; }
+      .family-badge-icon { margin-right: 4px; vertical-align: -1px; }
+      .segmented-group {
+        display: flex;
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+      .segmented-group .segmented-btn {
+        border: none;
+        border-radius: 0;
+      }
+      .segmented-group .segmented-btn:not(:first-child) { border-left: 1px solid var(--border); }
+      #project-toggle-btn[aria-pressed]::after,
+      .segmented-btn[aria-pressed]::after {
+        margin-left: 5px;
+        font-size: 9px;
+      }
+      #project-toggle-btn[aria-pressed="true"]::after,
+      .segmented-btn[aria-pressed="true"]::after { content: "\25be"; }
+      #project-toggle-btn[aria-pressed="false"]::after,
+      .segmented-btn[aria-pressed="false"]::after { content: "\25b8"; }
+
+      @media (max-width: 760px) {
+        #toolbar { padding: 8px 10px; }
+        #toolbar-actions {
+          flex-basis: 100%;
+          grid-template-columns: 1fr;
+          grid-template-areas: "status" "navigation" "primary" "secondary";
+        }
+        #toolbar-actions > .toolbar-group:nth-child(2),
+        #toolbar-actions > .toolbar-group:nth-child(4) { justify-content: flex-start; }
+      }
+
+      /* ID selectors otherwise beat the [hidden] attribute selector's specificity. */
+      #toolbar-actions[hidden],
+      #diagram-toolbar-actions[hidden],
+      #body[hidden],
+      #diagram-body[hidden] { display: none; }
+
+      #diagram-body { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+      #diagram-status {
+        flex: 0 0 auto;
+        min-height: 24px;
+        padding: 5px 12px;
+        color: var(--muted);
+        border-bottom: 1px solid var(--border);
+        font-size: 11px;
+      }
+      #diagram-errors { flex: 0 0 auto; }
+      #diagram-canvas { flex: 1; min-height: 0; background: var(--bg); }
+      .badge {
+        font-size: 11px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--muted);
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        padding: 2px 8px;
+      }
+      #family-badge { color: var(--accent); }
+      .toolbar-btn {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--ink);
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        padding: 6px 12px;
+        cursor: pointer;
+      }
+      .toolbar-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+      .toolbar-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+      .zoom-label {
+        min-width: 44px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .export-menu { position: relative; display: inline-block; }
+      .export-menu-list {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        margin-top: 4px;
+        min-width: 180px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+      }
+      .export-menu-list[hidden] { display: none; }
+      .export-menu-item {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--ink);
+        background: transparent;
+        border: none;
+        text-align: left;
+        padding: 8px 12px;
+        cursor: pointer;
+      }
+      .export-menu-item:hover { background: var(--bg); color: var(--accent); }
+
+      #body { flex: 1; display: flex; min-height: 0; }
+
+      #project-panel {
+        flex: 0 0 180px;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+      }
+      #project-panel[hidden] { display: none; }
+      #project-splitter {
+        flex: 0 0 6px;
+        cursor: col-resize;
+        background: var(--border);
+        position: relative;
+      }
+      #project-splitter[hidden] { display: none; }
+      #project-splitter:hover, #project-splitter.dragging { background: var(--accent); }
+      #project-splitter::after {
+        content: "";
+        position: absolute;
+        top: 0; bottom: 0;
+        left: -4px; right: -4px;
+      }
+      #project-warning {
+        flex: 0 0 auto;
+        font-size: 11px;
+        padding: 8px 12px;
+        color: var(--error);
+        background: var(--error-bg);
+        border-bottom: 1px solid var(--border);
+      }
+      #project-warning[hidden] { display: none; }
+      #project-warning.project-warning-success { color: var(--accent); background: transparent; }
+      #project-warning.project-warning-error { color: var(--error); background: var(--error-bg); }
+      #project-warning button { margin-left: 8px; }
+      #diagram-name-dialog {
+        min-width: min(360px, calc(100vw - 32px));
+        color: var(--ink);
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 16px;
+      }
+      #diagram-name-dialog::backdrop { background: rgba(0, 0, 0, 0.55); }
+      #diagram-name-dialog label { display: block; margin-bottom: 8px; font-size: 11px; text-transform: uppercase; }
+      #diagram-name-input { width: 100%; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--border); padding: 7px; }
+      #diagram-name-error { margin-top: 6px; color: var(--error); font-size: 11px; }
+      .diagram-name-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+      #heavy-render-dialog {
+        min-width: min(440px, calc(100vw - 32px));
+        color: var(--ink);
+        background: var(--surface);
+        border: 1px solid var(--error);
+        border-radius: 4px;
+        padding: 16px;
+      }
+      #heavy-render-dialog::backdrop { background: rgba(0, 0, 0, 0.55); }
+      #heavy-render-dialog h2 { margin: 0 0 8px; font-size: 13px; color: var(--error); }
+      #heavy-render-dialog p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
+      #heavy-render-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+      #render-status { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      #render-spinner {
+        display: inline-block;
+        width: 11px;
+        height: 11px;
+        border: 2px solid var(--border);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: render-spin 0.8s linear infinite;
+        vertical-align: middle;
+        margin-right: 4px;
+      }
+      /* The component is controlled with the HTML hidden attribute. Keep the idle state
+         out of layout even though the base spinner rule has an explicit display value. */
+      #render-spinner[hidden] { display: none; }
+      @media (prefers-reduced-motion: reduce) {
+        #render-spinner { animation: none; }
+      }
+      @keyframes render-spin {
+        to { transform: rotate(360deg); }
+      }
+      #render-elapsed { color: var(--muted); }
+      #project-name {
+        flex: 0 0 auto;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--muted);
+        padding: 12px 12px 8px;
+        border-bottom: 1px solid var(--border);
+      }
+      #project-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 10px 8px 8px 12px;
+        border-bottom: 1px solid var(--border);
+      }
+      #project-header #project-name {
+        min-width: 0;
+        padding: 0;
+        border-bottom: none;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      #project-rename-btn {
+        flex: 0 0 auto;
+        padding: 2px 5px;
+      }
+      #diagram-list {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        list-style: none;
+        margin: 0;
+        padding: 8px 0;
+      }
+      .diagram-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px 2px 12px;
+      }
+      .diagram-item.active .diagram-select { color: var(--accent); }
+      .diagram-select {
+        flex: 1;
+        min-width: 0;
+        text-align: left;
+        font-family: var(--font-mono);
+        font-size: 12px;
+        color: var(--ink);
+        background: transparent;
+        border: none;
+        padding: 6px 4px;
+        cursor: pointer;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .diagram-select:hover { color: var(--accent); }
+      .diagram-action {
+        flex: 0 0 auto;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--muted);
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 3px;
+        padding: 2px 6px;
+        cursor: pointer;
+      }
+      .diagram-action:hover { color: var(--accent); border-color: var(--border); }
+      #diagram-new-btn {
+        flex: 0 0 auto;
+        margin: 8px 12px 12px;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--ink);
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        padding: 6px 10px;
+        cursor: pointer;
+      }
+      #diagram-new-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+      #editor {
+        flex: 0 0 50%;
+        min-width: 0;
+        height: 100%;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: var(--font-mono);
+        font-size: 13px;
+        line-height: 1.6;
+        border: none;
+        border-left: 3px solid var(--border);
+        border-right: 1px solid var(--border);
+        padding: 16px;
+        resize: none;
+        transition: border-left-color 0.15s;
+      }
+      #editor:focus { outline: none; border-left-color: var(--accent); }
+
+      #splitter {
+        flex: 0 0 6px;
+        cursor: col-resize;
+        background: var(--border);
+        position: relative;
+      }
+      #splitter:hover, #splitter.dragging { background: var(--accent); }
+      /* Widen the hit area beyond the visible 6px without widening the visible bar. */
+      #splitter::after {
+        content: "";
+        position: absolute;
+        top: 0; bottom: 0;
+        left: -4px; right: -4px;
+      }
+
+      #preview-container { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
+
+      #errors {
+        flex: 0 0 auto;
+      }
+      .error-item {
+        font-size: 12px;
+        padding: 8px 16px;
+        border-left: 3px solid var(--error);
+        background: var(--error-bg);
+        white-space: pre-wrap;
+      }
+      .error-line { font-weight: 700; margin-right: 4px; }
+      .warning-item {
+        font-size: 12px;
+        padding: 8px 16px;
+        border-left: 3px solid var(--warning);
+        background: var(--warning-bg);
+        white-space: pre-wrap;
+      }
+
+      #preview {
+        flex: 1;
+        min-width: 0;
+        min-height: 0;
+        overflow: auto;
+        padding: 16px;
+        display: block;
+        background-color: var(--bg);
+        background-image:
+          linear-gradient(var(--grid-line) 1px, transparent 1px),
+          linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+        background-size: 24px 24px;
+        transition: filter 0.2s, opacity 0.2s;
+      }
+      /* svgViewport sizes the diagram to fit initially and grows this stage when the user
+         zooms, so large diagrams remain scrollable without distorting their aspect ratio. */
+      #preview svg {
+        display: block;
+        flex: 0 0 auto;
+      }
+      #preview .svg-viewport-stage {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 100%;
+        min-height: 100%;
+      }
+      #preview.stale { filter: grayscale(0.4); opacity: 0.55; }
+
+      #review-panel {
+        flex: 0 0 auto;
+        height: 280px;
+        min-height: 120px;
+        max-height: 80vh;
+        resize: vertical;
+        overflow-y: auto;
+        border-top: 1px solid var(--border);
+        background: var(--surface);
+        font-size: 12px;
+      }
+      #review-panel[hidden] { display: none; }
+      .panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--border);
+      }
+      .review-header {
+        padding: 6px 16px;
+        font-weight: 600;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--muted);
+      }
+      .panel-header .review-header { border-bottom: none; flex: 1; }
+      .panel-close-btn {
+        font-family: var(--font-mono);
+        font-size: 14px;
+        line-height: 1;
+        color: var(--muted);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 4px 12px;
+      }
+      .panel-close-btn:hover { color: var(--accent); }
+      .review-item {
+        padding: 6px 16px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 4px 8px;
+      }
+      .review-item.review-warning { color: var(--error); }
+      .review-item.review-note { color: var(--muted); }
+      .review-badge {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        padding: 1px 6px;
+        border-radius: 2px;
+        background: var(--border);
+        color: var(--ink);
+        white-space: nowrap;
+      }
+      .review-settings {
+        padding: 8px 16px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg);
+      }
+      .review-settings label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+      }
+      .review-settings select,
+      .review-settings input {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        background: var(--surface);
+        color: var(--ink);
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        padding: 4px 8px;
+      }
+      .review-settings input[type="password"] { min-width: 200px; }
+      .review-settings input::placeholder { color: var(--muted); }
+      .review-settings .review-run-btn {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        background: var(--accent);
+        color: var(--accent-ink);
+        border: none;
+        border-radius: 3px;
+        padding: 5px 14px;
+        cursor: pointer;
+      }
+      .review-settings .review-run-btn:hover { opacity: 0.85; }
+      .review-settings .review-run-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+      .review-status {
+        padding: 4px 16px;
+        font-size: 11px;
+        color: var(--muted);
+        font-style: italic;
+      }
+      .review-item.review-model { color: var(--accent); }
+      .review-item.review-error { color: var(--error); }
+      .review-item.review-applied { opacity: 0.45; }
+      .review-item.review-skipped { opacity: 0.35; }
+      .review-msg { flex: 1; }
+      .review-suggestion {
+        font-size: 11px;
+        font-style: italic;
+        opacity: 0.7;
+        margin-top: 2px;
+        padding-left: 4px;
+      }
+      .review-patch-preview {
+        font-size: 11px;
+        margin-top: 4px;
+        padding: 4px 8px;
+        background: var(--bg);
+        border-radius: 3px;
+        font-family: var(--font-mono);
+        overflow-x: auto;
+      }
+      .review-patch-old { color: var(--error); }
+      .review-patch-new { color: var(--accent); }
+      .review-actions {
+        display: flex;
+        gap: 6px;
+        margin-top: 4px;
+      }
+      .review-action-btn {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        background: transparent;
+        color: var(--muted);
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        padding: 3px 10px;
+        cursor: pointer;
+      }
+      .review-action-btn:hover { border-color: var(--accent); color: var(--accent); }
+      .review-applied-tag { color: var(--accent); font-size: 11px; }
+      .review-skipped-tag { color: var(--muted); font-size: 11px; }
+      .review-bulk-actions {
+        padding: 6px 16px;
+        display: flex;
+        gap: 8px;
+        border-bottom: 1px solid var(--border);
+      }
+      .review-suggestion,
+      .review-patch-preview,
+      .review-actions { width: 100%; }
+      #generate-panel {
+        flex: 0 0 auto;
+        height: 340px;
+        min-height: 160px;
+        max-height: 80vh;
+        resize: vertical;
+        overflow-y: auto;
+        border-top: 1px solid var(--border);
+        background: var(--surface);
+        font-size: 12px;
+      }
+      #generate-panel[hidden] { display: none; }
+      #generate-description {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        margin: 0;
+        padding: 8px 16px;
+        font-family: var(--font-mono);
+        font-size: 12px;
+        background: var(--bg);
+        color: var(--ink);
+        border: none;
+        border-bottom: 1px solid var(--border);
+        resize: vertical;
+      }
+      #generate-description::placeholder { color: var(--muted); }
+      .generate-result-badge {
+        margin: 8px 16px 0;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .generate-result-badge.generate-valid { color: var(--accent); }
+      .generate-result-badge.generate-invalid { color: var(--error); }
+      .generate-result-text {
+        margin: 6px 16px;
+        padding: 8px 10px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        white-space: pre-wrap;
+        overflow-x: auto;
+        max-height: 160px;
+        overflow-y: auto;
+      }
+      #generate-panel .review-run-btn { margin: 0 16px 10px; }
+      .generate-insert-anyway-btn {
+        margin: 0 16px 10px;
+        padding: 6px 12px;
+        background: transparent;
+        color: var(--error);
+        border: 1px solid var(--error);
+        border-radius: 3px;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .generate-insert-anyway-btn:hover { background: var(--error); color: var(--bg); }
+      #import-panel {
+        flex: 0 0 auto;
+        height: 340px;
+        min-height: 160px;
+        max-height: 80vh;
+        resize: vertical;
+        overflow-y: auto;
+        border-top: 1px solid var(--border);
+        background: var(--surface);
+        font-size: 12px;
+      }
+      #import-panel[hidden] { display: none; }
+      #import-panel .review-run-btn { margin: 0 16px 10px; }
+      .import-issue-list {
+        margin: 6px 16px;
+        padding-left: 18px;
+        font-size: 11px;
+        color: var(--error);
+      }
+      .import-issue-list li { margin-bottom: 2px; }
+      .import-loss-summary {
+        margin: 8px 16px 4px;
+        padding: 6px 8px;
+        border-left: 3px solid var(--accent);
+        background: var(--bg);
+        font-size: 11px;
+        color: var(--text);
+      }
+      #import-panel details {
+        margin: 4px 16px 8px;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      #import-panel details .import-issue-list {
+        margin-left: 0;
+        margin-right: 0;
+      }
+      #diagram-agent-panel {
+        flex: 0 0 auto;
+        height: 360px;
+        min-height: 180px;
+        max-height: 80vh;
+        resize: vertical;
+        overflow-y: auto;
+        border-top: 1px solid var(--border);
+        background: var(--surface);
+        font-size: 12px;
+      }
+      #diagram-agent-panel[hidden] { display: none; }
+      .agent-hint, .agent-status, .agent-plan-explanation {
+        margin: 8px 16px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .agent-settings, .agent-actions {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 8px 16px;
+      }
+      .agent-settings select, #diagram-agent-panel textarea {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        background: var(--bg);
+        color: var(--ink);
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        padding: 6px 8px;
+      }
+      #diagram-agent-panel textarea {
+        display: block;
+        width: calc(100% - 32px);
+        resize: vertical;
+        min-height: 54px;
+      }
+      .agent-status[data-state="error"] { color: var(--error); }
+      .agent-plan {
+        margin: 8px 16px 14px;
+        padding: 8px 10px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 3px;
+      }
+      .agent-plan[hidden] { display: none; }
+      .agent-plan-title { color: var(--accent); font-weight: 600; }
+      .agent-plan-list { margin: 6px 0 0; padding-left: 24px; font-size: 11px; }
+      .agent-plan-list li { margin: 3px 0; color: var(--muted); }
+      .agent-plan-list li.agent-plan-current { color: var(--ink); font-weight: 600; }
+      .agent-plan-list li.agent-plan-applied { color: var(--accent); text-decoration: line-through; }
+      #settings-panel {
+        flex: 0 0 auto;
+        height: 180px;
+        min-height: 100px;
+        max-height: 80vh;
+        resize: vertical;
+        overflow-y: auto;
+        border-top: 1px solid var(--border);
+        background: var(--surface);
+        font-size: 12px;
+      }
+      #settings-panel[hidden] { display: none; }
+      #settings-panel .review-settings { flex-wrap: wrap; }
+      #settings-panel input {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        background: var(--bg);
+        color: var(--ink);
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        padding: 4px 8px;
+      }
+      #settings-panel input[type="password"] { min-width: 260px; }
+      #settings-panel .settings-checkbox {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text);
+        font-size: 12px;
+      }
+      #settings-panel .settings-hint {
+        padding: 6px 16px 12px;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .settings-section-label {
+        padding: 10px 16px 4px;
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+      }
+      /* The Fullscreen API's element keeps whatever display it already had ("flex" here),
+         but drops any ancestor-imposed height, so it must size itself to the viewport. */
+      #preview:fullscreen {
+        width: 100vw;
+        height: 100vh;
+        padding: 32px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="toolbar" role="toolbar" aria-label="Diagram editor controls">
+      <div class="toolbar-group">
+        <div id="brand">&#9633; DIAGRAM EDITOR</div>
+        <div id="mode-toggle" role="group" aria-label="Editing mode">
+          <button id="mode-text-btn" class="mode-btn" aria-pressed="true">
+            <svg class="mode-btn-icon" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false">
+              <path d="M2 14l1-3.5L10.5 3 13 5.5 5.5 13 2 14Z" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/>
+              <path d="M9 4.5 11.5 7" stroke="currentColor" stroke-width="1.1"/>
+            </svg>
+            Text
+          </button>
+          <button id="mode-diagram-btn" class="mode-btn" aria-pressed="false">
+            <svg class="mode-btn-icon" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false">
+              <circle cx="3" cy="4" r="1.6" fill="none" stroke="currentColor" stroke-width="1.1"/>
+              <circle cx="13" cy="4" r="1.6" fill="none" stroke="currentColor" stroke-width="1.1"/>
+              <circle cx="8" cy="12.5" r="1.6" fill="none" stroke="currentColor" stroke-width="1.1"/>
+              <path d="M4.5 4h7M4 5.4 7 11.2M12 5.4 9 11.2" stroke="currentColor" stroke-width="1"/>
+            </svg>
+            Diagram
+          </button>
+        </div>
+      </div>
+      <div id="toolbar-actions">
+        <div class="toolbar-group toolbar-status-group" aria-label="Diagram status">
+          <span id="engine-badge" class="badge"></span>
+          <span id="family-badge" class="badge" aria-live="polite">
+            <svg class="family-badge-icon" viewBox="0 0 16 16" width="10" height="10" aria-hidden="true" focusable="false">
+              <rect x="1" y="6" width="4.5" height="4" fill="none" stroke="currentColor" stroke-width="1"/>
+              <rect x="10.5" y="6" width="4.5" height="4" fill="none" stroke="currentColor" stroke-width="1"/>
+              <path d="M5.5 8h5" stroke="currentColor" stroke-width="1"/>
+            </svg>
+            <span id="family-badge-label">No family</span>
+          </span>
+          <span id="render-status" class="badge" role="status" aria-live="polite" hidden></span>
+          <span id="render-spinner" class="render-spinner" hidden aria-hidden="true"></span>
+          <span id="render-elapsed" class="badge" hidden></span>
+          <button id="render-cancel-btn" class="toolbar-btn" hidden>Cancel Render</button>
+          <span id="operation-status" class="badge" role="status" aria-live="polite" hidden></span>
+        </div>
+        <div class="toolbar-group toolbar-navigation-group">
+          <button id="project-toggle-btn" class="toolbar-btn" aria-pressed="true">Projects</button>
+          <div class="segmented-group">
+            <button id="review-btn" class="toolbar-btn segmented-btn" aria-pressed="false">Review</button>
+            <button id="generate-btn" class="toolbar-btn segmented-btn" aria-pressed="false">Generate</button>
+            <button id="settings-btn" class="toolbar-btn segmented-btn" aria-pressed="false">Settings</button>
+          </div>
+        </div>
+        <div class="toolbar-group toolbar-primary-group">
+          <button id="clear-btn" class="toolbar-btn">Clear</button>
+          <button id="render-btn" class="toolbar-btn">Render</button>
+          <button id="source-open-btn" class="toolbar-btn">Open source</button>
+          <input type="file" id="source-open-input" accept=".bpm,.txt,.bpmn,.xml,.bpm-project.json,application/json,text/plain,application/xml" aria-label="Open diagram source or project bundle" hidden />
+          <button id="project-save-btn" class="toolbar-btn" title="Download all project sources and render snapshots">Save project</button>
+          <button id="fullscreen-btn" class="toolbar-btn">Fullscreen</button>
+        </div>
+        <div class="toolbar-group toolbar-secondary-group">
+          <button id="edit-as-diagram" class="toolbar-btn" disabled>Edit as Diagram</button>
+          <div id="export-menu-container"></div>
+        </div>
+      </div>
+      <div id="diagram-toolbar-actions" hidden>
+        <div class="toolbar-group">
+          <button id="diagram-new" class="toolbar-btn">New Diagram</button>
+          <button id="diagram-open" class="toolbar-btn">Open</button>
+          <input type="file" id="diagram-open-input" accept=".bpmn,.xml" aria-label="Open BPMN file" hidden />
+        </div>
+        <div class="toolbar-group">
+          <button id="diagram-save" class="toolbar-btn" disabled>Save</button>
+          <div id="diagram-export-menu-container"></div>
+        </div>
+        <div class="toolbar-group">
+          <button id="diagram-import-text" class="toolbar-btn" disabled>Import to Text</button>
+        </div>
+        <div class="toolbar-group" aria-label="Diagram zoom controls">
+          <button id="diagram-zoom-out" class="toolbar-btn" aria-label="Zoom out" title="Zoom out">−</button>
+          <span id="diagram-zoom-label" class="zoom-label" aria-live="polite">100%</span>
+          <button id="diagram-zoom-in" class="toolbar-btn" aria-label="Zoom in" title="Zoom in">+</button>
+          <button id="diagram-zoom-fit" class="toolbar-btn" aria-label="Fit diagram to canvas" title="Fit diagram to canvas">Fit</button>
+        </div>
+        <div class="toolbar-group">
+          <button id="diagram-agent-btn" class="toolbar-btn" aria-pressed="false" disabled>Manual AI Agent</button>
+        </div>
+      </div>
+    </div>
+    <main id="body">
+      <aside id="project-panel">
+        <div id="project-warning" hidden>
+          <span id="project-warning-text">Diagram storage unavailable — changes will not survive reload.</span>
+          <button id="project-retry-btn" type="button" class="diagram-action" hidden>Retry save</button>
+        </div>
+        <div id="project-header">
+          <div id="project-name">Untitled project</div>
+          <button id="project-rename-btn" type="button" class="diagram-action" aria-label="Rename project" title="Rename project">✎</button>
+        </div>
+        <ul id="diagram-list"></ul>
+        <button id="diagram-new-btn" type="button" class="toolbar-btn">+ New diagram</button>
+      </aside>
+      <div id="project-splitter" role="separator" aria-label="Resize project panel" aria-orientation="vertical" tabindex="0"></div>
+      <textarea id="editor" aria-label="Diagram source" spellcheck="false"></textarea>
+      <div id="splitter" role="separator" aria-label="Resize source and preview panes" aria-orientation="vertical" tabindex="0"></div>
+      <div id="preview-container" aria-label="Diagram preview">
+        <div id="errors" role="alert" aria-live="assertive"></div>
+        <div id="preview"></div>
+        <div id="settings-panel-container"></div>
+      </div>
+      <dialog id="diagram-name-dialog">
+        <form method="dialog" onsubmit="return false">
+          <label for="diagram-name-input">Diagram name</label>
+          <input id="diagram-name-input" type="text" autocomplete="off" />
+          <div id="diagram-name-error" role="alert" hidden></div>
+          <div class="diagram-name-actions">
+            <button id="diagram-name-cancel" type="button" class="toolbar-btn">Cancel</button>
+            <button id="diagram-name-confirm" type="button" class="toolbar-btn">Save</button>
+          </div>
+        </form>
+      </dialog>
+      <dialog id="heavy-render-dialog" aria-labelledby="heavy-render-title">
+        <h2 id="heavy-render-title">Automatic rendering paused</h2>
+        <p id="heavy-render-message"></p>
+        <div id="heavy-render-dialog-actions">
+          <button id="heavy-render-close" type="button" class="toolbar-btn">Keep editing</button>
+          <button id="heavy-render-once" type="button" class="toolbar-btn">Render once</button>
+        </div>
+      </dialog>
+    </main>
+    <div id="diagram-body" hidden aria-label="BPMN diagram editor">
+      <div id="diagram-status" role="status" aria-live="polite">Diagram ready. No unsaved changes.</div>
+      <div id="diagram-errors" role="alert" aria-live="assertive"></div>
+      <div id="diagram-canvas" tabindex="0" aria-label="BPMN diagram canvas"></div>
+      <div id="diagram-agent-panel-container"></div>
+      <div id="import-panel-container"></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

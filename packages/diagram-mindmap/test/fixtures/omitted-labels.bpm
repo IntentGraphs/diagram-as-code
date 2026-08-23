@@ -1,0 +1,4 @@
+mindmap as core_system
+  mindmap as auth_service
+    mindmap as oauth2_provider
+  mindmap as payment_gateway

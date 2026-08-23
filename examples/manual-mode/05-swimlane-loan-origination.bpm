@@ -1,0 +1,46 @@
+positioning: manual
+
+pool "Loan Origination"
+  lane "Applicant"
+    event start message "Application in" as c1 at (40, 40)
+    task "Upload docs" as c2 at (160, 30)
+    event intermediate message "Offer letter" as c3 at (1040, 40)
+    event end none "Accepted" as c4 at (1240, 40)
+  lane "Underwriting"
+    task "KYC check" as u1 at (160, 30)
+    gateway exclusive "KYC pass?" as u2 at (340, 35)
+    task "Score risk" as u3 at (480, 30)
+    gateway exclusive "Risk OK?" as u4 at (660, 35)
+    task "Manual review" as u5 at (660, 150)
+    boundary error interrupting "Fraud hit" as ub1 on u1
+    event end terminate "Declined KYC" as u6 at (340, 150)
+    event end terminate "Declined risk" as u7 at (860, 150)
+  lane "Credit ops"
+    gateway parallel "Disburse prep" as o1 at (160, 40)
+    task "Open account" as o2 at (340, 10)
+    task "Book facility" as o3 at (340, 120)
+    gateway parallel "Ready" as o4 at (540, 40)
+    task "Disburse funds" as o5 at (720, 30)
+    event end none "Live" as o6 at (920, 40)
+    dataStore "Core banking" as od1 at (720, 160)
+
+c1 -> c2
+c2 -> u1
+u1 -> u2
+ub1 -> u6 [style: dashed]
+u2 => u3: "yes"
+u2 ->> u6: "no" [from: bottom, to: left]
+u3 -> u4
+u4 => o1: "yes"
+u4 -> u5: "review" [from: bottom, to: left]
+u5 -> u4
+u4 ->> u7: "no" [from: bottom, to: right]
+o1 -> o2 [from: top, to: left]
+o1 -> o3 [from: bottom, to: left]
+o2 -> o4
+o3 -> o4
+o4 -> o5
+o5 -> o6
+od1 ..> o5
+o5 ~> c3
+c3 -> c4

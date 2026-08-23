@@ -1,0 +1,5 @@
+box "Start work" as start
+box "Finish work" as finish
+box "Archive" as archive
+start -> finish
+finish -> archive

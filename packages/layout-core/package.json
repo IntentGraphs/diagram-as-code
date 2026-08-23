@@ -1,0 +1,14 @@
+{
+  "name": "@bpm/layout-core",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+    "./test-utils/geometry": { "types": "./test-utils/geometry.ts", "default": "./test-utils/geometry.ts" },
+    "./test-utils/verificationDiagrams": { "types": "./test-utils/verificationDiagrams.ts", "default": "./test-utils/verificationDiagrams.ts" }
+  },
+  "scripts": { "build": "tsc -p tsconfig.json" },
+  "dependencies": { "@bpm/ast": "*", "@bpm/diagram-core": "*" }
+}

@@ -1,0 +1,2 @@
+mindmap "Root" as root
+   mindmap "Bad" as bad

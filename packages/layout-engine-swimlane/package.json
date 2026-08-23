@@ -1,0 +1,19 @@
+{
+  "name": "@bpm/layout-engine-swimlane",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@bpm/ast": "*",
+    "@bpm/layout-core": "*",
+    "@bpm/layout-elk-base": "*"
+  },
+  "devDependencies": {
+    "@bpm/parser": "*",
+    "@bpm/layout": "*"
+  }
+}

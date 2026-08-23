@@ -1,0 +1,15 @@
+{
+  "name": "@bpm/diagram-architecture",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
+  "scripts": { "build": "tsc -p tsconfig.json" },
+  "dependencies": {
+    "@bpm/diagram-core": "*",
+    "@bpm/export-drawio": "*",
+    "@bpm/render-core": "*",
+    "elkjs": "^0.9.3"
+  }
+}

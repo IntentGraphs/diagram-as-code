@@ -1,0 +1,27 @@
+{
+  "name": "@bpm/diagram-runtime",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": { "build": "tsc -p tsconfig.json" },
+  "dependencies": {
+    "@bpm/ast": "*",
+    "@bpm/diagram-architecture": "*",
+    "@bpm/diagram-core": "*",
+    "@bpm/diagram-flowchart": "*",
+    "@bpm/diagram-gantt": "*",
+    "@bpm/diagram-mindmap": "*",
+    "@bpm/export-xml": "*",
+    "@bpm/layout": "*",
+    "@bpm/parser": "*",
+    "@bpm/render": "*",
+    "@bpm/validate": "*"
+  }
+}

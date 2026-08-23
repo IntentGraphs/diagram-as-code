@@ -1,0 +1,6 @@
+box "Start" as start
+decision "Approved?" as approved
+box "Complete" as complete
+start -> approved
+approved => complete: "yes"
+approved => complete: "no"

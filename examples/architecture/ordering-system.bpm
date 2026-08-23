@@ -1,0 +1,8 @@
+diagram: architecture
+person "Customer" as customer
+system "Ordering System" as ordering
+  container "Order API" as api
+    component "Checkout" as checkout
+database "Orders Database" as orders
+customer -> api: "places order"
+checkout -> orders: "stores order"

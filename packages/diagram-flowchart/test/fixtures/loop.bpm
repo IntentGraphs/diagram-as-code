@@ -1,0 +1,6 @@
+box "Retry" as retry
+decision "Succeeded?" as done
+box "Complete" as complete
+retry -> done
+done ->> retry: "again"
+done => complete: "yes"

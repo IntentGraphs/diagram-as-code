@@ -1,0 +1,6 @@
+diagram: flowchart
+box "Start" as start
+decision "Approved?" as approved
+box "Done" as done
+start -> approved
+approved => done: "yes"

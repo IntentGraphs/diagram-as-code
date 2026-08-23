@@ -1,0 +1,236 @@
+render: manual
+
+pool "Customer Portal"
+  lane "Intake"
+    event start none "Order received" as n1
+    task "Customer Portal step n2" as n2
+    task "Customer Portal step n3" as n3
+    task "Customer Portal step n4" as n4
+    task "Customer Portal step n5" as n5
+    task "Customer Portal step n6" as n6
+  lane "Order Desk"
+    task "Customer Portal step n7" as n7
+    task "Customer Portal step n8" as n8
+    task "Customer Portal step n9" as n9
+    task "Customer Portal step n10" as n10
+    task "Customer Portal step n11" as n11
+    gateway exclusive "Customer Portal check n12?" as n12
+    task "Customer Portal step n13" as n13
+    task "Customer Portal step n14" as n14
+    task "Customer Portal step n15" as n15
+    task "Customer Portal step n16" as n16
+pool "Design Engineering"
+  lane "Spec Review"
+    task "Design Engineering step n17" as n17
+    task "Design Engineering step n18" as n18
+    task "Design Engineering step n19" as n19
+    task "Design Engineering step n20" as n20
+    task "Design Engineering step n21" as n21
+    task "Design Engineering step n22" as n22
+    task "Design Engineering step n23" as n23
+    task "Design Engineering step n24" as n24
+    task "Design Engineering step n25" as n25
+    task "Design Engineering step n26" as n26
+  lane "CAD"
+    task "Design Engineering step n27" as n27
+    task "Design Engineering step n28" as n28
+    task "Design Engineering step n29" as n29
+    task "Design Engineering step n30" as n30
+    task "Design Engineering step n31" as n31
+    gateway exclusive "Design Engineering check n32?" as n32
+    task "Design Engineering step n33" as n33
+    task "Design Engineering step n34" as n34
+    task "Design Engineering step n35" as n35
+    task "Design Engineering step n36" as n36
+  lane "QA Sign-off"
+    task "Design Engineering step n37" as n37
+    task "Design Engineering step n38" as n38
+    task "Design Engineering step n39" as n39
+    task "Design Engineering step n40" as n40
+    task "Design Engineering step n41" as n41
+    gateway exclusive "Design Engineering check n42?" as n42
+    task "Design Engineering step n43" as n43
+    task "Design Engineering step n44" as n44
+    task "Design Engineering step n45" as n45
+    task "Design Engineering step n46" as n46
+pool "Shop Floor"
+  lane "Fabrication"
+    task "Shop Floor step n47" as n47
+    task "Shop Floor step n48" as n48
+    task "Shop Floor step n49" as n49
+    task "Shop Floor step n50" as n50
+    task "Shop Floor step n51" as n51
+    task "Shop Floor step n52" as n52
+    task "Shop Floor step n53" as n53
+    task "Shop Floor step n54" as n54
+    task "Shop Floor step n55" as n55
+    task "Shop Floor step n56" as n56
+  lane "Assembly"
+    task "Shop Floor step n57" as n57
+    task "Shop Floor step n58" as n58
+    task "Shop Floor step n59" as n59
+    task "Shop Floor step n60" as n60
+    task "Shop Floor step n61" as n61
+    gateway exclusive "Shop Floor check n62?" as n62
+    task "Shop Floor step n63" as n63
+    task "Shop Floor step n64" as n64
+    task "Shop Floor step n65" as n65
+    task "Shop Floor step n66" as n66
+  lane "Inspection"
+    task "Shop Floor step n67" as n67
+    task "Shop Floor step n68" as n68
+    task "Shop Floor step n69" as n69
+    task "Shop Floor step n70" as n70
+    task "Shop Floor step n71" as n71
+    gateway exclusive "Shop Floor check n72?" as n72
+    task "Shop Floor step n73" as n73
+    task "Shop Floor step n74" as n74
+    task "Shop Floor step n75" as n75
+    task "Shop Floor step n76" as n76
+pool "Logistics"
+  lane "Packaging"
+    task "Logistics step n77" as n77
+    task "Logistics step n78" as n78
+    task "Logistics step n79" as n79
+    task "Logistics step n80" as n80
+    task "Logistics step n81" as n81
+    task "Logistics step n82" as n82
+    task "Logistics step n83" as n83
+    task "Logistics step n84" as n84
+    task "Logistics step n85" as n85
+    task "Logistics step n86" as n86
+  lane "Shipping"
+    task "Logistics step n87" as n87
+    task "Logistics step n88" as n88
+    task "Logistics step n89" as n89
+    task "Logistics step n90" as n90
+    task "Logistics step n91" as n91
+    gateway exclusive "Logistics check n92?" as n92
+    task "Logistics step n93" as n93
+    task "Logistics step n94" as n94
+    task "Logistics step n95" as n95
+    task "Logistics step n96" as n96
+
+n1 -> n2
+n2 -> n3
+n3 -> n4
+n4 -> n5
+n5 -> n6
+n7 -> n8
+n8 -> n9
+n9 -> n10
+n10 -> n11
+n11 -> n12
+n12 -> n13
+n13 -> n14
+n14 -> n15
+n15 -> n16
+n17 -> n18
+n18 -> n19
+n19 -> n20
+n20 -> n21
+n21 -> n22
+n22 -> n23
+n23 -> n24
+n24 -> n25
+n25 -> n26
+n27 -> n28
+n28 -> n29
+n29 -> n30
+n30 -> n31
+n31 -> n32
+n32 -> n33
+n33 -> n34
+n34 -> n35
+n35 -> n36
+n37 -> n38
+n38 -> n39
+n39 -> n40
+n40 -> n41
+n41 -> n42
+n42 -> n43
+n43 -> n44
+n44 -> n45
+n45 -> n46
+n47 -> n48
+n48 -> n49
+n49 -> n50
+n50 -> n51
+n51 -> n52
+n52 -> n53
+n53 -> n54
+n54 -> n55
+n55 -> n56
+n57 -> n58
+n58 -> n59
+n59 -> n60
+n60 -> n61
+n61 -> n62
+n62 -> n63
+n63 -> n64
+n64 -> n65
+n65 -> n66
+n67 -> n68
+n68 -> n69
+n69 -> n70
+n70 -> n71
+n71 -> n72
+n72 -> n73
+n73 -> n74
+n74 -> n75
+n75 -> n76
+n77 -> n78
+n78 -> n79
+n79 -> n80
+n80 -> n81
+n81 -> n82
+n82 -> n83
+n83 -> n84
+n84 -> n85
+n85 -> n86
+n87 -> n88
+n88 -> n89
+n89 -> n90
+n90 -> n91
+n91 -> n92
+n92 -> n93
+n93 -> n94
+n94 -> n95
+n95 -> n96
+n12 -> n14
+n12 -> n9
+n32 -> n34
+n32 -> n29
+n42 -> n44
+n42 -> n39
+n62 -> n64
+n62 -> n59
+n72 -> n74
+n72 -> n69
+n92 -> n94
+n92 -> n89
+
+n7 ~> n17
+n8 ~> n18
+n9 ~> n19
+n10 ~> n20
+n11 ~> n21
+n12 ~> n22
+n13 ~> n23
+n14 ~> n24
+n37 ~> n47
+n38 ~> n48
+n39 ~> n49
+n40 ~> n50
+n41 ~> n51
+n42 ~> n52
+n43 ~> n53
+n44 ~> n54
+n67 ~> n77
+n68 ~> n78
+n69 ~> n79
+n70 ~> n80
+n71 ~> n81
+n72 ~> n82
+n73 ~> n83
+n74 ~> n84

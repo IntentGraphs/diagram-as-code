@@ -1,0 +1,3 @@
+box "This is a deliberately long process step label that wraps over multiple lines" as step
+decision "This is a deliberately long decision question that wraps over multiple lines" as choice
+step -> choice

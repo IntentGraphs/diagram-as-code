@@ -1,0 +1,7 @@
+diagram: architecture
+person "Customer" as customer
+system "Ordering" as ordering
+  container "API" as api
+database "Orders" as orders
+customer -> api: "places orders"
+api -> orders: "stores order"

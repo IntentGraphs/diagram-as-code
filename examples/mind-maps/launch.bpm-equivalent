@@ -1,0 +1,7 @@
+diagram: mindmap
+mindmap "Product launch" as launch
+  mindmap "Research" as research
+  mindmap "Build" as build
+    mindmap "Prototype" as prototype
+    mindmap "Test" as test
+  mindmap "Release" as release

@@ -1,0 +1,3 @@
+diagram: mindmap
+mindmap "Planning" as root
+  mindmap as budget

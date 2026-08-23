@@ -1,0 +1,8 @@
+task "Review order" as t1
+gateway exclusive "Approved?" as g1
+task "Ship item" as t2
+event end none "Done" as e1
+
+t1 -> g1
+g1 -> t2: "yes"
+t2 -> e1

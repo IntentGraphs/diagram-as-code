@@ -1,0 +1,11 @@
+{
+  "name": "@bpm/export-docx",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
+  "scripts": { "build": "tsc -p tsconfig.json", "test": "vitest run" },
+  "dependencies": { "@bpm/diagram-core": "*", "@bpm/render-core": "*" },
+  "devDependencies": { "typescript": "^5.5.0", "vitest": "^4.1.11" }
+}

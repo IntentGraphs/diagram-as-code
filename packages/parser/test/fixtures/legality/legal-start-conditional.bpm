@@ -1,0 +1,5 @@
+event start conditional "When ready" as s1
+task "Work" as t1
+event end none "Done" as e1
+s1 -> t1
+t1 -> e1

@@ -1,0 +1,23 @@
+{
+  "name": "@bpm/export-xml",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@bpm/ast": "*",
+    "@bpm/layout": "*",
+    "@bpm/layout-core": "*",
+    "@bpm/parser": "*",
+    "@bpm/render-core": "*"
+  },
+  "devDependencies": {
+    "@joint/vitest-plugin-mock-svg": "^0.3.1",
+    "bpmn-js": "^17.11.1",
+    "camunda-bpmn-moddle": "^7.0.1",
+    "jsdom": "^25.0.0"
+  }
+}

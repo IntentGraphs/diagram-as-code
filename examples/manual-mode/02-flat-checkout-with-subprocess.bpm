@@ -1,0 +1,33 @@
+positioning: manual
+
+event start none "Checkout started" as e1 at (40, 120)
+task "Collect cart" as t1 at (140, 110)
+callActivity "Tax service" as c1 at (140, 240)
+subprocess "Handle payment" as sp1 at (320, 40)
+  event start none "Sub start" as sn1 at (20, 50)
+  task "Authorize card" as sn2 at (140, 40)
+  boundary timer nonInterrupting "Slow auth" as sb1 on sn2
+  task "Retry auth" as sn3 at (140, 160)
+  gateway exclusive "Authorized?" as sg1 at (320, 45)
+  task "Capture funds" as sn4 at (460, 40)
+  event end none "Paid" as sn5 at (620, 50)
+  event end none "Declined" as sn6 at (460, 160)
+  sn1 -> sn2
+  sn2 -> sg1
+  sb1 -> sn3
+  sn3 -> sg1
+  sg1 => sn4: "yes"
+  sg1 ->> sn6: "no" [from: bottom, to: left]
+  sn4 -> sn5
+task "Send receipt" as t2 at (1080, 110)
+task "Notify warehouse" as t3 at (1080, 240)
+event end none "Order confirmed" as e2 at (1280, 120)
+dataStore "Payments ledger" as ds1 at (520, 320)
+
+e1 -> t1
+t1 -> sp1
+sp1 -> t2
+t2 -> t3
+t3 -> e2
+ds1 ..> sn4
+c1 -> t1 [style: dotted, from: top, to: bottom]

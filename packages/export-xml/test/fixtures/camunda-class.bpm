@@ -1,0 +1,1 @@
+serviceTask "Charge card" as s1 [camundaClass: com.example.ChargeDelegate]

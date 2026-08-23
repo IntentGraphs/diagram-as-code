@@ -1,0 +1,3 @@
+diagram: flowchart
+direction: sideways
+box "Start" as start

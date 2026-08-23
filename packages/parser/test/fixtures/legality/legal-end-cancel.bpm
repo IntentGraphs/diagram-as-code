@@ -1,0 +1,6 @@
+transaction "Pay" as tx1
+  event start none "Begin" as s1
+  task "Charge" as t1
+  event end cancel "Abort" as e1
+  s1 -> t1
+  t1 -> e1

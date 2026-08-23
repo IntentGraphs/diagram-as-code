@@ -1,0 +1,19 @@
+{
+  "name": "@bpm/review",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": { "build": "tsc -p tsconfig.json" },
+  "dependencies": {
+    "@bpm/diagram-runtime": "*",
+    "@bpm/layout": "*",
+    "@bpm/layout-core": "*",
+    "@bpm/parser": "*",
+    "@bpm/print-dsl": "*",
+    "@bpm/render": "*",
+    "@bpm/validate": "*",
+    "@resvg/resvg-js": "^2.6.0"
+  }
+}

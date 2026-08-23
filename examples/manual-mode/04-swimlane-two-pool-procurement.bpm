@@ -1,0 +1,47 @@
+positioning: manual
+
+pool "Retailer"
+  lane "Store ops"
+    event start none "Need restock" as r1 at (40, 40)
+    task "Create PO" as r2 at (140, 30)
+    gateway exclusive "Approved?" as r3 at (340, 35)
+    task "Send to supplier" as r4 at (480, 30)
+    event end none "PO cancelled" as r5 at (620, 130)
+    event intermediate message "ASN received" as r6 at (820, 40)
+    task "Receive goods" as r7 at (980, 30)
+    event end none "Stock updated" as r8 at (1180, 40)
+  lane "Accounts"
+    task "Book accrual" as a1 at (480, 40)
+    task "Match invoice" as a2 at (640, 40)
+    event end none "AP closed" as a3 at (780, 40)
+
+pool "Supplier"
+  lane "Fulfillment"
+    event start message "PO received" as u1 at (40, 40)
+    task "Allocate stock" as u2 at (160, 30)
+    gateway parallel "Split prep" as u3 at (360, 35)
+    task "Pick" as u4 at (500, 10)
+    task "Pack" as u5 at (500, 110)
+    gateway parallel "Ready" as u6 at (680, 35)
+    task "Ship + ASN" as u7 at (840, 30)
+    event end none "Dispatched" as u8 at (1040, 40)
+
+r1 -> r2
+r2 -> r3
+r3 => r4: "yes"
+r3 ->> r5: "no" [from: bottom, to: left]
+r4 ~> u1
+u1 -> u2
+u2 -> u3
+u3 -> u4 [from: top, to: left]
+u3 -> u5 [from: bottom, to: left]
+u4 -> u6
+u5 -> u6
+u6 -> u7
+u7 -> u8
+u7 ~> r6
+r6 -> r7
+r7 -> r8
+r4 -> a1 [from: bottom, to: top]
+a1 -> a2
+a2 -> a3

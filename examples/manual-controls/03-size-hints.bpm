@@ -1,0 +1,12 @@
+positioning: manual
+
+event start none "Begin" as s at (20, 60) size (50, 50)
+task "Wide task" as t1 at (120, 40) size (200, 80)
+gateway exclusive "Check" as g1 at (380, 45) size (70, 70)
+task "Narrow" as t2 at (500, 50) size (80, 50)
+event end none "Fin" as e at (640, 60)
+
+s -> t1
+t1 -> g1
+g1 -> t2: "ok"
+t2 -> e

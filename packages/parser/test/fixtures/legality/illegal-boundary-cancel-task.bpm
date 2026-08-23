@@ -1,0 +1,4 @@
+task "Plain work" as t1
+boundary cancel interrupting "Bad cancel host" as b1 on t1
+event end none "Done" as e1
+t1 -> e1

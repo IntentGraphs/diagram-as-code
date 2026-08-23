@@ -1,0 +1,4 @@
+# Temporary release-candidate ownership.
+# Replace the maintainer fallback with an IntentGraphs team after the org repo
+# and its team membership are configured.
+* @pravinsail

@@ -1,0 +1,10 @@
+layoutSpacing: compact
+
+event start none "Start" as s
+task "Process order" as t1
+task "Ship" as t2
+event end none "End" as e
+
+s -> t1
+t1 -> t2
+t2 -> e

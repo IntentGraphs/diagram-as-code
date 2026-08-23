@@ -1,0 +1,39 @@
+name: ci
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm run validate:workflows
+      - run: npm run check:style
+      - run: npm run build
+      - run: npm run test:coverage
+      - run: npm run check:third-party-notices
+      - run: npm audit --omit=dev
+      # GitHub-hosted Ubuntu already provides Chromium's system libraries; avoid
+      # a runner-specific apt phase that can stall the release gate.
+      - run: npx playwright install chromium
+        working-directory: apps/web
+      - run: npm run test:e2e -w @bpm/web
+
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/dependency-review-action@v4

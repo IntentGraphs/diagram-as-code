@@ -1,0 +1,11 @@
+event start none "Start" as s
+gateway exclusive "Decision" as g
+task "Path A" as a
+task "Path B" as b
+event end none "End" as e
+
+s -> g
+g -> a: "yes" [labelAt: 0.3, labelSide: above]
+g -> b: "no" [labelAt: 0.3, labelSide: below]
+a -> e
+b -> e

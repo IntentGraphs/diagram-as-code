@@ -1,0 +1,4 @@
+task "Process payment" as t1
+boundary error interrupting "Card declined" as b1 on t1
+event end none "Done" as e1
+t1 -> e1

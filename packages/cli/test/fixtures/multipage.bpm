@@ -1,0 +1,11 @@
+paginate: semantic
+
+pool "Customer"
+  lane "Sales"
+    task "Start" as a
+
+pool "Warehouse"
+  lane "Operations"
+    task "Ship" as b
+
+a -> b

@@ -1,0 +1,4 @@
+task "Ship order" as t1
+boundary compensation interrupting "Undo ship" as b1 on t1
+event end none "Done" as e1
+t1 -> e1

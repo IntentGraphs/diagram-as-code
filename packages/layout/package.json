@@ -1,0 +1,15 @@
+{
+  "name": "@bpm/layout",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": { "build": "tsc -p tsconfig.json" },
+  "dependencies": {
+    "@bpm/ast": "*",
+    "@bpm/layout-core": "*",
+    "@bpm/layout-engine-swimlane": "*",
+    "@bpm/layout-engine-flat": "*",
+    "@bpm/layout-engine-manual": "*"
+  }
+}

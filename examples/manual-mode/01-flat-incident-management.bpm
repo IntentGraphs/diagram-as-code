@@ -1,0 +1,36 @@
+positioning: manual
+
+event start message "Incident logged" as e1 at (40, 80)
+task "Triage severity" as t1 at (120, 70)
+gateway exclusive "Sev1?" as g1 at (300, 75)
+task "Page on-call" as t2 at (400, 20)
+task "Assign queue" as t3 at (400, 130)
+gateway exclusive "Known error?" as g2 at (580, 75)
+task "Apply fix" as t4 at (700, 70)
+task "Create problem" as t5 at (700, 180)
+gateway exclusive "Fixed?" as g3 at (920, 75)
+task "Update record" as t6 at (1020, 20)
+task "Escalate" as t7 at (1020, 130)
+event end none "Closed" as e2 at (1200, 80)
+event end none "Parked" as e3 at (1200, 180)
+dataObject "Runbook" as d1 at (580, 300)
+annotation "Follow SLA clock" as a1 at (40, 220)
+boundary timer interrupting "Ack timeout" as b1 on t2
+
+e1 -> t1
+t1 -> g1
+g1 => t2: "yes" [from: top, to: left]
+g1 ->> t3: "no" [from: bottom, to: left]
+t2 -> g2
+t3 -> g2
+g2 => t4: "yes"
+g2 ->> t5: "no" [from: bottom, to: left]
+t4 -> g3
+t5 -> e3
+g3 => t6: "yes" [from: top, to: left]
+g3 ->> t7: "no" [from: bottom, to: left]
+t6 -> e2
+t7 -> e2
+d1 ..> t4
+a1 ..> t1
+b1 -> t7 [style: dashed]
