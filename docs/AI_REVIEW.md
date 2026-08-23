@@ -86,5 +86,4 @@ Default Ollama model is `llava` (vision). For text-only repair, set `BPM_OLLAMA_
 ## Related
 
 - External agent PNG loop (no in-repo LLM): `docs/CLI.md` vision loop section
-- Design: `docs/superpowers/specs/2026-08-11-ai-diagram-review-design.md`
-- Generation design: `docs/superpowers/specs/2026-08-17-ai-diagram-generation-design.md`
+- Language and capability boundaries: `docs/LANGUAGE.md` and `docs/STATUS.md`

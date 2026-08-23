@@ -531,7 +531,7 @@ function mapEdge(el: ModdleElement, ctx: MapContext, flowType: FlowType, default
  * the activity itself. The activity's own id is the real semantic endpoint. Missing this meant
  * these connections were invisible to the importer entirely — not even reaching the "unsupported
  * element" warning, since nothing ever looked inside an activity for them (found via a real user
- * round trip, verified against docs/superpowers/specs/2026-08-17-diagram-mode-text-import-design.md
+ * round trip, verified by the import/export contract tests.
  * fidelity checking, roadmap item 16).
  */
 function mapDataAssociations(el: ModdleElement, ctx: MapContext, originOffset: Position): DiagramEdge[] {

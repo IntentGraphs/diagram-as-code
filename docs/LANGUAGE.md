@@ -418,7 +418,7 @@ For BPMN node declarations, after `as <id>` (and optional `at (x, y)`):
 
 ### 5.5 Camunda vendor extensions (opt-in)
 
-The same node `[...]` block accepts Camunda 7 keys. Diagrams that omit them export as plain BPMN 2.0 with **no** `camunda:` namespace — zero change for BPMN-only users. See `docs/superpowers/specs/2026-08-14-camunda-export-extensions-design.md`.
+The same node `[...]` block accepts Camunda 7 keys. Diagrams that omit them export as plain BPMN 2.0 with **no** `camunda:` namespace — zero change for BPMN-only users. See `docs/STATUS.md` for the current supported subset.
 
 | Key | XML attribute | Allowed on | Example |
 |---|---|---|---|
@@ -720,11 +720,9 @@ Whatever produced this text — human or AI, whichever model — verify all of t
 ## 12. Related docs
 
 - `docs/STATUS.md` — what's built and verified, including known limitations.
-- `docs/maintainer/ROADMAP.md` — planned/deferred work.
-- `docs/BPMN-GAP-SURVEY.md` — BPMN 2.0 expressiveness gaps vs current notation.
+- `docs/STATUS.md` — current capability and limitation summary.
 - CLI: `docs/CLI.md` — how to run and **separately verify** `npm run bpm -- validate|render|export` (agent self-check loop).
 - `@bpm/validate` — scriptable self-check for generated diagram text (`validate(text)` → `{ valid, errors, semanticErrors, warnings, metrics }`).
 - `docs/AI_REVIEW.md` — AI diagram review with pluggable providers (manual/ollama/openai).
 - `examples/manual-controls/` — worked examples for via, size, labels, spacing presets.
-- `docs/superpowers/specs/2026-08-10-manual-positioning-mode-design.md` — design rationale for §6 and §5.3.
-- `docs/superpowers/plans/2026-08-10-manual-positioning-mode.md` — implementation plan (exact grammar source locations per feature).
+- `docs/MANUAL_LAYOUT_AI.md` — geometry-aware guidance for manual positioning and AI workflows.

@@ -31,8 +31,8 @@ CLI-only checks: [`docs/CLI.md`](docs/CLI.md).
 
 ## Package map
 
-The monorepo is `packages/*` + `apps/web`. For the current package map and product boundaries, start with [`docs/STATUS.md`](docs/STATUS.md) and the package READMEs.
-The maintainer-facing ownership and architecture map is [`docs/maintainer/ARCHITECTURE-OWNERSHIP.md`](docs/maintainer/ARCHITECTURE-OWNERSHIP.md).
+The monorepo is `packages/*` + `apps/web`. For the current package map and product
+boundaries, start with [`docs/STATUS.md`](docs/STATUS.md) and the package READMEs.
 
 ## Supported development environment
 
@@ -44,9 +44,9 @@ The repository does not currently impose an opinionated formatter. The CI style 
 
 ## Large changes
 
-Non-trivial features should follow the project’s established cycle: brainstorm → design spec under `docs/superpowers/specs/` → implementation plan under `docs/superpowers/plans/` → build → verify (`npm test`, and CLI/web checks as relevant).
-
-Maintainer release-readiness phases live in [`docs/maintainer/OPEN-SOURCE-READINESS.md`](docs/maintainer/OPEN-SOURCE-READINESS.md).
+For non-trivial features, explain the design and scope in the pull request, update the
+relevant stable documentation, then verify with `npm test` and the focused CLI/web checks.
+Release verification is documented in [`docs/RELEASING.md`](docs/RELEASING.md).
 
 ## Pull requests
 

@@ -128,7 +128,7 @@ function printEdge(edge: DiagramEdge): string {
  * The inverse of @bpm/parser: given a parsed Diagram, print valid .bpm DSL source text.
  * Deterministic/mechanical — no attempt to preserve original formatting or ordering (there is
  * none to preserve for a diagram whose origin isn't hand-written text, e.g. one produced by
- * importing BPMN XML). See docs/superpowers/specs/2026-08-17-diagram-mode-text-import-design.md
+ * importing BPMN XML).
  * option set 1 for why this approach was chosen over a format-preserving printer.
  */
 export function printDiagram(diagram: Diagram): string {

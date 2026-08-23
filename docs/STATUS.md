@@ -2,7 +2,7 @@
 
 _Release line: public v1.0.2 maintenance release. Last updated: 2026-08-23._
 
-The workspace is versioned as a whole through release tags; package `0.0.1` values are internal workspace metadata because packages are not published to npm. The public release is documented in [`CHANGELOG.md`](../CHANGELOG.md). The organization repository is `IntentGraphs/diagram-as-code`; maintainer deployment details are in [`maintainer/GITHUB-RELEASE-PLAN.md`](maintainer/GITHUB-RELEASE-PLAN.md).
+The workspace is versioned as a whole through release tags; package `0.0.1` values are internal workspace metadata because packages are not published to npm. The public release is documented in [`CHANGELOG.md`](../CHANGELOG.md), and the release procedure is in [`RELEASING.md`](RELEASING.md).
 
 ## What this is
 
@@ -24,7 +24,7 @@ This is a local-first source project, not a hosted process platform. There is no
 
 **Direction status**: defaults remain BPMN rightward process flow with horizontal full-width lanes, top-to-bottom flowcharts, and left-to-right mind maps. Flowcharts and mind maps additionally support `direction: right|left|down|up`; BPMN pools support `laneDirection: horizontal|vertical`. Architecture and Gantt reject explicit direction directives with structured unsupported-capability diagnostics.
 
-**Notation coverage** (core BPMN 2.0 process/collaboration **notation** — shape and control-flow level; see `docs/LANGUAGE.md` for the exact grammar, and `docs/BPMN-GAP-SURVEY.md` for semantic/expressiveness gaps):
+**Notation coverage** (core BPMN 2.0 process/collaboration **notation** — shape and control-flow level; see `docs/LANGUAGE.md` for the exact grammar and the known limitations below for semantic/expressiveness boundaries):
 - Event **triggers** (13 tokens: message, timer, error, escalation, cancel, compensation, conditional, link, signal, multiple, parallelMultiple, terminate, none) on start/intermediate/end/boundary, including interrupting vs. non-interrupting boundary events. Timer date/duration/cycle, selected message/error/escalation/signal references, and conditional expressions are modeled in the AST/text/XML path; throw-event distinction, multiple-definition composition, and other execution metadata remain incomplete.
 - All 5 **gateway shapes** (exclusive, parallel, inclusive, complex, event-based); inclusive/complex **condition semantics** are not modeled beyond edge labels on `=>` flows.
 - Generic **task** plus **BPMN task subtypes** (`userTask`, `serviceTask`, `sendTask`, `receiveTask`, `manualTask`, `businessRuleTask`, `scriptTask`) with distinct SVG markers and export tags; subprocess, transaction, and call activity (collapsed/expanded, arbitrary nesting depth).
@@ -40,9 +40,9 @@ This is a local-first source project, not a hosted process platform. There is no
 - Boundary events are positioned on their host activity's border; outgoing edges use the same shared sequential router (anchors kept; obstacle avoidance and inter-edge corridor separation are no longer hand-rolled). Scoped to the local pool so routing stays proportional in large diagrams.
 - Multiple boundary events on one host are spaced to avoid overlapping each other.
 - Text wraps within shapes (capped at 3 lines) instead of overflowing silently; activity box width scales with label length. All labels are rendered in a final pass across the whole diagram, after every shape and edge, so a shape drawn later can never end up covering a label. Edge labels get a background halo so a crossing line underneath doesn't make them unreadable.
-- **Manual positioning mode**: an opt-in `positioning: manual` diagram directive places every node at an exact `at (x, y)` coordinate instead of auto-layout; pools/lanes still auto-stack top-to-bottom with coordinates relative to each lane's own origin. Expanded subprocess/transaction children are placed relative to the subprocess content origin, with the container sized from its children. Without `positioning: manual`, individual nodes may still carry optional `at (x, y)` to pin just those nodes while the rest auto-layout. Any diagram (manual or auto-layout) can also override an individual edge's line style (`style: dashed|dotted|solid`, `corner: round`) and which side of a box it exits/enters from (`from`/`to: left|right|top|bottom`) via a `[...]` attribute block. See `docs/superpowers/specs/2026-08-10-manual-positioning-mode-design.md` and `docs/superpowers/specs/2026-08-10-llm-friendly-diagram-extensions-design.md`.
+- **Manual positioning mode**: an opt-in `positioning: manual` diagram directive places every node at an exact `at (x, y)` coordinate instead of auto-layout; pools/lanes still auto-stack top-to-bottom with coordinates relative to each lane's own origin. Expanded subprocess/transaction children are placed relative to the subprocess content origin, with the container sized from its children. Without `positioning: manual`, individual nodes may still carry optional `at (x, y)` to pin just those nodes while the rest auto-layout. Any diagram (manual or auto-layout) can also override an individual edge's line style (`style: dashed|dotted|solid`, `corner: round`) and which side of a box it exits/enters from (`from`/`to: left|right|top|bottom`) via a `[...]` attribute block. See `docs/MANUAL_LAYOUT_AI.md`.
 
-**Export**: `@bpm/export-xml` produces standard BPMN 2.0 XML (semantic model + BPMNDI) verified by round-tripping through bpmn-js's real importer. Event payloads and referenced global message/error/escalation/signal declarations are emitted when represented by the DSL. Opt-in Camunda 7 vendor attributes (`camunda:class`, `camunda:expression` on `serviceTask`; `camunda:formKey` on `userTask`) are emitted only when the text DSL sets `camundaClass` / `camundaExpression` / `camundaFormKey` in a node `[...]` block — diagrams without those keys export with no `camunda` namespace. Spec: `docs/superpowers/specs/2026-08-14-camunda-export-extensions-design.md`.
+**Export**: `@bpm/export-xml` produces standard BPMN 2.0 XML (semantic model + BPMNDI) verified by round-tripping through bpmn-js's real importer. Event payloads and referenced global message/error/escalation/signal declarations are emitted when represented by the DSL. Opt-in Camunda 7 vendor attributes (`camunda:class`, `camunda:expression` on `serviceTask`; `camunda:formKey` on `userTask`) are emitted only when the text DSL sets `camundaClass` / `camundaExpression` / `camundaFormKey` in a node `[...]` block — diagrams without those keys export with no `camunda` namespace.
 
 **Render icons** (`@bpm/render`): BPMN 2.0 event-definition glyphs via inline SVG PathMap paths (`icons.ts`, `pathMap.ts`) — scale with event bounds, catch (outline) vs throw (filled) by category. No external icon font/CDN. Before/after: `packages/render/test/fixtures/bpmn-event-icons-comparison.svg`.
 
@@ -70,22 +70,17 @@ This is a local-first source project, not a hosted process platform. There is no
 
 ## Known limitations (honest, not glossed over)
 
-The active maintainer investigation records the historical large-document
-render freeze and an unconfirmed Diagram-mode reload/crash report. The live
-editor now enforces a public complexity budget before layout; PPTX exports have
-deterministic editable geometry/font projection with OOXML regression checks;
-and BPMN graph diagnostics cover duplicate ids, self-loops, orphan nodes,
-terminal reachability, cycles, and mixed gateway join/split shapes. Evidence
-states and the remaining browser evidence request are tracked in
-[`maintainer/KNOWN-ISSUES-2026-08-19.md`](maintainer/KNOWN-ISSUES-2026-08-19.md).
-The reported Diagram-mode reload/crash remains unconfirmed in clean Chromium;
-it is not described here as a fixed or confirmed defect.
+The live editor enforces a public complexity budget before layout; PPTX exports have
+deterministic editable geometry/font projection with OOXML regression checks; and BPMN
+graph diagnostics cover duplicate ids, self-loops, orphan nodes, terminal reachability,
+cycles, and mixed gateway join/split shapes. Unconfirmed reports are intentionally not
+part of the public capability contract.
 
 - The web build's main JavaScript bundle is approximately 2.1 MB; lazy-loading `bpmn-js`/diagram-mode code is a deferred improvement and is not scheduled.
 - The live BPMN path applies tiered routing-aware complexity admission before synchronous layout: ordinary diagrams render normally, moderate diagrams warn, diagrams above the soft budget require explicit/manual rendering, and diagrams above the hard ceiling are rejected. This protects the browser from unbounded work but does not yet optimize or offload diagrams that fit within the manual tier.
 - **Residual edge-edge crossings on large diagrams.** Swimlane verification still records `screenshot: 1`, `crowdedBoundary: 2`, `nestedSubprocess: 1`, `fanOut: 1`, and `orderToCashStacked: 4` edge-edge crossings (node overlaps and edge-through-node stay empty across every verification diagram). Those residuals are mostly inter-pool message flows and dense same-lane content conflicts — not the former boundary-routing gaps. Dedicated fixtures for (1) a boundary exit that shares the host's x-column with a node below and (2) two different-host boundary doglegs that would share an avoidance line now measure `edgeCrossings: 0` / empty through-node after the shared-router migration. `screenshot` and `orderToCashStacked` went up (from 0 and 9) after a 2026-08-10 fix to `positionBoundaryEvents` that stopped edges from illegally cutting through their own host or an enclosing subprocess container — the extra crossings are the honest cost of routing those paths legally instead of through a shape's interior. The 2026-08-10 target-overshoot fix then raised `crowdedBoundary` and `nestedSubprocess` by one residual crossing each while keeping them clean of node overlaps and edge-through-node. A 2026-08-17 routing fix (same-lane edges through the shared router; L-corner instead of a raw diagonal fallback) then dropped `orderToCashStacked` 11 → 4 and left `fanOut` with 1 residual from an L-fallback that used to be an uncounted diagonal.
 - **Per-lane sizing is now content-based.** Each lane is sized from its own node spread plus lane padding; sparse lanes no longer inherit the tallest lane's height. This intentionally shifts swimlane coordinates and should be considered when comparing older rendered artifacts.
-- **Same-lane routing and fallback (2026-08-17).** Same-lane edges go through the shared sequential router instead of index-interpolated ELK waypoints; when every clearance retry fails, the router emits a counted L-corner rather than a raw diagonal. On `examples/protocol-document-generation.bpm`: diagonal segments 2 → 0, total edge length 7286 → 6093 px, 6 counted L-fallbacks, geometry still clean (0 overlaps / through-node / crossings).
+- **Same-lane routing and fallback (2026-08-17).** Same-lane edges go through the shared sequential router instead of index-interpolated ELK waypoints; when every clearance retry fails, the router emits a counted L-corner rather than a raw diagonal. On the `packages/layout-engine-swimlane/test/fixtures/protocol-document-generation.bpm` regression fixture: diagonal segments 2 → 0, total edge length 7286 → 6093 px, 6 counted L-fallbacks, geometry still clean (0 overlaps / through-node / crossings).
 - **`layout: flat` mode** on the Order-to-Cash topology no longer shows the old boundary edge-through-end-event case (`edgeThroughNode` empty on `orderToCashStackedFlat`), but still pins 1 residual edge-edge crossing. Swimlane auto-select remains the default for pool/lane diagrams.
 - **External BPMN XML import into Text-mode rendering** — implemented in the web workflow: import, convert through `@bpm/import-xml`/`@bpm/print-dsl`, preview preserved/transformed/dropped accounting, and explicitly confirm before replacing text.
 - **No continuous diagram-to-text editing** — authoring remains two independent paths. Diagram mode now has an explicit, reviewable **Import to Text** action; it does not continuously synchronize edits. See roadmap item 16.
@@ -112,7 +107,7 @@ it is not described here as a fixed or confirmed defect.
 - `generateDiagram()` in `@bpm/review`: description → provider draft → validate → falls back into Phase B's `repairDiagram()` loop if invalid.
 - CLI: `bpm generate <description words…> [--provider <id>] [-o out.bpm]`; quote the description if preferred, but quoting is no longer required.
 - Web: Generate panel (offline skeleton / ollama / openai), Insert-into-editor is explicit, never automatic.
-- See `docs/AI_REVIEW.md` and `docs/superpowers/specs/2026-08-17-ai-diagram-generation-design.md`.
+- See `docs/AI_REVIEW.md`.
 
 **Item 16 — Diagram-mode → Text import** (shipped 2026-08-17 and merged into this branch's base):
 - `@bpm/print-dsl` (new): AST → `.bpm` text, this codebase's first serializer in that direction.
@@ -121,7 +116,7 @@ it is not described here as a fixed or confirmed defect.
 - Web: **Import to Text** action in Diagram mode, explicit preview/confirm, mode-switch latch (no live sync).
 - CLI: `bpm import <file.bpmn> [-o out.bpm]` (`import-diagram` remains supported as the compatibility spelling).
 - Two real position-mapping bugs found and fixed via end-to-end testing (lane-relative and subprocess-content-relative coordinates); one cross-renderer geometry limitation found and documented, not force-fixed.
-- See `docs/superpowers/specs/2026-08-17-diagram-mode-text-import-design.md` (includes a post-implementation findings section) and roadmap item 16.
+- See the Import to Text behavior documented in the web editor and `docs/AI_REVIEW.md`.
 
 ## Verified state
 
@@ -134,23 +129,6 @@ it is not described here as a fixed or confirmed defect.
 
 ## Where to look
 
-- **Resume / done vs pending:** `docs/maintainer/HANDOFF.md`
-- Next numbered items: `docs/maintainer/ROADMAP.md` (18m consumer validation and corpus completion, browser verification for implemented 16a, incremental 18n/18o follow-through, 18f/18l residuals, and 17a exact release snapshot/GitHub settings); item 17 is the public-release gate. Tile/hybrid/group/branch pagination remain unsupported.
-- Engineering review and editable architecture artifact: `docs/maintainer/ENGINEERING-REVIEW.md` and `docs/architecture.drawio`.
+- Release checks: `docs/RELEASING.md`; editable architecture artifact: `docs/architecture.drawio`.
 - CLI usage and separate verification checklist: `docs/CLI.md`
-- Design spec: `docs/superpowers/specs/2026-08-09-bpm-diagramming-language-design.md`
-- Unified edge router design: `docs/superpowers/specs/2026-08-09-unified-edge-router-design.md`
-- Unified edge router plan: `docs/superpowers/plans/2026-08-09-unified-edge-router.md`
-- Unified edge router resume plan: `docs/superpowers/plans/2026-08-10-unified-edge-router-resume.md`
-- Pluggable layout engines design: `docs/superpowers/specs/2026-08-09-pluggable-layout-engines-design.md`
-- Pluggable layout engines plan: `docs/superpowers/plans/2026-08-09-pluggable-layout-engines.md`
-- Milestone 1 plan (core pipeline): `docs/superpowers/plans/2026-08-09-bpm-core-pipeline.md`
-- Milestone 2 plan (full BPMN 2.0 notation): `docs/superpowers/plans/2026-08-09-bpm-full-notation.md`
-- Phase A manual text controls design: `docs/superpowers/specs/2026-08-11-manual-text-controls-design.md`
-- Phase B AI diagram review design: `docs/superpowers/specs/2026-08-11-ai-diagram-review-design.md`
-- AI diagram generation design: `docs/superpowers/specs/2026-08-17-ai-diagram-generation-design.md`
-- Diagram family extensibility notes (roadmap item 15): `docs/superpowers/specs/2026-08-17-diagram-family-extensibility-notes.md`
-- Diagram-mode → Text import design + findings (roadmap item 16): `docs/superpowers/specs/2026-08-17-diagram-mode-text-import-design.md`
 - AI review docs: `docs/AI_REVIEW.md`
-- Next steps: `docs/maintainer/ROADMAP.md`
-- BPMN expressiveness gap survey: `docs/BPMN-GAP-SURVEY.md`

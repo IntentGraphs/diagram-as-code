@@ -11,7 +11,7 @@ const source = readFileSync(fixturePath, 'utf8');
 
 // This fixture is deliberately large enough to trigger the pathological
 // laneBanding/routing cost this branch works around (see
-// docs/maintainer/RENDER-WORKER-ARCHITECTURE.md and KNOWN-ISSUES-2026-08-19.md)
+// the render-worker architecture and large-diagram safety work.
 // — running the real layout on it can take minutes of pegged CPU, so this
 // suite only parse-checks it (cheap, no layout). Full-pipeline behavior for
 // this fixture is exercised through the worker (with its 30s timeout) in the

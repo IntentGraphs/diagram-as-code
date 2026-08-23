@@ -1,13 +1,13 @@
-# CLI — usage and separate verification
+# CLI — complete usage and verification reference
 
-_How to run and check `@bpm/cli` on its own, without exercising the web app or the rest of the LLM-friendly diagram extensions._
+How to install, use, and verify `@bpm/cli` without exercising the web app.
 
 Package: `packages/cli` (`@bpm/cli`). Entry: `npm run bpm -- …` from the repo root. The
 root script builds the complete CLI dependency closure first, so a clean checkout needs
 only `npm install`; use `npm run build:cli` when you want the build without running a
 command.
 
-Design / plan: `docs/superpowers/specs/2026-08-10-cli-packaging-design.md`, `docs/superpowers/plans/2026-08-10-cli-packaging.md`.
+The CLI contract is implemented in `packages/cli` and covered by `packages/cli/test`.
 
 ## Current CLI contract (2026-08-22)
 
@@ -54,7 +54,9 @@ same runtime registry used by validation and rendering.
 
 ## Why check this separately
 
-The `llm-diagram-extensions` branch also ships language/layout changes (actionable overlaps, nested manual subprocess, pinning, `@bpm/validate`). The CLI is only a thin wrapper. Verify it with the checklist below so a CLI regression is not confused with a layout or parser regression.
+The CLI is a thin wrapper around the parser, layout, validation, rendering, and export
+packages. Verify it with the checklist below so a CLI regression is not confused with a
+layout or parser regression.
 
 | Concern | Where to test |
 |---|---|
@@ -111,7 +113,7 @@ npm run bpm -- --version
 
 Generation uses auto-layout by default. Pass `--positioning manual` to freeze the validated resolved geometry into manual DSL: node coordinates are rebased into the correct canvas, lane, and subprocess frames, and resolved edge interiors are emitted as `via` points where they can be represented safely. This is an opt-in serialization step after generation; the model is still not asked to invent coordinates. The equivalent standalone conversion for an existing valid file is `bpm freeze <file.bpm> [-o manual.bpm]`. Pass `--visual-review` to render the result and run the selected provider's visual-review loop with bounded patch attempts.
 
-`import-diagram` converts a BPMN 2.0 XML file (e.g. from Diagram mode's Save/Export, or any standards-compliant BPMN tool) into `.bpm` text via `@bpm/import-xml`, always emitting `positioning: manual`. This is the CLI counterpart to the web app's **Import to Text** action (roadmap item 16) — it validates the *converted text* with `@bpm/validate` as its own portable success gate, since the browser-only DOM/`bpmn-js` round-trip check (`docs/maintainer/ROADMAP.md` item 12) isn't available in Node.
+`import-diagram` converts a BPMN 2.0 XML file (e.g. from Diagram mode's Save/Export, or any standards-compliant BPMN tool) into `.bpm` text via `@bpm/import-xml`, always emitting `positioning: manual`. This is the CLI counterpart to the web app's **Import to Text** action — it validates the *converted text* with `@bpm/validate` as its own portable success gate, since the browser-only DOM/`bpmn-js` round-trip check is not available in Node.
 
 `validate --json` uses the `@bpm/validate` shape: `{ valid, errors, semanticErrors, warnings, metrics?, inspection? }`. Successful layouts for all five built-in families include `inspection.nodes`, `inspection.edges`, content/render bounds, resolved route statistics, and machine-readable geometry issue details used to explain warnings. The JSON also reports `effectiveFamily`, the resolved `direction`, BPMN `laneDirection`, `capabilities`, `pageDimensions`, and `fitMode`. BPMN keeps its richer legacy inspection fields; the other families use the same common fields and metrics contract. Unsupported direction/lane combinations are blocking structured diagnostics. Do not invent a second schema.
 
@@ -389,4 +391,4 @@ calling agent supplies its own model and vision capability.
 
 - `packages/validate` — library behind `bpm validate`
 - `docs/LANGUAGE.md` — grammar for generated text
-- `docs/STATUS.md` / `docs/maintainer/ROADMAP.md` — CLI recorded as built (roadmap item 2)
+- `docs/STATUS.md` — current capabilities and limitations

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 
 const tracked = execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8' })
   .split('\0')
@@ -10,7 +10,22 @@ const tracked = execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8' })
 const textExtensions = /\.(?:ts|mts|mjs|cjs|json|yml|yaml|css|html)$/;
 const failures = [];
 
-for (const file of tracked.filter((candidate) => textExtensions.test(candidate))) {
+async function exists(file) {
+  try {
+    await access(file);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const authored = (await Promise.all(
+  tracked
+    .filter((candidate) => textExtensions.test(candidate))
+    .map(async (file) => (await exists(file) ? file : null)),
+)).filter(Boolean);
+
+for (const file of authored) {
   const contents = await readFile(file, 'utf8');
   if (contents.includes('\r')) failures.push(`${file}: contains CRLF or carriage-return characters`);
   for (const [index, line] of contents.split('\n').entries()) {
@@ -22,5 +37,5 @@ if (failures.length > 0) {
   console.error(failures.join('\n'));
   process.exitCode = 1;
 } else {
-  console.log(`Style check passed for ${tracked.filter((file) => textExtensions.test(file)).length} authored source/config file(s).`);
+  console.log(`Style check passed for ${authored.length} authored source/config file(s).`);
 }
