@@ -1,4 +1,4 @@
-import { createModeler, exportSvg, exportXml, fitDiagram, getModeler, importXml, markDiagramSaved, newDiagram, verifyExportedXml, zoomIn, zoomOut } from './diagramMode.js';
+import { createModeler, exportSvg, exportXml, fitDiagram, getModeler, importXml, markDiagramSaved, newDiagram, restoreViewport, verifyExportedXml, zoomIn, zoomOut, type DiagramViewportRestoreState } from './diagramMode.js';
 import { downloadFile } from './downloads.js';
 import { createBpmnJsAdapter } from './agent/bpmnJsAdapter.js';
 import type { DiagramAgentAdapter } from './agent/diagramAgent.js';
@@ -22,6 +22,7 @@ export interface DiagramModeController {
   zoomIn(): void;
   zoomOut(): void;
   fitDiagram(): void;
+  restoreViewport(state: DiagramViewportRestoreState): void;
   renderErrors(messages: string[]): void;
   getAgentAdapter(): DiagramAgentAdapter;
 }
@@ -96,6 +97,7 @@ export function createDiagramModeController(options: DiagramModeControllerOption
     zoomIn,
     zoomOut,
     fitDiagram,
+    restoreViewport,
     renderErrors,
     getAgentAdapter() {
       return createBpmnJsAdapter(getModeler());

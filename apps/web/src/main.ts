@@ -16,6 +16,8 @@ import { downloadFile } from './downloads.js';
 import { runPipeline, type PipelineResult } from './pipeline.js';
 import { mountSvg } from './mountSvg.js';
 import { createSvgViewport } from './svgViewport.js';
+import { getViewportAnchor } from './viewportAnchor.js';
+import { renderCanvasRulers } from './canvasRulers.js';
 import { analyzeForReview, mountReviewPanel, updateReviewPanel, hideReviewPanel, setApplyPatchHandler, setSourceTextGetter, setCloseHandler as setReviewCloseHandler } from './reviewPanel.js';
 import { mountGeneratePanel, showGeneratePanel, hideGeneratePanel, setInsertTextHandler, setCloseHandler as setGenerateCloseHandler } from './generatePanel.js';
 import { setGenerationDisabled } from './generatePanel.js';
@@ -57,6 +59,14 @@ const diagramBody = document.querySelector<HTMLDivElement>('#diagram-body')!;
 const toolbarActions = document.querySelector<HTMLDivElement>('#toolbar-actions')!;
 const diagramToolbarActions = document.querySelector<HTMLDivElement>('#diagram-toolbar-actions')!;
 const diagramCanvas = document.querySelector<HTMLDivElement>('#diagram-canvas')!;
+const canvasGridBtn = document.querySelector<HTMLButtonElement>('#canvas-grid-btn')!;
+const canvasThemeBtn = document.querySelector<HTMLButtonElement>('#canvas-theme-btn')!;
+const canvasZoomOutBtn = document.querySelector<HTMLButtonElement>('#canvas-zoom-out')!;
+const canvasZoomInBtn = document.querySelector<HTMLButtonElement>('#canvas-zoom-in')!;
+const canvasZoomFitBtn = document.querySelector<HTMLButtonElement>('#canvas-zoom-fit')!;
+const canvasZoomSelect = document.querySelector<HTMLSelectElement>('#canvas-zoom-select')!;
+const canvasRulerHorizontal = document.querySelector<HTMLDivElement>('#canvas-ruler-horizontal')!;
+const canvasRulerVertical = document.querySelector<HTMLDivElement>('#canvas-ruler-vertical')!;
 const diagramModeNewBtn = document.querySelector<HTMLButtonElement>('#diagram-new')!;
 const diagramOpenBtn = document.querySelector<HTMLButtonElement>('#diagram-open')!;
 const diagramOpenInput = document.querySelector<HTMLInputElement>('#diagram-open-input')!;
@@ -98,6 +108,51 @@ const familyBadge = document.querySelector<HTMLSpanElement>('#family-badge')!;
 const svgViewport = createSvgViewport(preview);
 const operationState = createOperationStateCoordinator();
 const renderCache = createRenderCache();
+
+function updateCanvasZoomSelect(zoom: number): void {
+  const generated = canvasZoomSelect.querySelector('option[data-generated="true"]');
+  generated?.remove();
+  const roundedZoom = Math.round(zoom * 100) / 100;
+  const matchingOption = Array.from(canvasZoomSelect.options).find((option) => Math.abs(Number(option.value) - roundedZoom) < 0.0001);
+  if (matchingOption) {
+    canvasZoomSelect.value = matchingOption.value;
+    return;
+  }
+  const option = new Option(`${Math.round(zoom * 100)}%`, String(roundedZoom));
+  option.dataset.generated = 'true';
+  canvasZoomSelect.append(option);
+  canvasZoomSelect.value = option.value;
+}
+
+svgViewport.subscribe((snapshot) => {
+  updateCanvasZoomSelect(snapshot?.zoom ?? 1);
+  renderCanvasRulers(canvasRulerHorizontal, canvasRulerVertical, snapshot);
+});
+
+canvasGridBtn.addEventListener('click', () => {
+  const gridVisible = canvasGridBtn.getAttribute('aria-pressed') === 'true';
+  canvasGridBtn.setAttribute('aria-pressed', String(!gridVisible));
+  canvasGridBtn.setAttribute('aria-label', gridVisible ? 'Show gridlines' : 'Hide gridlines');
+  canvasGridBtn.title = gridVisible ? 'Show gridlines' : 'Hide gridlines';
+  preview.classList.toggle('canvas-grid-hidden', gridVisible);
+});
+
+canvasThemeBtn.addEventListener('click', () => {
+  const dark = canvasThemeBtn.dataset.canvasTheme !== 'dark';
+  canvasThemeBtn.dataset.canvasTheme = dark ? 'dark' : 'light';
+  canvasThemeBtn.setAttribute('aria-pressed', String(dark));
+  const label = dark ? 'Switch canvas to light theme' : 'Switch canvas to dark theme';
+  canvasThemeBtn.setAttribute('aria-label', label);
+  canvasThemeBtn.title = label;
+  preview.classList.toggle('canvas-theme-dark', dark);
+  canvasThemeBtn.querySelector<HTMLElement>('[data-theme-icon="light"]')?.toggleAttribute('hidden', dark);
+  canvasThemeBtn.querySelector<HTMLElement>('[data-theme-icon="dark"]')?.toggleAttribute('hidden', !dark);
+});
+
+canvasZoomOutBtn.addEventListener('click', () => svgViewport.zoomBy(1 / 1.2));
+canvasZoomInBtn.addEventListener('click', () => svgViewport.zoomBy(1.2));
+canvasZoomFitBtn.addEventListener('click', () => svgViewport.fit());
+canvasZoomSelect.addEventListener('change', () => svgViewport.setZoom(Number(canvasZoomSelect.value)));
 
 function activeOperationIdentity() {
   const session = projectController?.getSession();
@@ -458,10 +513,12 @@ editAsDiagramBtn.addEventListener('click', async () => {
     // live editor.value — re-parsing the source here could race an in-flight edit and export
     // content that was never actually previewed.
     const xml = exportPositionedDiagram(lastResult.family, lastResult.diagram, lastResult.positioned, 'bpmn-xml');
+    const previewAnchor = getViewportAnchor(svgViewport.getSnapshot(), lastResult.positioned);
     setMode('diagram');
     operation = operationState.begin('diagram-xml-load', 'Loading diagram preview', activeOperationIdentity());
     if (!operation) return;
     await diagramModeController.loadXml(xml);
+    if (previewAnchor) diagramModeController.restoreViewport(previewAnchor);
     operation.finish('success', 'Diagram preview loaded.');
   } catch (err) {
     operation?.finish('error', `Could not load diagram preview: ${err instanceof Error ? err.message : String(err)}`);
@@ -793,6 +850,7 @@ async function commitRender(snapshot: RenderControllerSnapshot): Promise<void> {
   const { source, value: result } = snapshot;
   if (source !== editor.value || !renderController.isCurrent(snapshot)) return;
   if (source !== lastResultSource) clearPreviewSelection();
+  const previewView = svgViewport.getSnapshot();
   const aiCapabilities = result.capabilities?.aiCapabilities;
   const generateUnsupported = aiCapabilities?.generation !== true;
   const reviewUnsupported = aiCapabilities?.visualReview !== true;
@@ -835,7 +893,7 @@ async function commitRender(snapshot: RenderControllerSnapshot): Promise<void> {
     renderErrors([{ line: 0, column: 0, message: 'Failed to parse rendered SVG' }]);
     return;
   }
-  svgViewport.sync();
+  svgViewport.sync(previewView);
   engineBadge.textContent = result.engineName!;
   familyBadgeLabel.textContent = familyLabel(result.family);
   familyBadge.title = result.family === 'bpmn'

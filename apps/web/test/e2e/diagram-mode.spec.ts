@@ -43,12 +43,14 @@ test('Edit as Diagram seeds the bpmn-js canvas from the current text diagram', a
   await page.goto('/');
   await expect(page.locator('#edit-as-diagram')).toBeEnabled();
 
+  await page.locator('#canvas-zoom-select').selectOption('2');
   await page.locator('#edit-as-diagram').click();
   await expect(page.locator('#diagram-body')).toBeVisible();
   await expect(page.locator('#diagram-canvas [data-element-id="start"]')).toBeVisible();
   await expect(page.locator('#diagram-canvas [data-element-id="choose"]')).toBeVisible();
   await expect(page.locator('#diagram-canvas [data-element-id="edit"]')).toBeVisible();
   await expect(page.locator('#diagram-errors .error-item')).toHaveCount(0);
+  await expect(page.locator('#diagram-zoom-label')).toHaveText('200%');
 });
 
 test('Edit as Diagram is disabled while there is a parse error', async ({ page }) => {
