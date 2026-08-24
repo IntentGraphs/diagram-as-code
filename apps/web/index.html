@@ -96,6 +96,14 @@
       #toolbar-actions > .toolbar-primary-group { grid-area: primary; }
       #toolbar-actions > .toolbar-secondary-group { grid-area: secondary; justify-content: flex-end; }
       #toolbar-actions .toolbar-status-group { display: none; }
+      #toolbar-actions.diagram-mode {
+        grid-template-columns: auto;
+        grid-template-areas: "mode";
+      }
+      #toolbar-actions.diagram-mode > .toolbar-navigation-group,
+      #toolbar-actions.diagram-mode > .toolbar-primary-group,
+      #toolbar-actions.diagram-mode > .toolbar-secondary-group { display: none; }
+      #toolbar-actions.diagram-mode > .toolbar-mode-group { justify-content: flex-start; }
       #render-btn:not(:disabled) { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
       #clear-btn { color: var(--muted); }
       .toolbar-group {

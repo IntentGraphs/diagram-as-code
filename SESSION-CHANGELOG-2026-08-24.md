@@ -27,6 +27,7 @@ This is a release-preparation note for the web-editor and rendering work complet
 - Moved engine, family, and render state out of the header into a muted diagram-information log below Clear/Render.
 - Added visible top grips and pointer/keyboard resizing for the bottom Review, Generate, and Settings panels.
 - Updated the local workspace-tour screenshot to reflect the reviewed header and editor layout.
+- Kept the Text/Diagram toggle visible in Diagram mode and after Import to Text, fixing the protected-`main` CI regression where mode-switch tests could not click the hidden Text button.
 
 ## Verification completed
 

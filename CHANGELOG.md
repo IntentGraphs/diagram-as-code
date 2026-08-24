@@ -25,6 +25,10 @@ and this project uses [Semantic Versioning](https://semver.org/) via git tags.
 - Kept `render: manual` explicit while allowing safe small incremental edits to soft-heavy diagrams to auto-render; larger edits remain manual and hard-blocked diagrams stop automatically without replacing the previous preview.
 - Reused successful render workers and restored matching cached previews during diagram switching, reload, and repeated renders instead of rebuilding identical DSL.
 
+### Fixed
+
+- Kept the Text/Diagram mode toggle visible while the BPMN editor is open, including after importing converted text, so users can always return to the DSL editor.
+
 ### Documentation
 
 - Updated `docs/LANGUAGE.md`, `docs/STATUS.md`, and manual-control examples to document the parent/child hierarchy, warning behavior, and local web-editor verification flow.

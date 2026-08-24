@@ -178,7 +178,8 @@ function setMode(mode: Mode): void {
   modeDiagramBtn.setAttribute('aria-pressed', String(isDiagram));
   body.hidden = isDiagram;
   diagramBody.hidden = !isDiagram;
-  toolbarActions.hidden = isDiagram;
+  toolbarActions.hidden = false;
+  toolbarActions.classList.toggle('diagram-mode', isDiagram);
   diagramToolbarActions.hidden = !isDiagram;
 
   if (isDiagram) {
@@ -1213,6 +1214,7 @@ function switchToTextAfterImport(text: string): void {
   body.hidden = false;
   diagramBody.hidden = true;
   toolbarActions.hidden = false;
+  toolbarActions.classList.remove('diagram-mode');
   diagramToolbarActions.hidden = true;
   destroyModeler();
   diagramModeController.setButtonsEnabled(false);
