@@ -40,6 +40,12 @@ describe('@bpm/diagram-runtime', () => {
     expect(header.diagnostics).toEqual([]);
   });
 
+  it('keeps source-map line numbers aligned after shared directives are removed for family parsing', () => {
+    const parsed = parseDiagramSource('diagram: bpmn\n\ntask "Review" as review\nreview -> review');
+    expect(parsed.result.sourceLocations?.nodes.review).toMatchObject({ line: 3 });
+    expect(parsed.result.sourceLocations?.edges.e1).toMatchObject({ line: 4 });
+  });
+
   it('resolves shared defaults and reports laneDirection compatibility diagnostics', () => {
     expect(readDiagramHeader('task "A" as a')).toMatchObject({ family: 'bpmn', direction: 'right', laneDirection: 'horizontal' });
     expect(readDiagramHeader('diagram: flowchart\nbox "A" as a')).toMatchObject({ direction: 'down' });

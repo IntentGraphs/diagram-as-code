@@ -8,6 +8,13 @@ export interface RenderedEdge {
   label: string;
 }
 
+/**
+ * The visible stroke is intentionally thin, but it is not a practical pointer target for
+ * diagram inspection. Keep the hit area separate so selection/hover can be generous without
+ * changing the exported appearance, route geometry, dash pattern, or marker placement.
+ */
+const EDGE_HIT_STROKE_WIDTH = 12;
+
 function arrowhead(last: { x: number; y: number }, secondLast: { x: number; y: number }): string {
   const angle = Math.atan2(last.y - secondLast.y, last.x - secondLast.x);
   const size = 8;
@@ -74,11 +81,11 @@ export function renderEdge(edge: RoutedEdge): RenderedEdge {
     void tx; void ty;
     const haloWidth = Math.max(16, label.length * 6.5);
     const halo = `<rect x="${lx - haloWidth / 2}" y="${ly - 11}" width="${haloWidth}" height="14" fill="white" opacity="0.85"/>`;
-    labelEl = `${halo}<text x="${lx}" y="${ly}" text-anchor="middle" font-size="11">${escapeXml(label)}</text>`;
+    labelEl = `<g data-edge-label-id="${escapeXml(id)}" class="diagram-edge-label">${halo}<text x="${lx}" y="${ly}" text-anchor="middle" font-size="11">${escapeXml(label)}</text></g>`;
   }
 
   return {
-    body: `<g data-edge-id="${escapeXml(id)}"><path d="${pathD}" fill="none" stroke="black" stroke-width="1.5" ${strokeStyle}/>${arrow}${startMarker}</g>`,
+    body: `<g data-edge-id="${escapeXml(id)}"><path class="diagram-edge-hit-area" d="${pathD}" fill="none" stroke="transparent" stroke-width="${EDGE_HIT_STROKE_WIDTH}" stroke-linecap="round" stroke-linejoin="round" pointer-events="stroke" aria-hidden="true"/><path class="diagram-edge-visible" d="${pathD}" fill="none" stroke="black" stroke-width="1.5" ${strokeStyle}/>${arrow}${startMarker}</g>`,
     label: labelEl,
   };
 }

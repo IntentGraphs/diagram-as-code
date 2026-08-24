@@ -482,6 +482,23 @@ function inferSide(point: Position, rect: { x: number; y: number; width: number;
   return ny >= 0 ? 'bottom' : 'top';
 }
 
+function inferOffset(point: Position, rect: { x: number; y: number; width: number; height: number }, side: Side): number {
+  return side === 'left' || side === 'right'
+    ? point.y - (rect.y + rect.height / 2)
+    : point.x - (rect.x + rect.width / 2);
+}
+
+function frameFromBounds(bounds: { x: number; y: number; width: number; height: number } | undefined): {
+  position?: Position;
+  sizeHint?: { width: number; height: number };
+} {
+  if (!bounds) return {};
+  return {
+    position: { x: bounds.x, y: bounds.y },
+    sizeHint: { width: bounds.width, height: bounds.height },
+  };
+}
+
 function mapEdge(el: ModdleElement, ctx: MapContext, flowType: FlowType, defaultSourceIds: Set<string>, originOffset: Position): DiagramEdge | null {
   const sourceRef = el.sourceRef as ModdleElement | undefined;
   const targetRef = el.targetRef as ModdleElement | undefined;
@@ -510,6 +527,10 @@ function mapEdge(el: ModdleElement, ctx: MapContext, flowType: FlowType, default
     ? inferSide(fullWaypoints[0], sourceBounds) : undefined;
   const to = fullWaypoints && fullWaypoints.length >= 2 && targetBounds
     ? inferSide(fullWaypoints[fullWaypoints.length - 1], targetBounds) : undefined;
+  const fromOffset = from && sourceBounds && fullWaypoints
+    ? inferOffset(fullWaypoints[0], sourceBounds, from) : undefined;
+  const toOffset = to && targetBounds && fullWaypoints
+    ? inferOffset(fullWaypoints[fullWaypoints.length - 1], targetBounds, to) : undefined;
 
   return {
     id: ctx.ids.get(el.id!),
@@ -519,6 +540,8 @@ function mapEdge(el: ModdleElement, ctx: MapContext, flowType: FlowType, default
     flowType: resolvedFlowType,
     ...(from ? { from } : {}),
     ...(to ? { to } : {}),
+    ...(fromOffset !== undefined && Math.abs(fromOffset) > 0.001 ? { fromOffset } : {}),
+    ...(toOffset !== undefined && Math.abs(toOffset) > 0.001 ? { toOffset } : {}),
     ...(waypoints ? { waypoints } : {}),
   };
 }
@@ -665,6 +688,7 @@ export async function importXml(xml: string, options: ImportXmlOptions = {}): Pr
     if (participant) {
       const poolId = ids.resolve(process.id, 'pool');
       const poolName = (participant.name as string | undefined) || poolId;
+      const poolFrame = frameFromBounds(ctx.di.bounds.get(participant.id!));
       const lanes: Lane[] = [];
       if (laneSets.length > 0) {
         for (const laneSet of laneSets) {
@@ -694,6 +718,7 @@ export async function importXml(xml: string, options: ImportXmlOptions = {}): Pr
               id: ids.resolve(laneEl.id, 'lane'),
               name: (laneEl.name as string | undefined) || 'Lane',
               nodeIds,
+              ...frameFromBounds(laneOrigin),
             });
             recordPreserved(ctx);
           }
@@ -718,7 +743,7 @@ export async function importXml(xml: string, options: ImportXmlOptions = {}): Pr
         }
         lanes.push({ id: ids.resolve(undefined, 'lane'), name: poolName, nodeIds: nodes.map((n) => n.id) });
       }
-      pools.push({ id: poolId, name: poolName, lanes });
+      pools.push({ id: poolId, name: poolName, lanes, ...poolFrame });
       recordPreserved(ctx);
     }
     allNodes.push(...nodes);

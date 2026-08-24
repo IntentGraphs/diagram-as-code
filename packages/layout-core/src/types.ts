@@ -1,4 +1,4 @@
-import type { DiagramNode, DiagramEdge } from '@bpm/ast';
+import type { DiagramNode, DiagramEdge, Side } from '@bpm/ast';
 
 interface PositionedNodeFields {
   x: number;
@@ -17,6 +17,12 @@ export type PositionedNode = DiagramNode extends infer Node
 
 export interface RoutedEdge extends DiagramEdge {
   points: Array<{ x: number; y: number }>;
+  /** Resolved final sides from the renderer-facing route, when available. */
+  resolvedFrom?: Side;
+  resolvedTo?: Side;
+  /** Resolved along-side offsets from the renderer-facing route, when non-central. */
+  resolvedFromOffset?: number;
+  resolvedToOffset?: number;
 }
 
 export interface PositionedLane {

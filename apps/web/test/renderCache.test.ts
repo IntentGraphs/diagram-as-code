@@ -9,7 +9,14 @@ function result(svg = '<svg><text>cached</text></svg>'): PipelineResult {
     family: 'bpmn', header: null, capabilities: null, svg, diagram: null,
     positioned: null, executionPositioned: null, engineName: 'flat', ast: null,
     diagnostics: [], errors: [], warnings: [], paginated: null,
+    sourceLocations: { nodes: {}, edges: {}, pools: {}, lanes: {} },
   };
+}
+
+function resultWithoutSourceMap(): PipelineResult {
+  const value = result();
+  delete (value as Partial<PipelineResult>).sourceLocations;
+  return value;
 }
 
 describe('render cache', () => {
@@ -39,5 +46,14 @@ describe('render cache', () => {
     await expect(cache.get(identity, diagram.body)).resolves.toMatchObject({ svg: '<svg>default</svg>' });
     await expect(cache.get(identity, diagram.body, 'swimlane')).resolves.toMatchObject({ svg: '<svg>override</svg>' });
     await expect(cache.get(identity, `${diagram.body}\n`)).resolves.toBeUndefined();
+  });
+
+  it('does not restore a BPMN snapshot that cannot support source navigation', async () => {
+    const { project, diagram } = await createDefaultProject('task "Cached" as cached');
+    const identity = { projectId: project.id, diagramId: diagram.id };
+    const cache = createRenderCache();
+    await cache.put(identity, diagram.body, undefined, resultWithoutSourceMap());
+
+    await expect(cache.get(identity, diagram.body)).resolves.toBeUndefined();
   });
 });

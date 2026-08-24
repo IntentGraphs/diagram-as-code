@@ -1,5 +1,5 @@
 import { executeDiagramSource, getFamily, readDiagramHeader } from '@bpm/diagram-runtime';
-import type { Diagram } from '@bpm/ast';
+import type { Diagram, DiagramSourceMap } from '@bpm/ast';
 import { selectEngine, type PositionedDiagram } from '@bpm/layout';
 import type { AiCapabilities, DiagramDiagnostic, DiagramExecutionPhase, DiagramFamilyId, DiagramHeader, FamilyCapabilities } from '@bpm/diagram-runtime';
 import type { PaginatedScene } from '@bpm/diagram-core';
@@ -19,6 +19,8 @@ export interface PipelineResult {
   errors: DiagramDiagnostic[];
   warnings: DiagramDiagnostic[];
   paginated: PaginatedScene | null;
+  /** Optional semantic-id to source declaration mapping for rendered-element selection. */
+  sourceLocations: DiagramSourceMap | null;
 }
 
 export async function runPipeline(
@@ -45,6 +47,7 @@ export async function runPipeline(
       errors: result.diagnostics,
       warnings: result.warnings,
       paginated: result.paginated ?? null,
+      sourceLocations: result.result.sourceLocations ?? null,
     };
   } catch (err) {
     const diagnostics = err instanceof Error && 'diagnostics' in err
@@ -59,6 +62,6 @@ export async function runPipeline(
         // The runtime error already contains the diagnostics for an unregistered family.
       }
     }
-    return { family, header: family ? header : null, capabilities, svg: null, diagram: null, positioned: null, executionPositioned: null, engineName: null, ast: null, diagnostics, errors: diagnostics, warnings: [], paginated: null };
+    return { family, header: family ? header : null, capabilities, svg: null, diagram: null, positioned: null, executionPositioned: null, engineName: null, ast: null, diagnostics, errors: diagnostics, warnings: [], paginated: null, sourceLocations: null };
   }
 }

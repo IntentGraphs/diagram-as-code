@@ -14,6 +14,11 @@ export interface RenderedNode {
 
 const BELOW_LABEL_WIDTH = 100;
 
+/** Labels are painted in a final pass, so repeat the node identity on their text elements. */
+function tagNodeLabel(node: PositionedNode, markup: string): string {
+  return markup.replace(/<text\b/g, `<text data-node-label-id="${escapeXml(node.id)}"`);
+}
+
 function labelForNode(
   node: PositionedNode,
   defaultMode: 'below' | 'inside',
@@ -22,11 +27,11 @@ function labelForNode(
   const wrap = node.visual?.wrap ?? 3;
   const fontSize = node.visual?.font === 'small' ? 10 : node.visual?.font === 'large' ? 14 : 12;
   const { x, y, width, height, label } = node;
-  if (mode === 'inside') return wrappedTextCentered(x + width / 2, y + height / 2, width - 12, label, fontSize, wrap);
-  if (mode === 'above') return wrappedTextBelow(x + width / 2, y - 6, Math.max(width, BELOW_LABEL_WIDTH), label, fontSize, wrap);
-  if (mode === 'left') return wrappedTextBelow(x - 4, y + height / 2, Math.max(width, BELOW_LABEL_WIDTH), label, fontSize, wrap);
-  if (mode === 'right') return wrappedTextBelow(x + width + 4, y + height / 2, Math.max(width, BELOW_LABEL_WIDTH), label, fontSize, wrap);
-  return wrappedTextBelow(x + width / 2, y + height + 14, Math.max(width, BELOW_LABEL_WIDTH), label, fontSize, wrap);
+  if (mode === 'inside') return tagNodeLabel(node, wrappedTextCentered(x + width / 2, y + height / 2, width - 12, label, fontSize, wrap));
+  if (mode === 'above') return tagNodeLabel(node, wrappedTextBelow(x + width / 2, y - 6, Math.max(width, BELOW_LABEL_WIDTH), label, fontSize, wrap));
+  if (mode === 'left') return tagNodeLabel(node, wrappedTextBelow(x - 4, y + height / 2, Math.max(width, BELOW_LABEL_WIDTH), label, fontSize, wrap));
+  if (mode === 'right') return tagNodeLabel(node, wrappedTextBelow(x + width + 4, y + height / 2, Math.max(width, BELOW_LABEL_WIDTH), label, fontSize, wrap));
+  return tagNodeLabel(node, wrappedTextBelow(x + width / 2, y + height + 14, Math.max(width, BELOW_LABEL_WIDTH), label, fontSize, wrap));
 }
 
 function labelBelow(x: number, y: number, width: number, height: number, label: string): string {
@@ -100,7 +105,7 @@ function renderActivity(node: PositionedActivity): RenderedNode {
     const childEdges = (node.childEdges ?? []).map(renderEdge);
     return {
       body: `<g data-node-id="${escapeXml(id)}">${outer}${doubleBorder}${children.map((c) => c.body).join('')}${childEdges.map((e) => e.body).join('')}</g>`,
-      label: `<text x="${x + 6}" y="${y + 14}" font-size="11">${escapeXml(label)}</text>` +
+      label: `<text data-node-label-id="${escapeXml(id)}" x="${x + 6}" y="${y + 14}" font-size="11">${escapeXml(label)}</text>` +
         children.map((c) => c.label).join('') + childEdges.map((e) => e.label).join(''),
     };
   }
@@ -117,7 +122,7 @@ function renderDataObject(node: PositionedNode): RenderedNode {
   const path = `M${x},${y} H${x + width - fold} L${x + width},${y + fold} V${y + height} H${x} Z`;
   return {
     body: `<g data-node-id="${escapeXml(id)}"><path d="${path}" fill="white" stroke="black"/></g>`,
-    label: labelBelow(x, y, width, height, label),
+    label: tagNodeLabel(node, labelBelow(x, y, width, height, label)),
   };
 }
 
@@ -129,7 +134,7 @@ function renderDataStore(node: PositionedNode): RenderedNode {
     body: `<g data-node-id="${escapeXml(id)}">` +
       `<path d="M${x},${y + ry} V${y + height - ry} A${rx},${ry} 0 0 0 ${x + width},${y + height - ry} V${y + ry}" fill="white" stroke="black"/>` +
       `<ellipse cx="${x + rx}" cy="${y + ry}" rx="${rx}" ry="${ry}" fill="white" stroke="black"/></g>`,
-    label: labelBelow(x, y, width, height, label),
+    label: tagNodeLabel(node, labelBelow(x, y, width, height, label)),
   };
 }
 
@@ -137,8 +142,8 @@ function renderTextAnnotation(node: PositionedNode): RenderedNode {
   const { x, y, width, height, label, id } = node;
   return {
     body: `<g data-node-id="${escapeXml(id)}"><path d="M${x + 10},${y} H${x} V${y + height} H${x + 10}" fill="none" stroke="black"/></g>`,
-    label: wrappedTextCentered(x + 14 + Math.max(0, width - 14) / 2, y + height / 2, Math.max(width - 14, 60), label, 11)
-      .replace('text-anchor="middle"', 'text-anchor="start"'),
+    label: tagNodeLabel(node, wrappedTextCentered(x + 14 + Math.max(0, width - 14) / 2, y + height / 2, Math.max(width - 14, 60), label, 11)
+      .replace('text-anchor="middle"', 'text-anchor="start"')),
   };
 }
 
@@ -146,7 +151,7 @@ function renderGroup(node: PositionedNode): RenderedNode {
   const { x, y, width, height, label, id } = node;
   return {
     body: `<g data-node-id="${escapeXml(id)}"><rect x="${x}" y="${y}" width="${width}" height="${height}" rx="10" fill="none" stroke="#666" stroke-dasharray="6 4"/></g>`,
-    label: `<text x="${x + 6}" y="${y + 14}" font-size="11" fill="#666">${escapeXml(label)}</text>`,
+    label: `<text data-node-label-id="${escapeXml(id)}" x="${x + 6}" y="${y + 14}" font-size="11" fill="#666">${escapeXml(label)}</text>`,
   };
 }
 

@@ -1,7 +1,7 @@
 export type {
   EventCategory, EventTrigger, EventDefinition, GatewayType, TaskType, ActivityType, FlowType, PaginationMode, PageBreakStrategy,
   Position, Side, EdgeStyle, EdgeCorner, LabelPlacementSide, NodeLabelPosition,
-  FontSizeHint, LayoutSpacing, RoutingMode, DiagramDirection, LaneDirection, NodeVisual, EdgeLabelPlacement, SizeHint, ShapeSizeGroup, ShapeSizes,
+  FontSizeHint, LayoutSpacing, RoutingMode, DiagramDirection, LaneDirection, NodeVisual, EdgeLabelPlacement, SizeHint, SourceLocation, DiagramSourceMap, ShapeSizeGroup, ShapeSizes,
   CamundaExtensions,
   EventNode, GatewayNode, ActivityNode, DataObjectNode, DataStoreNode,
   TextAnnotationNode, GroupNode, DiagramNode, DiagramEdge, Lane, Pool, Diagram,

@@ -12,16 +12,18 @@ describe('parse edge via / label placement', () => {
     expect(diagram.edges[0].waypoints).toEqual([{ x: 10, y: 20 }, { x: 30, y: 20 }]);
   });
 
-  it('parses via together with from/to', () => {
+  it('parses via together with from/to and port offsets', () => {
     const { errors, diagram } = parse([
       'task "A" as a',
       'task "B" as b',
-      'a -> b [from: right, to: left, via: (280,115) (320,115)]',
+      'a -> b [from: right, to: left, fromOffset: 6, toOffset: -4, via: (280,115) (320,115)]',
     ].join('\n'));
     expect(errors).toEqual([]);
     expect(diagram.edges[0]).toMatchObject({
       from: 'right',
       to: 'left',
+      fromOffset: 6,
+      toOffset: -4,
       waypoints: [{ x: 280, y: 115 }, { x: 320, y: 115 }],
     });
   });

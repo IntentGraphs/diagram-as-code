@@ -10,6 +10,54 @@ test('typing valid diagram text renders an svg with the full notation set', asyn
   await expect(page.locator('[data-edge-id]').first()).toBeVisible();
 });
 
+test('clicking a rendered node or edge selects its DSL declaration', async ({ page }) => {
+  await page.goto('/');
+  const editor = page.locator('#editor');
+  await editor.fill('task "A" as a\ntask "B" as b\na -> b: "next"');
+  await expect(page.locator('g[data-node-id="a"]')).toBeVisible();
+
+  await page.locator('text[data-node-label-id="a"]').click();
+  await expect(page.locator('[data-node-id="a"].diagram-selection-active')).toHaveCount(1);
+  await expect(page.locator('[data-node-label-id="a"].diagram-selection-active')).toHaveCount(1);
+  await expect.poll(async () => editor.evaluate((element) => {
+    const textarea = element as HTMLTextAreaElement;
+    return textarea.value.slice(textarea.selectionStart, textarea.selectionEnd);
+  })).toBe('task "A" as a');
+
+  await page.locator('[data-edge-id="e1"]').first().click();
+  await expect(page.locator('[data-edge-id="e1"].diagram-selection-active')).toHaveCount(1);
+  await expect(page.locator('[data-edge-label-id="e1"].diagram-selection-active')).toHaveCount(1);
+  await expect.poll(async () => editor.evaluate((element) => {
+    const textarea = element as HTMLTextAreaElement;
+    return textarea.value.slice(textarea.selectionStart, textarea.selectionEnd);
+  })).toBe('a -> b: "next"');
+});
+
+test('manual DSL uses the same hover tooltip and source-line navigation', async ({ page }) => {
+  await page.goto('/');
+  const editor = page.locator('#editor');
+  const source = [
+    'positioning: manual',
+    '',
+    ...Array.from({ length: 42 }, () => ''),
+    'task "Manual A" as manualA at (40, 40)',
+    'task "Manual B" as manualB at (240, 40)',
+    'manualA -> manualB',
+  ].join('\n');
+  await editor.fill(source);
+  await expect(page.locator('g[data-node-id="manualA"]')).toBeVisible();
+
+  await page.locator('text[data-node-label-id="manualA"]').hover();
+  await expect(page.locator('#preview-tooltip')).toContainText('Node · manualA');
+  await expect(page.locator('#preview-tooltip')).toContainText('DSL line 45');
+  await page.locator('text[data-node-label-id="manualA"]').click();
+  await expect(page.locator('#editor-line-highlight')).toBeVisible();
+  await expect.poll(async () => editor.evaluate((element) => {
+    const textarea = element as HTMLTextAreaElement;
+    return textarea.value.slice(textarea.selectionStart, textarea.selectionEnd);
+  })).toBe('task "Manual A" as manualA at (40, 40)');
+});
+
 test('typing a mindmap renders through the family-neutral preview and disables BPMN editing/export', async ({ page }) => {
   await page.goto('/');
   const editor = page.locator('#editor');

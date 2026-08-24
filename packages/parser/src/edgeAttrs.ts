@@ -7,6 +7,8 @@ export interface EdgeAttrs {
   corner?: EdgeCorner;
   from?: Side;
   to?: Side;
+  fromOffset?: number;
+  toOffset?: number;
   waypoints?: Position[];
   labelPlacement?: EdgeLabelPlacement;
 }
@@ -100,6 +102,13 @@ export function parseEdgeAttrs(raw: string, lineNumber: number, errors: ParseErr
         return null;
       }
       result.to = rawValue;
+    } else if (rawKey === 'fromOffset' || rawKey === 'toOffset') {
+      const offset = Number(rawValue);
+      if (!Number.isFinite(offset)) {
+        errors.push({ line: lineNumber, column: 1, message: `${rawKey} must be a finite number (got "${rawValue}")` });
+        return null;
+      }
+      result[rawKey] = offset;
     } else if (rawKey === 'labelAt') {
       const at = Number(rawValue);
       if (!Number.isFinite(at) || at < 0 || at > 1) {

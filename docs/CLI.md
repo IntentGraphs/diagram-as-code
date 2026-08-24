@@ -113,7 +113,7 @@ npm run bpm -- --version
 
 Generation uses auto-layout by default. Pass `--positioning manual` to freeze the validated resolved geometry into manual DSL: node coordinates are rebased into the correct canvas, lane, and subprocess frames, and resolved edge interiors are emitted as `via` points where they can be represented safely. This is an opt-in serialization step after generation; the model is still not asked to invent coordinates. The equivalent standalone conversion for an existing valid file is `bpm freeze <file.bpm> [-o manual.bpm]`. Pass `--visual-review` to render the result and run the selected provider's visual-review loop with bounded patch attempts.
 
-`import-diagram` converts a BPMN 2.0 XML file (e.g. from Diagram mode's Save/Export, or any standards-compliant BPMN tool) into `.bpm` text via `@bpm/import-xml`, always emitting `positioning: manual`. This is the CLI counterpart to the web app's **Import to Text** action — it validates the *converted text* with `@bpm/validate` as its own portable success gate, since the browser-only DOM/`bpmn-js` round-trip check is not available in Node.
+`import-diagram` converts a BPMN 2.0 XML file (e.g. from Diagram mode's Save/Export, or any standards-compliant BPMN tool) into `.bpm` text via `@bpm/import-xml`, always emitting `positioning: manual`. Supported BPMN DI geometry includes pool/lane frames, node bounds, edge waypoints, endpoint sides, and non-central port offsets. This is the CLI counterpart to the web app's **Import to Text** action — it validates the *converted text* with `@bpm/validate` as its own portable success gate, since the browser-only DOM/`bpmn-js` round-trip check is not available in Node.
 
 `validate --json` uses the `@bpm/validate` shape: `{ valid, errors, semanticErrors, warnings, metrics?, inspection? }`. Successful layouts for all five built-in families include `inspection.nodes`, `inspection.edges`, content/render bounds, resolved route statistics, and machine-readable geometry issue details used to explain warnings. The JSON also reports `effectiveFamily`, the resolved `direction`, BPMN `laneDirection`, `capabilities`, `pageDimensions`, and `fitMode`. BPMN keeps its richer legacy inspection fields; the other families use the same common fields and metrics contract. Unsupported direction/lane combinations are blocking structured diagnostics. Do not invent a second schema.
 
@@ -193,6 +193,8 @@ span. These settings affect shared SVG/PPTX geometry only; Gantt JSON/CSV still 
 original schedule dates and durations.
 
 The JSON inspection is the machine-readable check. SVG is the visual preview, and PPTX is an editable visual projection; neither is a semantic replacement for BPMN XML.
+
+The parser/runtime also exposes optional semantic-ID source locations for workspace integrations. The web editor currently uses them for SVG click-to-source selection; the CLI does not yet print them as command output. A future `inspect`/`--source-map` surface should keep the mapping separate from SVG parsing so IDE/LSP and headless workspace clients can use declaration ranges without a browser.
 
 ---
 

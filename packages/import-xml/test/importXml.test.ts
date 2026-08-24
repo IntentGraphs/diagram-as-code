@@ -23,7 +23,7 @@ async function roundTripViaXml(text: string) {
   const positioned = await layout(diagram);
   const xml = exportToXml(diagram, positioned);
   const result = await importXml(xml);
-  return { original: diagram, ...result };
+  return { original: diagram, positioned, ...result };
 }
 
 describe('importXml — round trip through this tool\'s own export', () => {
@@ -80,12 +80,33 @@ describe('importXml — round trip through this tool\'s own export', () => {
       't1 -> t2',
       't1 ~> t2',
     ].join('\n');
-    const { diagram, warnings } = await roundTripViaXml(text);
+    const { diagram, positioned, warnings } = await roundTripViaXml(text);
     expect(warnings).toEqual([]);
     expect(diagram.pools).toHaveLength(1);
     expect(diagram.pools[0].name).toBe('Order Processing');
     expect(diagram.pools[0].lanes.map((l) => l.name).sort()).toEqual(['Finance', 'Sales']);
     expect(diagram.edges.map((e) => e.flowType).sort()).toEqual(['message', 'sequence']);
+    expect(diagram.pools[0].position).toEqual({ x: positioned.pools[0].x, y: positioned.pools[0].y });
+    expect(diagram.pools[0].sizeHint).toEqual({ width: positioned.pools[0].width, height: positioned.pools[0].height });
+    expect(diagram.pools[0].lanes.map((lane) => lane.position)).toEqual(
+      positioned.pools[0].lanes.map((lane) => ({ x: lane.x, y: lane.y })),
+    );
+    expect(diagram.pools[0].lanes.map((lane) => lane.sizeHint)).toEqual(
+      positioned.pools[0].lanes.map((lane) => ({ width: lane.width, height: lane.height })),
+    );
+    const replayed = await layout(diagram);
+    const poolGeometry = (pool: (typeof positioned.pools)[number]) => ({
+      x: pool.x,
+      y: pool.y,
+      width: pool.width,
+      height: pool.height,
+      lanes: pool.lanes.map((lane) => ({ x: lane.x, y: lane.y, width: lane.width, height: lane.height })),
+    });
+    expect(replayed.pools.map(poolGeometry)).toEqual(positioned.pools.map(poolGeometry));
+    expect(replayed.nodes.map(({ id, x, y, width, height }) => ({ id, x, y, width, height })))
+      .toEqual(positioned.nodes.map(({ id, x, y, width, height }) => ({ id, x, y, width, height })));
+    expect(replayed.edges.map(({ id, points }) => ({ id, points })))
+      .toEqual(positioned.edges.map(({ id, points }) => ({ id, points })));
   });
 
   it('boundary event never gets a position, and stays attached to its host', async () => {

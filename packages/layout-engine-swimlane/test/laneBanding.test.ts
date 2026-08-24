@@ -35,6 +35,8 @@ describe('bandLanes — edge.from/to override', () => {
     const start = edge.points[0];
 
     expect(start).toEqual({ x: a1.x, y: a1.y + a1.height / 2 });
+    expect(edge.resolvedFrom).toBe('left');
+    expect(edge.resolvedTo).toBeDefined();
   });
 });
 

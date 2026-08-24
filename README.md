@@ -55,8 +55,12 @@ vector SVG pages, not native editable Word shapes. SVG is available from the bro
 ## Text-first, not text-only
 
 The browser editor has a text mode and a separate BPMN Diagram Editor mode. Diagram-mode edits can be exported
-to BPMN XML and converted through a previewed **Import to Text** action, but source replacement requires an
-explicit confirmation. There is no continuous automatic text ↔ Diagram Editor synchronization.
+to BPMN XML and converted through a previewed **Import to Text** action that preserves supported visual geometry
+as manual DSL, but source replacement requires an explicit confirmation. There is no continuous automatic text ↔
+Diagram Editor synchronization. In Text mode, rendered BPMN nodes, edges, pools, lanes, and their labels can be
+clicked to highlight the matching SVG element and select its DSL declaration. The source-location mapping is shared
+by the parser/runtime, so a future CLI, IDE, or workspace integration can reuse the same semantic IDs without
+depending on browser DOM events.
 
 ## Scope and limitations
 

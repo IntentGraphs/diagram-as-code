@@ -1,6 +1,6 @@
 import type { Diagram, DiagramNode } from '@bpm/ast';
 import type { PositionedDiagram, PositionedNode, RoutedEdge } from '@bpm/layout-core';
-import { facingSides, outlineAnchor, sideOf, createSequentialRouter, assertNoOverlaps, middleRoute, waypointMapper } from '@bpm/layout-core';
+import { facingSides, outlineAnchor, portOnShape, createSequentialRouter, assertNoOverlaps, middleRoute, waypointMapper } from '@bpm/layout-core';
 import { sizeOf } from '@bpm/layout-elk-base';
 import { stackLanes } from './laneStacking.js';
 
@@ -53,8 +53,12 @@ function routeFlatEdges(
     // re-imported and re-exported ("diagram to text") visibly kinked at every event/gateway
     // endpoint that its original swimlane-engine layout had routed around a bend — the edges no
     // longer matched what the same diagram looked like straight out of the editor.
-    const start = edge.from ? sideOf(source, fromSide) : outlineAnchor(source, fromSide, sourceCenter);
-    const end = edge.to ? sideOf(target, toSide) : outlineAnchor(target, toSide, targetCenter);
+    const start = edge.from
+      ? portOnShape(source, fromSide, edge.fromOffset ?? 0)
+      : outlineAnchor(source, fromSide, sourceCenter);
+    const end = edge.to
+      ? portOnShape(target, toSide, edge.toOffset ?? 0)
+      : outlineAnchor(target, toSide, targetCenter);
     const obstacles = [...nodeById.values()].filter((n) => n.id !== source.id && n.id !== target.id);
     const middle = middleRoute(
       edge, start, end, obstacles, router,

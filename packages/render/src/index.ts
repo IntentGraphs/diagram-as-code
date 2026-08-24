@@ -38,7 +38,7 @@ export function render(diagram: PositionedDiagram): string {
     .join('');
   const laneLabelEls = diagram.pools
     .flatMap((pool) => pool.lanes)
-    .map((lane) => `<text x="${lane.x + 4}" y="${lane.y + 14}" font-size="11">${escapeXml(lane.name)}</text>`)
+    .map((lane) => `<text data-lane-label-id="${escapeXml(lane.id)}" x="${lane.x + 4}" y="${lane.y + 14}" font-size="11">${escapeXml(lane.name)}</text>`)
     .join('');
 
   const nodes = diagram.nodes.map(renderNode);

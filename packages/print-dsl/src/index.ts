@@ -23,11 +23,19 @@ function quoteAttrValue(value: string): string {
 }
 
 function fmtCoord(n: number): string {
-  return String(Math.round(n));
+  // Layout engines can return fractional ELK/banding coordinates. Keep sub-pixel geometry in a
+  // frozen snapshot; whole-number inputs still print exactly as before.
+  const rounded = Math.round(n * 1000) / 1000;
+  return Object.is(rounded, -0) ? '0' : String(rounded);
 }
 
 function fmtFraction(n: number): string {
   return String(Math.round(n * 1000) / 1000);
+}
+
+function frameSuffix(frame: { position?: { x: number; y: number }; sizeHint?: { width: number; height: number } }): string {
+  if (!frame.position || !frame.sizeHint) return '';
+  return ` at (${fmtCoord(frame.position.x)}, ${fmtCoord(frame.position.y)}) size (${fmtCoord(frame.sizeHint.width)}, ${fmtCoord(frame.sizeHint.height)})`;
 }
 
 function nodeSuffix(node: DiagramNode, allowPosition: boolean): string {
@@ -112,6 +120,8 @@ function printEdge(edge: DiagramEdge): string {
   if (edge.corner) attrPairs.push(`corner: ${edge.corner}`);
   if (edge.from) attrPairs.push(`from: ${edge.from}`);
   if (edge.to) attrPairs.push(`to: ${edge.to}`);
+  if (edge.fromOffset !== undefined) attrPairs.push(`fromOffset: ${fmtCoord(edge.fromOffset)}`);
+  if (edge.toOffset !== undefined) attrPairs.push(`toOffset: ${fmtCoord(edge.toOffset)}`);
   if (edge.waypoints && edge.waypoints.length > 0) {
     attrPairs.push(`via: ${edge.waypoints.map((p) => `(${fmtCoord(p.x)}, ${fmtCoord(p.y)})`).join(' ')}`);
   }
@@ -155,9 +165,9 @@ export function printDiagram(diagram: Diagram): string {
 
   const declLines: string[] = [];
   for (const pool of diagram.pools) {
-    declLines.push(`pool ${quoteLabel(pool.name)}`);
+    declLines.push(`pool ${quoteLabel(pool.name)}${frameSuffix(pool)}`);
     for (const lane of pool.lanes) {
-      declLines.push(`${INDENT}lane ${quoteLabel(lane.name)}`);
+      declLines.push(`${INDENT}lane ${quoteLabel(lane.name)}${frameSuffix(lane)}`);
       for (const id of lane.nodeIds) {
         const node = nodesById.get(id);
         if (node) printNode(node, 2, declLines);

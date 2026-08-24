@@ -63,6 +63,7 @@ export const bpmnAdapter: DiagramFamilyAdapter<Diagram, PositionedDiagram> = {
       ast: result.diagram,
       errors: [...result.errors, ...limits],
       semanticErrors: result.semanticErrors,
+      sourceLocations: result.sourceLocations,
       warnings: result.errors.length === 0 && result.semanticErrors.length === 0 && limits.length === 0
         ? warningDiagnostics(result.diagram)
         : [],
