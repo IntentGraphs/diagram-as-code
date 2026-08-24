@@ -1,7 +1,7 @@
 import { parse } from '@bpm/parser';
 import { layout, type LayoutOptions } from '@bpm/layout';
 import { getRouteFallbackCount, inspectLayout, resetRouteFallbackCount, type LayoutInspection } from '@bpm/layout-core';
-import { isActivity, isEvent, isGateway, type Diagram, type DiagramNode, type DiagramEdge } from '@bpm/ast';
+import { isActivity, isEvent, isGateway, type Diagram, type DiagramNode, type DiagramEdge, type ShapeSizeGroup } from '@bpm/ast';
 
 export interface ValidationIssue {
   message: string;
@@ -58,6 +58,32 @@ export const MAX_LAYOUT_COMPLEXITY = 10_000;
 export const MAX_LAYOUT_HARD_COMPLEXITY = 25_000;
 /** Below this value a layout is considered ordinary; above it the UI should warn. */
 export const LAYOUT_COMPLEXITY_WARNING = 5_000;
+
+function shapeSizeGroupForNode(node: DiagramNode): ShapeSizeGroup | undefined {
+  if (node.kind === 'event') return 'event';
+  if (node.kind === 'gateway') return 'gateway';
+  if (node.kind === 'activity') return 'task';
+  if (node.kind === 'dataObject' || node.kind === 'dataStore') return 'data';
+  if (node.kind === 'textAnnotation') return 'annotation';
+  if (node.kind === 'group') return 'group';
+  return undefined;
+}
+
+/** Non-blocking notices for explicit node sizes that diverge from a grouped shape baseline. */
+export function shapeSizeOverrideWarnings(diagram: Diagram): ValidationIssue[] {
+  return diagram.nodes.flatMap((node) => {
+    const group = shapeSizeGroupForNode(node);
+    const standardSize = (group ? diagram.shapeSizes?.[group] : undefined) ?? diagram.shapeSizes?.all;
+    if (!node.sizeHint || !standardSize
+      || (node.sizeHint.width === standardSize.width && node.sizeHint.height === standardSize.height)) return [];
+    return [{
+      message: `Node "${node.id}" size (${node.sizeHint.width}, ${node.sizeHint.height}) differs from ${group ?? 'all'} shapeSize (${standardSize.width}, ${standardSize.height}); the parent shapeSize will be used`,
+      severity: 'warning' as const,
+      code: 'shape_size_override',
+      nodeIds: [node.id],
+    }];
+  });
+}
 
 export type LayoutComplexityLevel = 'allow' | 'warn' | 'manual' | 'block';
 
@@ -413,6 +439,7 @@ export async function validate(text: string, options?: LayoutOptions): Promise<V
   const warnings: ValidationIssue[] = [
     ...(complexityWarning ? [complexityWarning] : []),
     ...structuralWarnings(diagram),
+    ...shapeSizeOverrideWarnings(diagram),
   ];
 
   for (const edge of positioned.edges) {

@@ -191,6 +191,7 @@ test('render: manual keeps a small diagram from auto-rendering until requested',
   await page.goto('/');
   await page.locator('#editor').fill('render: manual\ntask "Manual" as manual');
   await expect(page.locator('#render-status')).toContainText('Manual render mode');
+  await expect(page.locator('#editor-status-summary')).toContainText('Manual render mode');
   await page.locator('#render-btn').click();
   await expect(page.locator('#preview svg')).toContainText('Manual');
 });
@@ -350,10 +351,10 @@ test('empty but valid BPMN and flowchart diagrams remain renderable for SVG expo
 test('fullscreen button toggles the preview into fullscreen', async ({ page }) => {
   await page.goto('/');
   const fullscreenBtn = page.locator('#fullscreen-btn');
-  await expect(fullscreenBtn).toHaveText('Fullscreen');
+  await expect(fullscreenBtn).toHaveAttribute('aria-label', 'Fullscreen preview');
 
   await fullscreenBtn.click();
-  await expect(fullscreenBtn).toHaveText('Exit Fullscreen');
+  await expect(fullscreenBtn).toHaveAttribute('aria-label', 'Exit fullscreen');
   await expect.poll(() => page.evaluate(() => document.fullscreenElement?.id)).toBe('preview');
 
   // The fullscreened element visually covers the whole viewport, including the toolbar
@@ -362,6 +363,6 @@ test('fullscreen button toggles the preview into fullscreen', async ({ page }) =
   // Chromium doesn't wire Escape to the Fullscreen API the way a real browser does, so
   // this exercises the same document.exitFullscreen() path via script instead.
   await page.evaluate(() => document.exitFullscreen());
-  await expect(fullscreenBtn).toHaveText('Fullscreen');
+  await expect(fullscreenBtn).toHaveAttribute('aria-label', 'Fullscreen preview');
   await expect.poll(() => page.evaluate(() => document.fullscreenElement)).toBeNull();
 });

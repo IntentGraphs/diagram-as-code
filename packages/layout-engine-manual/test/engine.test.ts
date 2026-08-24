@@ -31,6 +31,23 @@ describe('layoutManual — flat (non-pool) diagrams', () => {
     expect(edge.points[0]).toEqual({ x: t1.x + t1.width, y: t1.y + t1.height / 2 });
   });
 
+  it('applies parent shape-family sizes in manual mode over per-node overrides', async () => {
+    const diagram: Diagram = {
+      pools: [], positioning: 'manual',
+      shapeSizes: { task: { width: 160, height: 72 }, gateway: { width: 64, height: 64 } },
+      nodes: [
+        { kind: 'activity', id: 't1', label: 'A long task label', activityType: 'task', collapsed: false, children: [], childEdges: [], position: { x: 0, y: 0 } },
+        { kind: 'activity', id: 't2', label: 'Override', activityType: 'task', collapsed: false, children: [], childEdges: [], sizeHint: { width: 190, height: 80 }, position: { x: 220, y: 0 } },
+        { kind: 'gateway', id: 'g1', label: 'Check', gatewayType: 'exclusive', position: { x: 460, y: 0 } },
+      ],
+      edges: [],
+    };
+    const positioned = await layoutManual(diagram);
+    expect(positioned.nodes.find((n) => n.id === 't1')).toMatchObject({ width: 160, height: 72 });
+    expect(positioned.nodes.find((n) => n.id === 't2')).toMatchObject({ width: 160, height: 72 });
+    expect(positioned.nodes.find((n) => n.id === 'g1')).toMatchObject({ width: 64, height: 64 });
+  });
+
   it('throws a clear error when a node has no position', async () => {
     const diagram: Diagram = {
       pools: [], positioning: 'manual',

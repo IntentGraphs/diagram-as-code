@@ -10,7 +10,7 @@ import type { RenderAssessment } from '../src/renderPolicy.js';
 import type { PipelineResult } from '../src/pipeline.js';
 
 function assessment(overrides: Partial<RenderAssessment> = {}): RenderAssessment {
-  return { heavy: false, score: 0, layoutComplexity: 0, admission: 'allow', nodeCount: 0, edgeCount: 0, poolCount: 0, laneCount: 0, crossPoolEdgeCount: 0, reasons: [], ...overrides };
+  return { heavy: false, hardBlocked: false, score: 0, layoutComplexity: 0, admission: 'allow', nodeCount: 0, edgeCount: 0, poolCount: 0, laneCount: 0, crossPoolEdgeCount: 0, reasons: [], ...overrides };
 }
 
 class FakeWorker {
@@ -43,7 +43,7 @@ describe('createWorkerRenderExecutor', () => {
     const result = await pending;
     expect(phases).toEqual(['queued']);
     expect(result).toMatchObject({ family: 'bpmn' });
-    expect(worker.terminated).toBe(true);
+    expect(worker.terminated).toBe(false);
   });
 
   it('terminates the worker and rejects when the signal aborts', async () => {

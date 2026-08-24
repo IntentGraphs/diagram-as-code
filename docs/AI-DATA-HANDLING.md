@@ -14,7 +14,7 @@ Visual review rasterizes the current SVG in the browser and sends the resulting 
 
 The browser UI stores the OpenAI-compatible API key in `sessionStorage` by default (`bpm.review.apiKey`), so it is scoped to the current browser tab/session. Settings includes an explicit **Remember API key on this device** opt-in; only when enabled is the key stored in `localStorage` (`bpm.ai.apiKey`) and reused after refresh. Older keys written by earlier builds are migrated back to session-only storage when Settings first reads them. The configured base URL, model, provider choice, and editor preferences use browser `localStorage`; users should treat a custom endpoint URL as browser-persisted configuration.
 
-Text-mode projects and diagrams are persisted client-side in IndexedDB database `bpm-projects` (stores: `meta`, `projects`, and `diagrams`). The application does not upload that project store by default. A user can nevertheless submit the current source or rendered image when explicitly invoking an AI provider.
+Text-mode projects, diagrams, and successful render snapshots are persisted client-side in IndexedDB database `bpm-projects` (stores: `meta`, `projects`, `diagrams`, and `renders`). Render cache entries are keyed by project, diagram, source fingerprint, engine override, and renderer version; they are local performance data and are not uploaded by default. The application does not upload that project store by default. A user can nevertheless submit the current source or rendered image when explicitly invoking an AI provider.
 
 ## User responsibilities
 

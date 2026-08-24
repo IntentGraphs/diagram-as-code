@@ -38,4 +38,9 @@ describe('visual docking helpers', () => {
       y: 124.85071250072666,
     });
   });
+
+  it('keeps BPMN gateway anchors on cardinal vertices', () => {
+    const gateway = { kind: 'gateway' as const, x: 100, y: 100, width: 64, height: 64 };
+    expect(outlineAnchor(gateway, 'bottom', { x: 220, y: 220 })).toEqual({ x: 132, y: 164 });
+  });
 });

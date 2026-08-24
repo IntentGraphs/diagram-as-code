@@ -2,6 +2,7 @@ import { classifyLayoutComplexity, type LayoutComplexityLevel } from '@bpm/valid
 
 export interface RenderAssessment {
   heavy: boolean;
+  hardBlocked: boolean;
   score: number;
   layoutComplexity: number;
   admission: LayoutComplexityLevel;
@@ -43,8 +44,46 @@ export function assessRenderCost(source: string): RenderAssessment {
   if (edgeCount >= 50) reasons.push(`${edgeCount} relationships`);
   if (poolCount >= 3 || laneCount >= 6) reasons.push(`${poolCount} pools / ${laneCount} lanes`);
   if (crossPoolEdgeCount >= 5) reasons.push(`${crossPoolEdgeCount} cross-pool relationships`);
+  const hardBlocked = admission === 'block';
   const heavy = admission !== 'allow' || score >= 150 || nodeCount >= 40 || edgeCount >= 60 || (poolCount >= 3 && laneCount >= 6);
-  return { heavy, score, layoutComplexity, admission, nodeCount, edgeCount, poolCount, laneCount, crossPoolEdgeCount, reasons };
+  return { heavy, hardBlocked, score, layoutComplexity, admission, nodeCount, edgeCount, poolCount, laneCount, crossPoolEdgeCount, reasons };
+}
+
+export interface IncrementalRenderAssessment {
+  incremental: boolean;
+  allowed: boolean;
+  nodeDelta: number;
+  edgeDelta: number;
+  sourceDelta: number;
+  reason?: string;
+}
+
+/**
+ * Distinguishes a diagram grown one small edit at a time from a bulk paste/replacement.
+ * Soft complexity can still auto-render during incremental construction; hard limits and
+ * obviously expensive bulk changes remain explicit-render only.
+ */
+export function assessIncrementalRender(
+  previousSource: string | undefined,
+  source: string,
+  previousRenderMs = 0,
+): IncrementalRenderAssessment {
+  if (previousSource === undefined) {
+    return { incremental: false, allowed: false, nodeDelta: 0, edgeDelta: 0, sourceDelta: source.length, reason: 'No previous successful render is available.' };
+  }
+  const previous = assessRenderCost(previousSource);
+  const current = assessRenderCost(source);
+  const nodeDelta = Math.max(0, current.nodeCount - previous.nodeCount);
+  const edgeDelta = Math.max(0, current.edgeCount - previous.edgeCount);
+  const sourceDelta = Math.abs(source.length - previousSource.length);
+  const incremental = nodeDelta <= 8 && edgeDelta <= 12 && sourceDelta <= 2_000;
+  const renderTimeAcceptable = previousRenderMs === 0 || previousRenderMs <= 1_500;
+  const allowed = incremental && renderTimeAcceptable && !current.hardBlocked;
+  let reason: string | undefined;
+  if (current.hardBlocked) reason = 'The current edit exceeds the hard layout/resource limit.';
+  else if (!incremental) reason = 'The current change is too large to treat as an incremental edit.';
+  else if (!renderTimeAcceptable) reason = `The previous render took ${previousRenderMs}ms, so automatic layout is paused for safety.`;
+  return { incremental, allowed, nodeDelta, edgeDelta, sourceDelta, ...(reason ? { reason } : {}) };
 }
 
 /**

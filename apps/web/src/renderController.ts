@@ -23,6 +23,7 @@ export interface RenderControllerState {
 
 export interface RenderController {
   render(): Promise<void>;
+  commitCached(value: PipelineResult): Promise<void>;
   invalidate(): void;
   cancel(): void;
   isCurrent(snapshot: RenderControllerSnapshot): boolean;
@@ -162,6 +163,18 @@ export function createRenderController(
       } finally {
         if (myGeneration === generation) activeAbort = undefined;
       }
+    },
+    async commitCached(value) {
+      const myGeneration = ++generation;
+      activeAbort?.abort();
+      activeAbort = undefined;
+      stopTicker();
+      const source = getSource();
+      const token = revisions.begin(source);
+      const snapshot = revisions.commit(token, value);
+      if (myGeneration !== generation || !snapshot) return;
+      setState({ rendering: false, phase: 'completed', canCancel: false, detail: 'Preview restored from cache.' });
+      await onCommit(snapshot);
     },
     invalidate() {
       revisions.invalidate();

@@ -1,4 +1,4 @@
-import type { Diagram, DiagramNode, DiagramEdge, ActivityType, ActivityNode, Pool, Lane, LayoutSpacing, RoutingMode, DiagramDirection, LaneDirection, PaginationMode, PageBreakStrategy } from '@bpm/ast';
+import type { Diagram, DiagramNode, DiagramEdge, ActivityType, ActivityNode, Pool, Lane, LayoutSpacing, RoutingMode, DiagramDirection, LaneDirection, PaginationMode, PageBreakStrategy, ShapeSizeGroup, ShapeSizes } from '@bpm/ast';
 import type { ParseError } from './errors.js';
 import { checkBpmnLegality } from './bpmnLegality.js';
 import { isEventCategory, isEventTrigger, isGatewayType, isValidId, EDGE_ARROW_TO_FLOW_TYPE } from './tokens.js';
@@ -13,6 +13,7 @@ const DATA_LINE = /^(dataObject|dataStore|annotation|group)\s+"([^"]*)"\s+as\s+(
 const LAYOUT_DIRECTIVE_LINE = /^layout:\s*(\S+)$/;
 const POSITIONING_DIRECTIVE_LINE = /^positioning:\s*(\S+)$/;
 const LAYOUT_SPACING_DIRECTIVE_LINE = /^layoutSpacing:\s*(\S+)$/;
+const SHAPE_SIZE_DIRECTIVE_LINE = /^shapeSize:\s*(\S+)\s*\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)$/;
 const ROUTING_DIRECTIVE_LINE = /^routing:\s*(\S+)$/;
 const DIRECTION_DIRECTIVE_LINE = /^direction:\s*(\S+)$/;
 const LANE_DIRECTION_DIRECTIVE_LINE = /^laneDirection:\s*(\S+)$/;
@@ -45,6 +46,7 @@ const LAYOUT_SPACINGS: LayoutSpacing[] = ['compact', 'normal', 'relaxed', 'spaci
 const ROUTING_MODES: RoutingMode[] = ['quality', 'hybrid', 'fast'];
 const DIRECTIONS: DiagramDirection[] = ['right', 'left', 'down', 'up'];
 const LANE_DIRECTIONS: LaneDirection[] = ['horizontal', 'vertical'];
+const SHAPE_SIZE_GROUPS: ShapeSizeGroup[] = ['all', 'event', 'task', 'gateway', 'data', 'annotation', 'group'];
 
 function isLayoutSpacing(value: string): value is LayoutSpacing {
   return (LAYOUT_SPACINGS as string[]).includes(value);
@@ -54,6 +56,7 @@ function isDirection(value: string): value is DiagramDirection { return DIRECTIO
 function isLaneDirection(value: string): value is LaneDirection { return LANE_DIRECTIONS.includes(value as LaneDirection); }
 function isPaginationMode(value: string): value is PaginationMode { return ['none', 'semantic', 'tile', 'hybrid'].includes(value); }
 function isPageBreakStrategy(value: string): value is PageBreakStrategy { return ['pool', 'lane', 'group', 'branch'].includes(value); }
+function isShapeSizeGroup(value: string): value is ShapeSizeGroup { return SHAPE_SIZE_GROUPS.includes(value as ShapeSizeGroup); }
 
 export interface ParseResult {
   diagram: Diagram;
@@ -91,6 +94,7 @@ export function parse(text: string): ParseResult {
   let positioningLine = 0;
   let layoutSpacing: LayoutSpacing | undefined;
   let layoutSpacingLine = 0;
+  const shapeSizes: ShapeSizes = {};
   let routing: RoutingMode | undefined;
   let direction: DiagramDirection | undefined;
   let laneDirection: LaneDirection | undefined;
@@ -100,14 +104,20 @@ export function parse(text: string): ParseResult {
   let pageBreakLine = 0;
   const pools: Pool[] = [];
 
-  // Leading directive lines (layout:, positioning:, layoutSpacing:, routing:), any order.
+  // Leading directive lines (layout:, positioning:, layoutSpacing:, shapeSize:, routing:), any order.
   const firstContentIndex = lines.findIndex((l) => l.trim() !== '');
   let bodyStartIndex = 0;
   if (firstContentIndex !== -1) {
     let cursor = firstContentIndex;
     while (cursor < lines.length) {
       const trimmed = lines[cursor].trim();
-      if (trimmed === '') break;
+      // Shared header directives such as `render:` are removed by the runtime before this
+      // family parser runs. Keep allowing blank lines here so a directive block remains
+      // contiguous after that normalization (and so blank lines between directives are safe).
+      if (trimmed === '') {
+        cursor += 1;
+        continue;
+      }
       const layoutDirectiveMatch = trimmed.match(LAYOUT_DIRECTIVE_LINE);
       if (layoutDirectiveMatch) {
         layoutMode = layoutDirectiveMatch[1];
@@ -130,6 +140,20 @@ export function parse(text: string): ParseResult {
         } else {
           layoutSpacing = value;
         }
+        cursor += 1;
+        continue;
+      }
+      const shapeSizeDirectiveMatch = trimmed.match(SHAPE_SIZE_DIRECTIVE_LINE);
+      if (shapeSizeDirectiveMatch) {
+        const group = shapeSizeDirectiveMatch[1];
+        const hint = parseSizeHint(shapeSizeDirectiveMatch[2], shapeSizeDirectiveMatch[3], cursor + 1, errors);
+        if (hint && isShapeSizeGroup(group)) shapeSizes[group] = hint;
+        else if (hint) errors.push({ line: cursor + 1, column: 1, message: `Unknown shapeSize group "${group}" (expected all, event, task, gateway, data, annotation, or group)` });
+        cursor += 1;
+        continue;
+      }
+      if (trimmed.startsWith('shapeSize:')) {
+        errors.push({ line: cursor + 1, column: 1, message: 'Malformed shapeSize directive; expected "shapeSize: <group> (w, h)"' });
         cursor += 1;
         continue;
       }
@@ -499,6 +523,7 @@ export function parse(text: string): ParseResult {
     layout: layoutMode,
     positioning: positioningMode === 'manual' ? 'manual' : undefined,
     ...(layoutSpacing ? { layoutSpacing } : {}),
+    ...(Object.keys(shapeSizes).length > 0 ? { shapeSizes } : {}),
     ...(routing ? { routing } : {}),
     ...(direction ? { direction } : {}),
     ...(laneDirection ? { laneDirection } : {}),

@@ -158,6 +158,10 @@ export function assignPorts(
   const hasCapacity = (demand: EndpointDemand, side: Side): boolean => {
     const node = nodes.get(demand.nodeId);
     if (!node) return false;
+    // Gateways are diamond vertices, not flat edges. Keep every branch that
+    // chooses the same cardinal direction on that vertex; fan-out separation
+    // belongs in the route after the gateway stub, not on the sloped outline.
+    if (node.kind === 'gateway') return true;
     const length = sideLength(node, side);
     const sameRoleCount = roleCounts.get(groupKey(demand.nodeId, side, demand.role)) ?? 0;
     const roles = sideRoles.get(sideRoleKey(demand.nodeId, side));
@@ -220,9 +224,11 @@ export function assignPorts(
     group.forEach((demand, index) => {
       const assigned = chosen.get(demand.key);
       if (!assigned) return;
+      const isGateway = node.kind === 'gateway';
       assigned.offset = group.length === 1
         ? midpoint
         : (index - (group.length - 1) / 2) * spacing + (hasOtherRole ? midpoint : 0);
+      if (isGateway) assigned.offset = 0;
     });
   }
 

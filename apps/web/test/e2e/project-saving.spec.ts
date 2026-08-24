@@ -16,6 +16,28 @@ test.describe('project-based saving', () => {
     await expect(page.locator('#editor')).toHaveValue(/Choose diagram/);
   });
 
+  test('restores the active diagram preview from the persistent render cache after reload', async ({ page }) => {
+    await page.addInitScript(() => {
+      const OriginalWorker = window.Worker;
+      window.Worker = class extends OriginalWorker {
+        constructor(...args: ConstructorParameters<typeof Worker>) {
+          super(...args);
+          const key = 'diagram-editor-test-worker-count';
+          localStorage.setItem(key, String(Number(localStorage.getItem(key) ?? '0') + 1));
+        }
+      } as typeof Worker;
+    });
+    await openEditor(page);
+    await expect(page.locator('#preview svg')).toBeVisible();
+    await page.waitForTimeout(250); // allow the successful snapshot write to settle
+    const workersBeforeReload = await page.evaluate(() => Number(localStorage.getItem('diagram-editor-test-worker-count')));
+    expect(workersBeforeReload).toBeGreaterThan(0);
+
+    await page.reload();
+    await expect(page.locator('#preview svg')).toBeVisible();
+    await expect.poll(() => page.evaluate(() => Number(localStorage.getItem('diagram-editor-test-worker-count')))).toBe(workersBeforeReload);
+  });
+
   test('switching tour diagrams loads the matching source and saves every diagram', async ({ page }) => {
     await openEditor(page);
     await page.locator('.diagram-select', { hasText: '04 Diagram Editor Handoff' }).click();

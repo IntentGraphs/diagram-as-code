@@ -24,6 +24,18 @@ export interface StoredDiagram {
   family?: DiagramFamilyId;
 }
 
+/** Persisted, validated text-mode render snapshot used to restore previews without rerunning layout. */
+export interface StoredRenderSnapshot {
+  key: string;
+  projectId: string;
+  diagramId: string;
+  sourceHash: string;
+  engineOverride: string | null;
+  rendererVersion: string;
+  result: unknown;
+  updatedAt: string;
+}
+
 export interface SessionMeta {
   activeProjectId: string;
   activeDiagramId: string;

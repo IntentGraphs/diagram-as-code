@@ -5,6 +5,40 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/) via git tags.
 
+## [Unreleased]
+
+### Added
+
+- Added the leading `shapeSize: <group> (w, h)` DSL directive for standardized geometry across shape families: `all`, `event`, `task`, `gateway`, `data`, `annotation`, and `group`.
+- Added grouped shape-size examples and round-trip/parser/layout coverage, including full `positioning: manual` mode.
+- Added a bounded persistent web-editor render cache keyed by project, diagram, source fingerprint, engine override, and renderer version, with IndexedDB persistence and memory fallback.
+- Added focused web-editor controls for fixed Clear/Render actions, a diagram-information log, accessible icon controls, and draggable Review/Generate/Settings panels.
+
+### Changed
+
+- Routed BPMN gateway entries and exits through cardinal diamond vertices, keeping fan-out separation in the orthogonal route instead of placing ports on sloped gateway edges.
+- Bumped the web renderer cache generation so previews created before the gateway-routing change are not restored as if they were current.
+- Established parent-first size precedence: a matching top-level `shapeSize` now controls the final rendered dimensions in automatic and manual layouts. `shapeSize: task (220, 60)` therefore applies to every task even when a node also declares `size (198, 60)`.
+- Preserved node-level `size (w, h)` as source-level intent and diagnostic context. When it conflicts with a parent `shapeSize`, the node request is ignored for geometry and reported as a non-blocking `shape_size_override` warning.
+- Surfaced shape-size mismatch warnings through the web editor render pipeline as well as CLI/API validation, so warnings do not turn a valid diagram into a rendering error.
+- Allowed blank lines between leading directives after shared web/runtime directives such as `render:` are normalized out of the source, keeping the CLI and web editor consistent for grouped `shapeSize:` declarations.
+- Kept `render: manual` explicit while allowing safe small incremental edits to soft-heavy diagrams to auto-render; larger edits remain manual and hard-blocked diagrams stop automatically without replacing the previous preview.
+- Reused successful render workers and restored matching cached previews during diagram switching, reload, and repeated renders instead of rebuilding identical DSL.
+
+### Fixed
+
+- Kept the Text/Diagram mode toggle visible while the BPMN editor is open, including after importing converted text, so users can always return to the DSL editor.
+
+### Documentation
+
+- Updated `docs/LANGUAGE.md`, `docs/STATUS.md`, and manual-control examples to document the parent/child hierarchy, warning behavior, and local web-editor verification flow.
+- Updated the language, status, README, and AI data-handling documentation for incremental rendering, local render snapshots, the new editor layout, and resizable bottom panels. Added `SESSION-CHANGELOG-2026-08-24.md` as the detailed session handoff.
+
+### Reason
+
+- Standardized parent-level geometry makes diagrams deterministic and visually consistent across labels, manual coordinates, SVG output, and the web editor while retaining visibility when individual declarations disagree.
+- Avoiding duplicate browser layouts keeps diagram switching and incremental editing responsive while preserving explicit user control for genuinely expensive diagrams.
+
 ## [1.0.2] - 2026-08-23
 
 ### Fixed

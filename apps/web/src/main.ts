@@ -27,13 +27,15 @@ import { createRenderController, type RenderControllerSnapshot } from './renderC
 import { createProjectController, type ProjectController } from './projectController.js';
 import { createDiagramModeController } from './diagramModeController.js';
 import { mountDiagramAgentPanel, showDiagramAgentPanel, hideDiagramAgentPanel, resetDiagramAgentSession, setAdapterGetter as setDiagramAgentAdapterGetter, setCloseHandler as setDiagramAgentCloseHandler } from './diagramAgentPanel.js';
-import { assessRenderCost, renderDebounceMs, type RenderAssessment } from './renderPolicy.js';
+import { assessIncrementalRender, assessRenderCost, renderDebounceMs, type RenderAssessment } from './renderPolicy.js';
+import { createRenderCache } from './renderCache.js';
 import { isProjectBundle, PROJECT_LIMITS } from './project/store.js';
 import { PROJECT_BUNDLE_FORMAT, PROJECT_BUNDLE_VERSION, type ProjectBundle, type ProjectBundleDiagram } from './project/types.js';
 import { WORKSPACE_TOUR } from './project/starterProject.js';
 import { createOperationStateCoordinator } from './operationState.js';
 
 const editor = document.querySelector<HTMLTextAreaElement>('#editor')!;
+const editorPane = document.querySelector<HTMLDivElement>('#editor-pane')!;
 const splitter = document.querySelector<HTMLDivElement>('#splitter')!;
 const preview = document.querySelector<HTMLDivElement>('#preview')!;
 const errorsEl = document.querySelector<HTMLDivElement>('#errors')!;
@@ -91,6 +93,7 @@ const operationStatusEl = document.querySelector<HTMLDivElement>('#operation-sta
 const familyBadge = document.querySelector<HTMLSpanElement>('#family-badge')!;
 const svgViewport = createSvgViewport(preview);
 const operationState = createOperationStateCoordinator();
+const renderCache = createRenderCache();
 
 function activeOperationIdentity() {
   const session = projectController?.getSession();
@@ -108,6 +111,7 @@ let currentMode: Mode = 'text';
 let lastResult: PipelineResult | undefined;
 let lastResultSource: string | undefined;
 let renderBusy = false;
+let lastRenderElapsedMs = 0;
 let textExportMenu!: ReturnType<typeof createExportMenu>;
 
 /** Disable actions that consume the last committed text-mode render while it is stale or busy. */
@@ -174,7 +178,8 @@ function setMode(mode: Mode): void {
   modeDiagramBtn.setAttribute('aria-pressed', String(isDiagram));
   body.hidden = isDiagram;
   diagramBody.hidden = !isDiagram;
-  toolbarActions.hidden = isDiagram;
+  toolbarActions.hidden = false;
+  toolbarActions.classList.toggle('diagram-mode', isDiagram);
   diagramToolbarActions.hidden = !isDiagram;
 
   if (isDiagram) {
@@ -273,7 +278,7 @@ const MIN_PANE_WIDTH = 240;
 function applyEditorWidth(px: number): void {
   const max = window.innerWidth - MIN_PANE_WIDTH - splitter.offsetWidth;
   const clamped = Math.min(Math.max(px, MIN_PANE_WIDTH), Math.max(max, MIN_PANE_WIDTH));
-  editor.style.flex = `0 0 ${clamped}px`;
+  editorPane.style.flex = `0 0 ${clamped}px`;
 }
 
 const storedWidth = Number(localStorage.getItem(EDITOR_WIDTH_STORAGE_KEY));
@@ -350,7 +355,9 @@ fullscreenBtn.addEventListener('click', () => {
   }
 });
 document.addEventListener('fullscreenchange', () => {
-  fullscreenBtn.textContent = document.fullscreenElement ? 'Exit Fullscreen' : 'Fullscreen';
+  const label = document.fullscreenElement ? 'Exit fullscreen' : 'Fullscreen preview';
+  fullscreenBtn.setAttribute('aria-label', label);
+  fullscreenBtn.title = label;
 });
 
 let renderDebounceHandle: ReturnType<typeof setTimeout> | undefined;
@@ -373,10 +380,16 @@ function heavyRenderReason(assessment: RenderAssessment): string {
     : `complexity score ${assessment.score}`;
 }
 
-function showHeavyRenderWarning(assessment: RenderAssessment): void {
+function showHeavyRenderWarning(assessment: RenderAssessment, incrementalReason?: string): void {
   if (autoHeavyWarningShown || heavyRenderDialog.open) return;
   autoHeavyWarningShown = true;
-  heavyRenderMessage.textContent = `This diagram is classified as heavy (${heavyRenderReason(assessment)}). "render: auto" is not allowed to start repeated live layouts. Press Render to update the preview once; editing and autosave remain available.`;
+  const modeMessage = currentRenderMode() === 'auto'
+    ? '"render: auto" is paused for repeated live layouts.'
+    : 'Automatic rendering is paused for this diagram.';
+  const incrementalMessage = incrementalReason ? ` ${incrementalReason}` : '';
+  heavyRenderMessage.textContent = assessment.hardBlocked
+    ? `Automatic rendering stopped immediately: ${heavyRenderReason(assessment)}.${incrementalMessage} The previous preview is preserved. Reduce the diagram or press Render to try explicitly.`
+    : `This diagram is classified as heavy (${heavyRenderReason(assessment)}). ${modeMessage}${incrementalMessage} The previous preview is preserved. Press Render to update the preview once; editing and autosave remain available.`;
   heavyRenderDialog.showModal();
 }
 
@@ -384,10 +397,17 @@ function scheduleAutomaticRender(delayMs = renderDebounceMs(editor.value)): void
   if (renderDebounceHandle) clearTimeout(renderDebounceHandle);
   currentRenderAssessment = assessRenderCost(editor.value);
   const mode = currentRenderMode();
+  const incremental = assessIncrementalRender(lastResultSource, editor.value, lastRenderElapsedMs);
 
-  if (currentRenderAssessment.heavy) {
+  if (currentRenderAssessment.hardBlocked) {
+    setRenderStatus('Render blocked — reduce diagram or press Render');
+    if (mode === 'auto') showHeavyRenderWarning(currentRenderAssessment, incremental.reason);
+    return;
+  }
+
+  if (currentRenderAssessment.heavy && !incremental.allowed) {
     setRenderStatus(mode === 'auto' ? 'Large diagram — press Render' : 'Manual render mode — press Render');
-    if (mode === 'auto') showHeavyRenderWarning(currentRenderAssessment);
+    if (mode === 'auto') showHeavyRenderWarning(currentRenderAssessment, incremental.reason);
     return;
   }
 
@@ -397,7 +417,8 @@ function scheduleAutomaticRender(delayMs = renderDebounceMs(editor.value)): void
     return;
   }
   setRenderStatus('');
-  renderDebounceHandle = setTimeout(() => { void rerender(); }, delayMs);
+  const incrementalDelay = incremental.allowed && currentRenderAssessment.heavy ? Math.max(delayMs, 500) : delayMs;
+  renderDebounceHandle = setTimeout(() => { void rerender(); }, incrementalDelay);
 }
 
 function renderNow(): void {
@@ -681,6 +702,9 @@ async function commitRender(snapshot: RenderControllerSnapshot): Promise<void> {
   lastResult = isRenderable ? result : undefined;
   lastResultSource = isRenderable ? source : undefined;
   updateRenderDependentActions();
+  if (isRenderable && result.errors.length === 0) {
+    void renderCache.put(activeOperationIdentity(), source, engineOverrideSelect.value || undefined, result);
+  }
 
   if (reviewVisible) {
     const validation = await validateForReview(source, result.capabilities);
@@ -697,6 +721,7 @@ const renderController = createRenderController(
   undefined,
   (state) => {
     renderBusy = state.rendering;
+    if (state.phase === 'completed' && state.elapsedMs !== undefined) lastRenderElapsedMs = state.elapsedMs;
     renderSpinnerEl.hidden = !state.rendering;
     renderCancelBtn.hidden = !state.canCancel;
     renderCancelBtn.disabled = !state.canCancel;
@@ -720,6 +745,17 @@ const renderController = createRenderController(
 );
 
 async function rerender(): Promise<void> {
+  const source = editor.value;
+  const identity = activeOperationIdentity();
+  const engineOverride = engineOverrideSelect.value || undefined;
+  const cached = await renderCache.get(identity, source, engineOverride);
+  const currentIdentity = activeOperationIdentity();
+  if (source !== editor.value || identity.projectId !== currentIdentity.projectId || identity.diagramId !== currentIdentity.diagramId) return;
+  if (cached) {
+    currentRenderAssessment = assessRenderCost(source);
+    await renderController.commitCached(cached);
+    return;
+  }
   await renderController.render();
 }
 
@@ -1003,10 +1039,82 @@ function restoreEditorView(): void {
 editor.addEventListener('scroll', persistEditorView);
 editor.addEventListener('select', persistEditorView);
 
+async function restoreCachedOrSchedule(delayMs: number): Promise<void> {
+  const source = editor.value;
+  const identity = activeOperationIdentity();
+  const engineOverride = engineOverrideSelect.value || undefined;
+  const cached = await renderCache.get(identity, source, engineOverride);
+  const currentIdentity = activeOperationIdentity();
+  if (source !== editor.value || identity.projectId !== currentIdentity.projectId || identity.diagramId !== currentIdentity.diagramId) return;
+  if (cached) {
+    currentRenderAssessment = assessRenderCost(source);
+    await renderController.commitCached(cached);
+  } else {
+    scheduleAutomaticRender(delayMs);
+  }
+}
+
 function requestProjectRender(delayMs: number): void {
   if (renderDebounceHandle) clearTimeout(renderDebounceHandle);
   restoreEditorView();
-  scheduleAutomaticRender(delayMs);
+  void restoreCachedOrSchedule(delayMs);
+}
+
+function installBottomPanelResizer(panelId: string): void {
+  const panel = document.querySelector<HTMLElement>(`#${panelId}`);
+  if (!panel || panel.querySelector('.panel-resize-handle')) return;
+
+  const handle = document.createElement('div');
+  handle.className = 'panel-resize-handle';
+  handle.setAttribute('role', 'separator');
+  handle.setAttribute('aria-orientation', 'horizontal');
+  handle.setAttribute('aria-label', `Resize ${panelId.replace('-panel', '')} panel`);
+  handle.tabIndex = 0;
+  panel.prepend(handle);
+
+  const panelBounds = (): { min: number; max: number } => {
+    const styles = getComputedStyle(panel);
+    const min = Number.parseFloat(styles.minHeight) || 100;
+    const max = Number.parseFloat(styles.maxHeight) || window.innerHeight * 0.8;
+    return { min, max: Math.max(min, max) };
+  };
+
+  const setPanelHeight = (height: number): void => {
+    const { min, max } = panelBounds();
+    panel.style.height = `${Math.round(Math.min(max, Math.max(min, height)))}px`;
+  };
+
+  handle.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    const startY = event.clientY;
+    const startHeight = panel.getBoundingClientRect().height;
+    const previousCursor = document.body.style.cursor;
+    const previousUserSelect = document.body.style.userSelect;
+    document.body.style.cursor = 'ns-resize';
+    document.body.style.userSelect = 'none';
+    handle.setPointerCapture(event.pointerId);
+
+    const onMove = (moveEvent: PointerEvent): void => {
+      setPanelHeight(startHeight + startY - moveEvent.clientY);
+    };
+    const finish = (): void => {
+      document.body.style.cursor = previousCursor;
+      document.body.style.userSelect = previousUserSelect;
+      handle.removeEventListener('pointermove', onMove);
+      handle.removeEventListener('pointerup', finish);
+      handle.removeEventListener('pointercancel', finish);
+    };
+    handle.addEventListener('pointermove', onMove);
+    handle.addEventListener('pointerup', finish, { once: true });
+    handle.addEventListener('pointercancel', finish, { once: true });
+  });
+
+  handle.addEventListener('keydown', (event) => {
+    if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+    event.preventDefault();
+    setPanelHeight(panel.getBoundingClientRect().height + (event.key === 'ArrowUp' ? 24 : -24));
+  });
 }
 
 projectController = createProjectController({
@@ -1036,6 +1144,9 @@ mountImportPanel(
 );
 mountDiagramAgentPanel(document.querySelector('#diagram-agent-panel-container')!);
 mountSettingsPanel(document.querySelector('#settings-panel-container')!);
+installBottomPanelResizer('review-panel');
+installBottomPanelResizer('generate-panel');
+installBottomPanelResizer('settings-panel');
 setReviewCloseHandler(() => reviewBtn.click());
 setGenerateCloseHandler(() => generateBtn.click());
 setSettingsCloseHandler(() => settingsBtn.click());
@@ -1103,6 +1214,7 @@ function switchToTextAfterImport(text: string): void {
   body.hidden = false;
   diagramBody.hidden = true;
   toolbarActions.hidden = false;
+  toolbarActions.classList.remove('diagram-mode');
   diagramToolbarActions.hidden = true;
   destroyModeler();
   diagramModeController.setButtonsEnabled(false);

@@ -74,6 +74,7 @@ See [`docs/STATUS.md`](docs/STATUS.md) for the current capability and limitation
 | Document | Purpose |
 |---|---|
 | [`ROADMAP.md`](ROADMAP.md) | Public direction and explicit boundaries |
+| [`CHANGELOG.md`](CHANGELOG.md) | Versioned release history |
 | [`docs/README.md`](docs/README.md) | Documentation map |
 | [`docs/STATUS.md`](docs/STATUS.md) | Current capabilities and limitations |
 | [`docs/LANGUAGE.md`](docs/LANGUAGE.md) | Diagram grammar |

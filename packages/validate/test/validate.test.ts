@@ -133,6 +133,27 @@ b1 -> target
 });
 
 describe('validate size limits', () => {
+  it('warns about node-size deviations from grouped shapeSize without blocking rendering', async () => {
+    const result = await validate([
+      'positioning: manual',
+      'shapeSize: task (220, 60)',
+      'shapeSize: event (50, 50)',
+      '',
+      'event start none "Start" as s at (0, 10) size (40, 40)',
+      'task "Work" as a at (80, 0) size (198, 60)',
+      'event end none "End" as e at (320, 10)',
+      '',
+      's -> a',
+      'a -> e',
+    ].join('\n'));
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'shape_size_override', nodeIds: ['s'] }),
+      expect.objectContaining({ code: 'shape_size_override', nodeIds: ['a'] }),
+    ]));
+  });
+
   it('rejects source longer than 100000 characters before parse', async () => {
     const text = 'x'.repeat(100_001);
     const result = await validate(text);

@@ -81,6 +81,13 @@ describe('layout-elk-base shared exports', () => {
     expect(sizeOf(node).height).toBeGreaterThan(60);
   });
 
+  it('uses parent shape-family sizes before label measurement and ignores child size overrides', () => {
+    const node: DiagramNode = { kind: 'activity', id: 't1', label: 'A label that would normally expand the box significantly', activityType: 'task', collapsed: false, children: [], childEdges: [] };
+    expect(sizeOf(node, { task: { width: 140, height: 70 } })).toEqual({ width: 140, height: 70 });
+    expect(sizeOf({ ...node, label: 'Override', sizeHint: { width: 180, height: 80 } }, { task: { width: 140, height: 70 } })).toEqual({ width: 140, height: 70 });
+    expect(sizeOf({ kind: 'event', id: 'e1', label: 'Start', category: 'start', trigger: 'none', interrupting: true }, { all: { width: 70, height: 60 } })).toEqual({ width: 70, height: 70 });
+  });
+
   it('propagates direction to root and nested subprocess ELK graphs', () => {
     const graph = toElkGraph({
       direction: 'up', pools: [], nodes: [{

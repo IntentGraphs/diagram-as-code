@@ -1,0 +1,14 @@
+shapeSize: task (160, 72)
+shapeSize: event (50, 50)
+shapeSize: gateway (64, 64)
+
+event start none "Begin" as start
+task "A deliberately long task label" as review
+gateway exclusive "Approved?" as decision
+task "Short requested size" as finish size (220, 80)
+event end none "Done" as end
+
+start -> review
+review -> decision
+decision => finish: "yes"
+finish -> end

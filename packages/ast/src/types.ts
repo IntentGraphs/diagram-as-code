@@ -82,6 +82,12 @@ export interface SizeHint {
   height: number;
 }
 
+/** Shape-type groups accepted by the diagram-level `shapeSize:` directive. */
+export type ShapeSizeGroup = 'all' | 'event' | 'task' | 'gateway' | 'data' | 'annotation' | 'group';
+
+/** Optional fixed size baselines, grouped by visual shape family. */
+export type ShapeSizes = Partial<Record<ShapeSizeGroup, SizeHint>>;
+
 /** Opt-in Camunda 7 vendor extensions; omitted on BPMN-only diagrams. */
 export interface CamundaExtensions {
   class?: string;
@@ -209,6 +215,8 @@ export interface Diagram {
   layout?: string;
   /** Optional diagram-level directive: 'manual' means every node must carry an explicit position and no layout engine runs. */
   positioning?: 'manual';
+  /** Optional fixed size baselines grouped by visual shape family; matching parent sizes win. */
+  shapeSizes?: ShapeSizes;
   /** Optional spacing preset for auto/manual padding; default engines behave as `normal`. */
   layoutSpacing?: LayoutSpacing;
   /** Optional automatic-routing profile; quality is the default and preserves edge separation. */

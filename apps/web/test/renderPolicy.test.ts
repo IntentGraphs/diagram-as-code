@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assessRenderCost, renderDebounceMs } from '../src/renderPolicy.js';
+import { assessIncrementalRender, assessRenderCost, renderDebounceMs } from '../src/renderPolicy.js';
 
 describe('renderDebounceMs', () => {
   it('keeps small diagrams responsive', () => {
@@ -41,5 +41,27 @@ describe('renderDebounceMs', () => {
     expect(assessment.layoutComplexity).toBe(10_100);
     expect(assessment.admission).toBe('manual');
     expect(assessment.heavy).toBe(true);
+  });
+
+  it('allows a complex diagram to keep auto-rendering when it grows in small steps', () => {
+    const previous = [
+      ...Array.from({ length: 100 }, (_, index) => `task "Task ${index}" as n${index}`),
+      ...Array.from({ length: 99 }, (_, index) => `n${index} -> n${index + 1}`),
+    ].join('\n');
+    const next = `${previous}\ntask "Task 100" as n100\nn99 -> n100`;
+    const assessment = assessIncrementalRender(previous, next, 400);
+    expect(assessment.incremental).toBe(true);
+    expect(assessment.allowed).toBe(true);
+    expect(assessment.nodeDelta).toBe(1);
+    expect(assessment.edgeDelta).toBe(1);
+  });
+
+  it('rejects a bulk increase immediately instead of starting automatic layout', () => {
+    const previous = 'task "Start" as start';
+    const next = Array.from({ length: 80 }, (_, index) => `task "Task ${index}" as n${index}`).join('\n');
+    const assessment = assessIncrementalRender(previous, next);
+    expect(assessment.incremental).toBe(false);
+    expect(assessment.allowed).toBe(false);
+    expect(assessment.reason).toContain('too large');
   });
 });

@@ -1,4 +1,4 @@
-import type { Diagram, DiagramEdge, DiagramNode } from '@bpm/ast';
+import type { Diagram, DiagramEdge, DiagramNode, ShapeSizes, SizeHint } from '@bpm/ast';
 import { getSpacingProfile, elkSpacingOptions } from '@bpm/layout-core';
 import { measureLabel } from '@bpm/render-core';
 import type { DiagramDirection } from '@bpm/ast';
@@ -51,7 +51,36 @@ function activitySize(label: string, visual?: DiagramNode['visual']): { width: n
   return { width, height: Math.max(DEFAULT_SIZE.height, metrics.height + 20) };
 }
 
-export function sizeOf(node: DiagramNode): { width: number; height: number } {
+function shapeSizeGroup(node: DiagramNode): keyof ShapeSizes | undefined {
+  if (node.kind === 'event') return 'event';
+  if (node.kind === 'gateway') return 'gateway';
+  if (node.kind === 'activity') return 'task';
+  if (node.kind === 'dataObject' || node.kind === 'dataStore') return 'data';
+  if (node.kind === 'textAnnotation') return 'annotation';
+  if (node.kind === 'group') return 'group';
+  return undefined;
+}
+
+function minimumSize(node: DiagramNode): { width: number; height: number } {
+  if (node.kind === 'event') return EVENT_SIZE;
+  if (node.kind === 'gateway') return GATEWAY_SIZE;
+  if (node.kind === 'dataObject' || node.kind === 'dataStore' || node.kind === 'textAnnotation') return DATA_SIZE;
+  if (node.kind === 'group') return { width: 200, height: 150 };
+  return { width: DEFAULT_SIZE.width, height: DEFAULT_SIZE.height };
+}
+
+function sizeFromHint(node: DiagramNode, hint: SizeHint, minimum = minimumSize(node)): { width: number; height: number } {
+  if (node.kind === 'event' || node.kind === 'gateway') {
+    const d = Math.max(minimum.width, hint.width, hint.height);
+    return { width: d, height: d };
+  }
+  return {
+    width: Math.max(minimum.width, hint.width),
+    height: Math.max(minimum.height, hint.height),
+  };
+}
+
+export function sizeOf(node: DiagramNode, shapeSizes?: ShapeSizes): { width: number; height: number } {
   let base: { width: number; height: number };
   if (node.kind === 'event') base = EVENT_SIZE;
   else if (node.kind === 'gateway') base = GATEWAY_SIZE;
@@ -59,39 +88,37 @@ export function sizeOf(node: DiagramNode): { width: number; height: number } {
   else if (node.kind === 'group') base = { width: 200, height: 150 };
   else base = activitySize(node.label, node.visual);
 
-  if (!node.sizeHint) return base;
-  if (node.kind === 'event') {
-    const d = Math.max(base.width, node.sizeHint.width, node.sizeHint.height);
-    return { width: d, height: d };
-  }
-  return {
-    width: Math.max(base.width, node.sizeHint.width),
-    height: Math.max(base.height, node.sizeHint.height),
-  };
+  const group = shapeSizeGroup(node);
+  const diagramSize = (group ? shapeSizes?.[group] : undefined) ?? shapeSizes?.all;
+  // Diagram-level shape sizes are the parent contract. A node-level size is only
+  // used when no matching parent size exists; mismatches are reported as warnings
+  // by @bpm/validate rather than changing the rendered geometry.
+  if (diagramSize) return sizeFromHint(node, diagramSize);
+  return node.sizeHint ? sizeFromHint(node, node.sizeHint, base) : base;
 }
 
 function elkDirection(direction: DiagramDirection = 'right'): string {
   return direction.toUpperCase();
 }
 
-export function toElkNode(node: DiagramNode, spacingOpts?: Record<string, string>, direction: DiagramDirection = 'right'): ElkGraphNode {
+export function toElkNode(node: DiagramNode, spacingOpts?: Record<string, string>, direction: DiagramDirection = 'right', shapeSizes?: ShapeSizes): ElkGraphNode {
   if (node.kind === 'activity' && !node.collapsed && (node.activityType === 'subProcess' || node.activityType === 'transaction')) {
     const opts = spacingOpts ?? elkSpacingOptions(getSpacingProfile());
     return {
       id: node.id,
       layoutOptions: { 'elk.algorithm': 'layered', 'elk.direction': elkDirection(direction), 'elk.edgeRouting': 'ORTHOGONAL', ...HIERARCHY_OPTIONS, ...opts },
-      children: toElkChildren(node.children, spacingOpts, direction),
+      children: toElkChildren(node.children, spacingOpts, direction, shapeSizes),
       edges: node.childEdges
         .filter((edge) => isLayoutEdge(edge) && !isBoundaryEventId(node.children, edge.sourceId) && !isBoundaryEventId(node.children, edge.targetId))
         .map((edge) => ({ id: edge.id, sources: [edge.sourceId], targets: [edge.targetId] })),
     };
   }
-  return { id: node.id, ...sizeOf(node) };
+  return { id: node.id, ...sizeOf(node, shapeSizes) };
 }
 
-export function toElkChildren(nodes: DiagramNode[], spacingOpts?: Record<string, string>, direction: DiagramDirection = 'right'): ElkGraphNode[] {
+export function toElkChildren(nodes: DiagramNode[], spacingOpts?: Record<string, string>, direction: DiagramDirection = 'right', shapeSizes?: ShapeSizes): ElkGraphNode[] {
   const nonBoundary = nodes.filter((n) => !(n.kind === 'event' && n.attachedToId !== undefined));
-  return nonBoundary.map((n) => toElkNode(n, spacingOpts, direction));
+  return nonBoundary.map((n) => toElkNode(n, spacingOpts, direction, shapeSizes));
 }
 
 export function toElkGraph(diagram: Diagram): ElkGraph {
@@ -109,11 +136,11 @@ export function toElkGraph(diagram: Diagram): ElkGraph {
     layoutOptions: { 'elk.algorithm': 'layered', 'elk.direction': elkDirection(diagram.direction), ...HIERARCHY_OPTIONS, ...spacingOpts },
     children: toElkChildren(
       pool.lanes.flatMap((lane) => lane.nodeIds).map((id) => diagram.nodes.find((n) => n.id === id)!),
-      spacingOpts, diagram.direction,
+      spacingOpts, diagram.direction, diagram.shapeSizes,
     ),
   }));
 
-  const looseNodeChildren = toElkChildren(unassignedNodes, spacingOpts, diagram.direction);
+  const looseNodeChildren = toElkChildren(unassignedNodes, spacingOpts, diagram.direction, diagram.shapeSizes);
 
   return {
     id: 'root',

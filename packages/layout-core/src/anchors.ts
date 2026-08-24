@@ -12,7 +12,7 @@ export { facingSides, sideOf, sidePort, stubFrom } from '@bpm/diagram-core';
 export function portOnShape(node: (DiagramNode & Rect) | Rect, side: Side, offset = 0, delta = 0): Point {
   const kind = 'kind' in node ? node.kind : undefined;
   const shape: AnchorShape = kind === 'event' ? 'circle' : kind === 'gateway' ? 'diamond' : 'rect';
-  return genericOutlinePort(node, side, shape, offset, delta);
+  return genericOutlinePort(node, side, shape, kind === 'gateway' ? 0 : offset, delta);
 }
 
 /**
@@ -23,5 +23,5 @@ export function portOnShape(node: (DiagramNode & Rect) | Rect, side: Side, offse
 export function outlineAnchor(node: (DiagramNode & Rect) | Rect, side: Side, toward?: Point, delta = 0): Point {
   const kind = 'kind' in node ? node.kind : undefined;
   const shape: AnchorShape = kind === 'event' ? 'circle' : kind === 'gateway' ? 'diamond' : 'rect';
-  return genericOutlineAnchor(node, side, shape, toward, delta);
+  return genericOutlineAnchor(node, side, shape, kind === 'gateway' ? undefined : toward, delta);
 }
