@@ -11,7 +11,7 @@ function setViewportSize(element: HTMLElement, width: number, height: number): v
 }
 
 describe('createSvgViewport', () => {
-  it('keeps ordinary wheel scrolling native and zooms only with Ctrl/Cmd-wheel', () => {
+  it('keeps ordinary wheel scrolling native and zooms only with Ctrl/Cmd-wheel', async () => {
     const host = document.createElement('div');
     setViewportSize(host, 500, 300);
     document.body.append(host);
@@ -32,7 +32,32 @@ describe('createSvgViewport', () => {
     expect(zoomWheel.deltaY).toBe(-100);
     host.dispatchEvent(zoomWheel);
     expect(zoomWheel.defaultPrevented).toBe(true);
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
     expect(Number.parseFloat(svg.getAttribute('width')!)).toBeGreaterThan(initialWidth);
+
+    viewport.destroy();
+    host.remove();
+  });
+
+  it('restores zoom and the visible section when a new SVG is synced', () => {
+    const host = document.createElement('div');
+    setViewportSize(host, 500, 300);
+    document.body.append(host);
+    expect(mountSvg(host, '<svg width="1000" height="600" viewBox="0 0 1000 600"><rect width="1000" height="600"/></svg>')).toBe(true);
+
+    const viewport = createSvgViewport(host);
+    viewport.sync();
+    viewport.setZoom(2);
+    host.scrollLeft = 180;
+    host.scrollTop = 90;
+    const before = viewport.getSnapshot()!;
+
+    expect(mountSvg(host, '<svg width="1200" height="700" viewBox="0 0 1200 700"><rect width="1200" height="700"/></svg>')).toBe(true);
+    viewport.sync(before);
+    const after = viewport.getSnapshot()!;
+    expect(after.zoom).toBe(before.zoom);
+    expect(after.scrollLeft).toBe(before.scrollLeft);
+    expect(after.scrollTop).toBe(before.scrollTop);
 
     viewport.destroy();
     host.remove();

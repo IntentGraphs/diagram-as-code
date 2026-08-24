@@ -16,12 +16,15 @@ and this project uses [Semantic Versioning](https://semver.org/) via git tags.
 - Added **Freeze as Manual** beside Edit as Diagram, converting the complete available rendered BPMN scene into replayable manual DSL.
 - Added manual DSL support for frozen pool/lane frames and non-central edge port offsets (`fromOffset` / `toOffset`).
 - Added shared parser/runtime source locations for semantic nodes, edges, pools, and lanes, plus Text-mode SVG selection that highlights the rendered element and selects its DSL declaration.
+- Added in-canvas Text-mode controls for grid visibility, light/dark canvas themes, adaptive coordinate rulers, zoom buttons, and percentage-based zoom selection.
 
 ### Changed
 
 - Contained Text-mode source-navigation risks by keeping the source textarea non-wrapping for deterministic line geometry, normalizing CRLF parser input, clearing preview selections whenever source text changes, and correcting scroll centering for editor padding.
 - Added a transparent 12px SVG edge hit path so thin visible edges remain visually unchanged while hover/click inspection works across the route instead of only on the exact 1.5px stroke.
 - Bumped the web render-cache generation and made BPMN cache validation require a complete source map; older or incomplete BPMN snapshots are ignored once, then valid current renders continue to restore without repeated layout work.
+- Preserved the active preview zoom and scroll section across successful DSL rerenders, batched trackpad zoom updates per animation frame, and raised the bounded fit-relative zoom ceiling to 1200% for detailed manual placement.
+- Added dark-canvas contrast remapping for renderer-neutral SVG strokes, fills, markers, edge halos, and labels without changing exported SVG output.
 
 - Routed BPMN gateway entries and exits through cardinal diamond vertices, keeping fan-out separation in the orthogonal route instead of placing ports on sloped gateway edges.
 - Bumped the web renderer cache generation so previews created before the gateway-routing change are not restored as if they were current.

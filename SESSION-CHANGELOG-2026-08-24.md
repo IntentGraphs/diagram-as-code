@@ -107,3 +107,25 @@ The focused Playwright command was attempted, but Chromium could not launch in t
 - Confirm the release version and update the release line in `docs/STATUS.md` at tagging time.
 - Run the complete release gates in `docs/RELEASING.md` from the final clean checkout.
 - Commit, tag, push, and publish only after review and approval.
+
+## Canvas navigation and manual-DSL view controls
+
+- Added compact in-canvas controls in the Text-mode SVG preview, positioned inside the upper-right canvas boundary:
+  - grid visibility toggle, enabled by default;
+  - light/dark canvas theme toggle, with light mode as the default;
+  - zoom out, zoom in, and percentage selection controls.
+- Added horizontal and vertical SVG-coordinate rulers. Ruler tick spacing adapts to the fitted diagram scale and current zoom, and ruler labels remain synchronized with canvas scrolling.
+- Made dark canvas mode readable for the renderer's theme-neutral SVG output by remapping black strokes, borders, markers, white fills, edge halos, and external labels at the preview boundary. Exported SVG markup is unchanged.
+- Improved Ctrl/Cmd-trackpad zoom by batching wheel deltas per animation frame, reducing layout churn and lowering the per-delta sensitivity. Zoom remains cursor-anchored.
+- Preserved the current preview zoom and scroll section across successful DSL rerenders. The next SVG is laid out with the previous viewport state restored; browser bounds still clamp naturally if the edited diagram becomes smaller.
+- Increased the fit-relative zoom ceiling from 400% to 1200% for both the text preview and BPMN Diagram mode. Added 500%, 600%, 800%, 1000%, and 1200% percentage choices while retaining the 25% minimum.
+- Documented the zoom decision: draw.io's current documentation describes a 1.2× zoom step and a separate fit `maxScale`, but does not publish a hard interactive maximum. A 1200% ceiling was selected as a bounded manual-placement inspection range rather than an unbounded stage size.
+
+## Canvas verification
+
+- Added viewport unit coverage for zoom/scroll restoration after replacing the rendered SVG.
+- Added Playwright coverage for the canvas controls, ruler SVGs, dark-mode contrast colors, and the 1200% zoom option.
+- `npm run build --workspace @bpm/web` passed.
+- Focused viewport unit tests passed: 2 tests.
+- Focused canvas Playwright check passed: 1 test.
+- `git diff --check` passed.

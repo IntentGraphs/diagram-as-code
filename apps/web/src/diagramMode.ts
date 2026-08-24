@@ -10,7 +10,7 @@ let onZoomChange: ((zoom: number) => void) | undefined;
 let onDirtyChange: ((dirty: boolean) => void) | undefined;
 
 const MIN_ZOOM = 0.2;
-const MAX_ZOOM = 4;
+const MAX_ZOOM = 12;
 
 type CanvasApi = {
   zoom: (newScale?: number | 'fit-viewport', center?: { x: number; y: number }) => number;

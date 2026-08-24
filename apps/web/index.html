@@ -554,15 +554,110 @@
         min-width: 0;
         min-height: 0;
         overflow: auto;
-        padding: 16px;
+        padding: 30px 16px 16px 30px;
         display: block;
-        background-color: var(--bg);
+        --canvas-bg: #ffffff;
+        --canvas-grid-line: rgba(28, 32, 36, 0.09);
+        background-color: var(--canvas-bg);
         background-image:
-          linear-gradient(var(--grid-line) 1px, transparent 1px),
-          linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+          linear-gradient(var(--canvas-grid-line) 1px, transparent 1px),
+          linear-gradient(90deg, var(--canvas-grid-line) 1px, transparent 1px);
         background-size: 24px 24px;
         transition: filter 0.2s, opacity 0.2s;
       }
+      #preview.canvas-theme-dark {
+        --canvas-bg: #171b1f;
+        --canvas-grid-line: rgba(232, 234, 236, 0.12);
+        --canvas-ink: #e8eaec;
+        --canvas-muted-ink: #b8c0c7;
+        --canvas-shape-bg: #252b31;
+      }
+      /* Rendered diagrams use deliberately theme-neutral SVG presentation attributes (black
+         strokes, white shape fills). Remap those attributes at the canvas boundary so dark mode
+         keeps borders, edge routes, markers, and labels readable without changing exports. */
+      #preview.canvas-theme-dark svg text { fill: var(--canvas-ink); }
+      #preview.canvas-theme-dark svg [stroke="black"],
+      #preview.canvas-theme-dark svg [stroke="#333"] { stroke: var(--canvas-ink); }
+      #preview.canvas-theme-dark svg [stroke="#666"],
+      #preview.canvas-theme-dark svg [stroke="#999"],
+      #preview.canvas-theme-dark svg [stroke="#ddd"] { stroke: var(--canvas-muted-ink); }
+      #preview.canvas-theme-dark svg [stroke="white"] { stroke: var(--canvas-shape-bg); }
+      #preview.canvas-theme-dark svg [fill="black"] { fill: var(--canvas-ink); }
+      #preview.canvas-theme-dark svg [fill="white"],
+      #preview.canvas-theme-dark svg [fill="#f8f8f8"],
+      #preview.canvas-theme-dark svg [fill="#e5e7eb"],
+      #preview.canvas-theme-dark svg [fill="#ececec"] { fill: var(--canvas-shape-bg); }
+      #preview.canvas-theme-dark svg [fill="#666"] { fill: var(--canvas-muted-ink); }
+      #preview.canvas-grid-hidden { background-image: none; }
+      #canvas-tools {
+        position: absolute;
+        top: 10px;
+        right: 12px;
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px;
+        color: var(--ink);
+        background: color-mix(in srgb, var(--surface) 94%, transparent);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.16);
+      }
+      .canvas-tool-group {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+      }
+      .canvas-tool-group + .canvas-tool-group { border-left: 1px solid var(--border); padding-left: 5px; }
+      .canvas-tool-btn {
+        width: 30px;
+        min-width: 30px;
+        height: 28px;
+        padding: 5px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--ink);
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+      .canvas-tool-btn:hover,
+      .canvas-tool-btn:focus-visible { border-color: var(--accent); color: var(--accent); outline: none; }
+      .canvas-tool-btn[aria-pressed="true"] { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+      .canvas-tool-btn svg { width: 16px; height: 16px; }
+      .canvas-tool-btn .canvas-theme-icon[hidden] { display: none; }
+      .canvas-zoom-select {
+        width: 58px;
+        height: 28px;
+        padding: 0 3px;
+        color: var(--ink);
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        font: 10px var(--font-mono);
+        text-align: center;
+        cursor: pointer;
+      }
+      .canvas-zoom-select:focus-visible { border-color: var(--accent); outline: none; }
+      #canvas-ruler-horizontal,
+      #canvas-ruler-vertical {
+        position: absolute;
+        z-index: 4;
+        overflow: hidden;
+        pointer-events: none;
+        color: var(--muted);
+        background: color-mix(in srgb, var(--surface) 94%, transparent);
+      }
+      #canvas-ruler-horizontal { top: 0; left: 30px; right: 0; height: 30px; border-bottom: 1px solid var(--border); }
+      #canvas-ruler-vertical { top: 30px; left: 0; bottom: 0; width: 30px; border-right: 1px solid var(--border); }
+      #canvas-ruler-corner { position: absolute; top: 0; left: 0; z-index: 5; width: 30px; height: 30px; background: var(--surface); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+      #canvas-ruler-horizontal svg, #canvas-ruler-vertical svg { display: block; }
+      .canvas-ruler-major { stroke: var(--muted); stroke-width: 0.8; opacity: 0.72; }
+      .canvas-ruler-minor { stroke: var(--border); stroke-width: 0.7; opacity: 0.88; }
+      .canvas-ruler-label { fill: var(--muted); font: 9px var(--font-mono); opacity: 0.82; }
       /* svgViewport sizes the diagram to fit initially and grows this stage when the user
          zooms, so large diagrams remain scrollable without distorting their aspect ratio. */
       #preview svg {
@@ -1105,6 +1200,27 @@
       <div id="preview-container" aria-label="Diagram preview">
         <div id="errors" role="alert" aria-live="assertive"></div>
         <div id="preview"></div>
+        <div id="canvas-ruler-horizontal" aria-hidden="true"></div>
+        <div id="canvas-ruler-vertical" aria-hidden="true"></div>
+        <div id="canvas-ruler-corner" aria-hidden="true"></div>
+        <div id="canvas-tools" role="toolbar" aria-label="Canvas view controls">
+          <div class="canvas-tool-group">
+            <button id="canvas-grid-btn" class="canvas-tool-btn" type="button" aria-pressed="true" aria-label="Hide gridlines" title="Hide gridlines">
+              <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2 2h12v12H2zM2 6h12M2 10h12M6 2v12M10 2v12" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+            </button>
+            <button id="canvas-theme-btn" class="canvas-tool-btn" type="button" aria-pressed="false" aria-label="Switch canvas to dark theme" title="Switch canvas to dark theme" data-canvas-theme="light">
+              <svg class="canvas-theme-icon" data-theme-icon="light" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.1"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M12.6 3.4l-1.4 1.4M4.8 11.2l-1.4 1.4" stroke="currentColor" stroke-width="1.1"/></svg>
+              <svg class="canvas-theme-icon" data-theme-icon="dark" viewBox="0 0 16 16" aria-hidden="true" focusable="false" hidden><path d="M11.8 10.9A5.2 5.2 0 0 1 5.1 4.2 5.4 5.4 0 1 0 11.8 10.9Z" fill="none" stroke="currentColor" stroke-width="1.1"/></svg>
+            </button>
+          </div>
+          <div class="canvas-tool-group" aria-label="Canvas zoom controls">
+            <button id="canvas-zoom-out" class="canvas-tool-btn" type="button" aria-label="Zoom out" title="Zoom out">−</button>
+            <select id="canvas-zoom-select" class="canvas-zoom-select" aria-label="Canvas zoom percentage">
+              <option value="0.25">25%</option><option value="0.5">50%</option><option value="0.75">75%</option><option value="1" selected>100%</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option><option value="3">300%</option><option value="4">400%</option><option value="5">500%</option><option value="6">600%</option><option value="8">800%</option><option value="10">1000%</option><option value="12">1200%</option>
+            </select>
+            <button id="canvas-zoom-in" class="canvas-tool-btn" type="button" aria-label="Zoom in" title="Zoom in">+</button>
+          </div>
+        </div>
         <div id="preview-tooltip" role="tooltip" hidden></div>
         <div id="settings-panel-container"></div>
       </div>
