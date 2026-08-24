@@ -7,6 +7,10 @@ and this project uses [Semantic Versioning](https://semver.org/) via git tags.
 
 ## [Unreleased]
 
+No changes yet.
+
+## [1.0.3] - 2026-08-24
+
 ### Added
 
 - Added the leading `shapeSize: <group> (w, h)` DSL directive for standardized geometry across shape families: `all`, `event`, `task`, `gateway`, `data`, `annotation`, and `group`.
@@ -17,6 +21,7 @@ and this project uses [Semantic Versioning](https://semver.org/) via git tags.
 - Added manual DSL support for frozen pool/lane frames and non-central edge port offsets (`fromOffset` / `toOffset`).
 - Added shared parser/runtime source locations for semantic nodes, edges, pools, and lanes, plus Text-mode SVG selection that highlights the rendered element and selects its DSL declaration.
 - Added in-canvas Text-mode controls for grid visibility, light/dark canvas themes, adaptive coordinate rulers, zoom buttons, and percentage-based zoom selection.
+- Added a Text-mode fit-to-canvas control that restores the complete rendered diagram to the preview pane.
 
 ### Changed
 
@@ -24,6 +29,7 @@ and this project uses [Semantic Versioning](https://semver.org/) via git tags.
 - Added a transparent 12px SVG edge hit path so thin visible edges remain visually unchanged while hover/click inspection works across the route instead of only on the exact 1.5px stroke.
 - Bumped the web render-cache generation and made BPMN cache validation require a complete source map; older or incomplete BPMN snapshots are ignored once, then valid current renders continue to restore without repeated layout work.
 - Preserved the active preview zoom and scroll section across successful DSL rerenders, batched trackpad zoom updates per animation frame, and raised the bounded fit-relative zoom ceiling to 1200% for detailed manual placement.
+- Preserved the active Text-mode diagram region and fit-relative zoom when **Edit as Diagram** opens the same scene in bpmn-js, using a scene-coordinate anchor after BPMN XML import.
 - Added dark-canvas contrast remapping for renderer-neutral SVG strokes, fills, markers, edge halos, and labels without changing exported SVG output.
 
 - Routed BPMN gateway entries and exits through cardinal diamond vertices, keeping fan-out separation in the orthogonal route instead of placing ports on sloped gateway edges.
@@ -48,6 +54,7 @@ and this project uses [Semantic Versioning](https://semver.org/) via git tags.
 - Updated the language, status, README, and AI data-handling documentation for incremental rendering, local render snapshots, the new editor layout, and resizable bottom panels. Added `SESSION-CHANGELOG-2026-08-24.md` as the detailed session handoff.
 - Updated the language, status, migration, and manual-layout documentation for complete rendered-scene freezing and Diagram-mode geometry replay. Expanded `SESSION-CHANGELOG-2026-08-24.md` with the implementation and verification record.
 - Documented Text-mode rendered-element selection and the shared source-map boundary for future CLI, IDE, and workspace integrations.
+- Replaced the README workspace-tour screenshot with the reviewed 2026-08-24 editor capture and added six reusable SVG process maps for the Workspace Tour, text-to-render, validation, Diagram Editor handoff, export, and AI-agent workflows.
 
 ### Reason
 

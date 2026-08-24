@@ -14,7 +14,20 @@ const MAX_ZOOM = 12;
 
 type CanvasApi = {
   zoom: (newScale?: number | 'fit-viewport', center?: { x: number; y: number }) => number;
+  viewbox: (box?: { x: number; y: number; width: number; height: number }) => {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    scale: number;
+    outer: { width: number; height: number };
+  };
 };
+
+export interface DiagramViewportRestoreState {
+  center: { x: number; y: number };
+  relativeZoom: number;
+}
 
 function setDirty(nextDirty: boolean): void {
   if (dirty === nextDirty) return;
@@ -162,6 +175,21 @@ export function zoomOut(): void {
 
 export function fitDiagram(): void {
   fitViewport();
+}
+
+export function restoreViewport(state: DiagramViewportRestoreState): void {
+  const canvas = requireModeler().get<CanvasApi>('canvas');
+  const fittedScale = canvas.zoom();
+  const outer = canvas.viewbox().outer;
+  const relativeZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, state.relativeZoom));
+  const scale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, fittedScale * relativeZoom));
+  canvas.viewbox({
+    x: state.center.x - outer.width / scale / 2,
+    y: state.center.y - outer.height / scale / 2,
+    width: outer.width / scale,
+    height: outer.height / scale,
+  });
+  notifyZoomChange();
 }
 
 export async function newDiagram(): Promise<void> {

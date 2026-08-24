@@ -32,6 +32,7 @@ test('canvas view controls default to a light, gridded canvas and expose rulers 
   await expect(page.locator('#canvas-tools')).toBeVisible();
   await expect(page.locator('#canvas-grid-btn')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#canvas-theme-btn')).toHaveAttribute('data-canvas-theme', 'light');
+  await expect(page.locator('#canvas-zoom-fit')).toBeVisible();
   await expect(page.locator('#canvas-zoom-select')).toHaveValue('1');
   await expect(page.locator('#canvas-ruler-horizontal')).toBeVisible();
   await expect(page.locator('#canvas-ruler-vertical')).toBeVisible();
@@ -62,4 +63,6 @@ test('canvas view controls default to a light, gridded canvas and expose rulers 
   await expect(page.locator('#canvas-zoom-select')).toHaveValue('0.5');
   await page.locator('#canvas-zoom-select').selectOption('12');
   await expect(page.locator('#canvas-zoom-select')).toHaveValue('12');
+  await page.locator('#canvas-zoom-fit').click();
+  await expect(page.locator('#canvas-zoom-select')).toHaveValue('1');
 });

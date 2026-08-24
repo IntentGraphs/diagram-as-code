@@ -30,6 +30,22 @@ through the product workflow:
 5. `05 Export Handoff` — SVG, BPMN 2.0 XML, editable PowerPoint, or CLI-only DOCX.
 6. `06 AI Agent Loop` — optional provider draft, validation, repair/review, verification, explicit insertion.
 
+### Process maps
+
+The six tour diagrams are also available as standalone SVG process maps:
+
+| Tour step | Process map |
+|---|---|
+| Workspace overview | [01-workspace-overview.svg](docs/assets/processes/01-workspace-overview.svg) |
+| Text to render | [02-text-to-render.svg](docs/assets/processes/02-text-to-render.svg) |
+| Validate and repair | [03-validate-and-repair.svg](docs/assets/processes/03-validate-and-repair.svg) |
+| Diagram Editor handoff | [04-diagram-editor-handoff.svg](docs/assets/processes/04-diagram-editor-handoff.svg) |
+| Export handoff | [05-export-handoff.svg](docs/assets/processes/05-export-handoff.svg) |
+| AI agent loop | [06-ai-agent-loop.svg](docs/assets/processes/06-ai-agent-loop.svg) |
+
+These maps are kept in `docs/assets/processes/` so they can be reused in documentation, presentations,
+and future landing-page sections without coupling them to the editor runtime.
+
 This tour is local-first: existing IndexedDB projects are preserved, AI providers are not contacted by
 default, and the Diagram Editor is available for BPMN diagrams only. Text and Diagram Editor changes are
 not continuously synchronized.

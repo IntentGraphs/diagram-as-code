@@ -1,6 +1,6 @@
 # Session changelog — 2026-08-24
 
-This is a release-preparation note for the web-editor and rendering work completed in this session. It is intentionally separate from `CHANGELOG.md`; fold the relevant entries into the next versioned release section after review.
+This is the detailed implementation record for the web-editor and rendering work released in `v1.0.3`. The concise user-facing summary is maintained in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Complete manual scene snapshots and Diagram-mode replay
 
@@ -43,6 +43,9 @@ The snapshot is geometry-equivalent for the supported DSL scene. It does not pro
 - Added visible top grips and pointer/keyboard resizing for the bottom Review, Generate, and Settings panels.
 - Updated the local workspace-tour screenshot to reflect the reviewed header and editor layout.
 - Kept the Text/Diagram toggle visible in Diagram mode and after Import to Text, fixing the protected-`main` CI regression where mode-switch tests could not click the hidden Text button.
+- Added an in-canvas Text-mode fit icon alongside the zoom controls. It resets the preview to 100% fit-relative zoom and clears both scroll axes so the complete diagram is visible in the pane.
+- Extended viewport preservation across **Edit as Diagram**. Before switching modes, the editor captures the Text preview's fit-relative zoom and visible scene center; after bpmn-js imports and fits the generated BPMN XML, it restores the equivalent bpmn-js viewbox around that scene anchor.
+- Added a pure viewport-anchor helper and unit/e2e coverage for the Text fit action and the zoom-preserving Text → Diagram handoff.
 
 ## Verification completed
 
@@ -101,12 +104,11 @@ Latest checks completed in this worktree:
 
 The focused Playwright command was attempted, but Chromium could not launch in the current macOS sandbox (`bootstrap_check_in … Permission denied`). This is an environment limitation rather than an application assertion failure; rerun the browser suite outside the restricted sandbox before GitHub publication.
 
-## Release follow-up
+## Release record
 
-- Review this file and fold the accepted entries into the next `CHANGELOG.md` release section.
-- Confirm the release version and update the release line in `docs/STATUS.md` at tagging time.
-- Run the complete release gates in `docs/RELEASING.md` from the final clean checkout.
-- Commit, tag, push, and publish only after review and approval.
+- The accepted entries from this session are folded into the `v1.0.3` section of [`CHANGELOG.md`](CHANGELOG.md).
+- The public release line in [`docs/STATUS.md`](docs/STATUS.md) is `v1.0.3`.
+- The release commit and tag are created only after the final validation pass and GitHub sync.
 
 ## Canvas navigation and manual-DSL view controls
 

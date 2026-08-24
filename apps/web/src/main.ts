@@ -16,6 +16,7 @@ import { downloadFile } from './downloads.js';
 import { runPipeline, type PipelineResult } from './pipeline.js';
 import { mountSvg } from './mountSvg.js';
 import { createSvgViewport } from './svgViewport.js';
+import { getViewportAnchor } from './viewportAnchor.js';
 import { renderCanvasRulers } from './canvasRulers.js';
 import { analyzeForReview, mountReviewPanel, updateReviewPanel, hideReviewPanel, setApplyPatchHandler, setSourceTextGetter, setCloseHandler as setReviewCloseHandler } from './reviewPanel.js';
 import { mountGeneratePanel, showGeneratePanel, hideGeneratePanel, setInsertTextHandler, setCloseHandler as setGenerateCloseHandler } from './generatePanel.js';
@@ -62,6 +63,7 @@ const canvasGridBtn = document.querySelector<HTMLButtonElement>('#canvas-grid-bt
 const canvasThemeBtn = document.querySelector<HTMLButtonElement>('#canvas-theme-btn')!;
 const canvasZoomOutBtn = document.querySelector<HTMLButtonElement>('#canvas-zoom-out')!;
 const canvasZoomInBtn = document.querySelector<HTMLButtonElement>('#canvas-zoom-in')!;
+const canvasZoomFitBtn = document.querySelector<HTMLButtonElement>('#canvas-zoom-fit')!;
 const canvasZoomSelect = document.querySelector<HTMLSelectElement>('#canvas-zoom-select')!;
 const canvasRulerHorizontal = document.querySelector<HTMLDivElement>('#canvas-ruler-horizontal')!;
 const canvasRulerVertical = document.querySelector<HTMLDivElement>('#canvas-ruler-vertical')!;
@@ -149,6 +151,7 @@ canvasThemeBtn.addEventListener('click', () => {
 
 canvasZoomOutBtn.addEventListener('click', () => svgViewport.zoomBy(1 / 1.2));
 canvasZoomInBtn.addEventListener('click', () => svgViewport.zoomBy(1.2));
+canvasZoomFitBtn.addEventListener('click', () => svgViewport.fit());
 canvasZoomSelect.addEventListener('change', () => svgViewport.setZoom(Number(canvasZoomSelect.value)));
 
 function activeOperationIdentity() {
@@ -510,10 +513,12 @@ editAsDiagramBtn.addEventListener('click', async () => {
     // live editor.value — re-parsing the source here could race an in-flight edit and export
     // content that was never actually previewed.
     const xml = exportPositionedDiagram(lastResult.family, lastResult.diagram, lastResult.positioned, 'bpmn-xml');
+    const previewAnchor = getViewportAnchor(svgViewport.getSnapshot(), lastResult.positioned);
     setMode('diagram');
     operation = operationState.begin('diagram-xml-load', 'Loading diagram preview', activeOperationIdentity());
     if (!operation) return;
     await diagramModeController.loadXml(xml);
+    if (previewAnchor) diagramModeController.restoreViewport(previewAnchor);
     operation.finish('success', 'Diagram preview loaded.');
   } catch (err) {
     operation?.finish('error', `Could not load diagram preview: ${err instanceof Error ? err.message : String(err)}`);

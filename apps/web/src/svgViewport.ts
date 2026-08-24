@@ -37,6 +37,7 @@ export type SvgViewportRestoreState = Pick<SvgViewportSnapshot, 'zoom' | 'scroll
 
 export interface SvgViewport {
   sync(restore?: SvgViewportRestoreState): void;
+  fit(): void;
   setZoom(zoom: number): void;
   zoomBy(factor: number): void;
   getSnapshot(): SvgViewportSnapshot | undefined;
@@ -255,6 +256,9 @@ export function createSvgViewport(container: HTMLElement): SvgViewport {
 
   return {
     sync,
+    fit() {
+      applyZoomAtPoint(1);
+    },
     destroy() {
       container.removeEventListener('wheel', handleWheel);
       container.removeEventListener('scroll', handleScroll);

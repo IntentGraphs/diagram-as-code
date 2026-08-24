@@ -1,6 +1,6 @@
 # Project Status
 
-_Release line: public v1.0.2 maintenance release. Last updated: 2026-08-24._
+_Release line: public v1.0.3 release. Last updated: 2026-08-24._
 
 The workspace is versioned as a whole through release tags; package `0.0.1` values are internal workspace metadata because packages are not published to npm. The public release is documented in [`CHANGELOG.md`](../CHANGELOG.md), and the release procedure is in [`RELEASING.md`](RELEASING.md).
 
