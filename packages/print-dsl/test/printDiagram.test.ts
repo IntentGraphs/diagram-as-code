@@ -129,12 +129,12 @@ describe('printDiagram — round trip', () => {
     expect(reparsed).toEqual(original);
   });
 
-  it('edge attribute block: style, corner, from, to, via, labelAt, labelSide, labelOffset', () => {
+  it('edge attribute block: style, corner, ports, offsets, via, labelAt, labelSide, labelOffset', () => {
     const text = [
       'task "A" as a',
       'task "B" as b',
       '',
-      'a -> b: "go" [style: dashed, corner: round, from: right, to: left, via: (100, 50) (150, 50), labelAt: 0.4, labelSide: below, labelOffset: (5, 5)]',
+      'a -> b: "go" [style: dashed, corner: round, from: right, to: left, fromOffset: 6, toOffset: -4, via: (100, 50) (150, 50), labelAt: 0.4, labelSide: below, labelOffset: (5, 5)]',
     ].join('\n');
     const { original, reparsed } = roundTrip(text);
     expect(reparsed).toEqual(original);

@@ -13,8 +13,15 @@ and this project uses [Semantic Versioning](https://semver.org/) via git tags.
 - Added grouped shape-size examples and round-trip/parser/layout coverage, including full `positioning: manual` mode.
 - Added a bounded persistent web-editor render cache keyed by project, diagram, source fingerprint, engine override, and renderer version, with IndexedDB persistence and memory fallback.
 - Added focused web-editor controls for fixed Clear/Render actions, a diagram-information log, accessible icon controls, and draggable Review/Generate/Settings panels.
+- Added **Freeze as Manual** beside Edit as Diagram, converting the complete available rendered BPMN scene into replayable manual DSL.
+- Added manual DSL support for frozen pool/lane frames and non-central edge port offsets (`fromOffset` / `toOffset`).
+- Added shared parser/runtime source locations for semantic nodes, edges, pools, and lanes, plus Text-mode SVG selection that highlights the rendered element and selects its DSL declaration.
 
 ### Changed
+
+- Contained Text-mode source-navigation risks by keeping the source textarea non-wrapping for deterministic line geometry, normalizing CRLF parser input, clearing preview selections whenever source text changes, and correcting scroll centering for editor padding.
+- Added a transparent 12px SVG edge hit path so thin visible edges remain visually unchanged while hover/click inspection works across the route instead of only on the exact 1.5px stroke.
+- Bumped the web render-cache generation and made BPMN cache validation require a complete source map; older or incomplete BPMN snapshots are ignored once, then valid current renders continue to restore without repeated layout work.
 
 - Routed BPMN gateway entries and exits through cardinal diamond vertices, keeping fan-out separation in the orthogonal route instead of placing ports on sloped gateway edges.
 - Bumped the web renderer cache generation so previews created before the gateway-routing change are not restored as if they were current.
@@ -24,6 +31,9 @@ and this project uses [Semantic Versioning](https://semver.org/) via git tags.
 - Allowed blank lines between leading directives after shared web/runtime directives such as `render:` are normalized out of the source, keeping the CLI and web editor consistent for grouped `shapeSize:` declarations.
 - Kept `render: manual` explicit while allowing safe small incremental edits to soft-heavy diagrams to auto-render; larger edits remain manual and hard-blocked diagrams stop automatically without replacing the previous preview.
 - Reused successful render workers and restored matching cached previews during diagram switching, reload, and repeated renders instead of rebuilding identical DSL.
+- Extended Diagram-mode **Import to Text** to preserve BPMN DI pool/lane frames, node geometry, edge waypoints, endpoint sides, and along-side port offsets so visual-editor layouts replay through the manual renderer.
+- Added stable SVG label identities so node, edge, and lane labels participate in the same selection behavior as their visual shapes.
+- Added hover tooltips showing the selected element identity and DSL line, plus a visible source-line marker and reliable textarea scrolling for both automatic and `positioning: manual` DSL.
 
 ### Fixed
 
@@ -33,6 +43,8 @@ and this project uses [Semantic Versioning](https://semver.org/) via git tags.
 
 - Updated `docs/LANGUAGE.md`, `docs/STATUS.md`, and manual-control examples to document the parent/child hierarchy, warning behavior, and local web-editor verification flow.
 - Updated the language, status, README, and AI data-handling documentation for incremental rendering, local render snapshots, the new editor layout, and resizable bottom panels. Added `SESSION-CHANGELOG-2026-08-24.md` as the detailed session handoff.
+- Updated the language, status, migration, and manual-layout documentation for complete rendered-scene freezing and Diagram-mode geometry replay. Expanded `SESSION-CHANGELOG-2026-08-24.md` with the implementation and verification record.
+- Documented Text-mode rendered-element selection and the shared source-map boundary for future CLI, IDE, and workspace integrations.
 
 ### Reason
 

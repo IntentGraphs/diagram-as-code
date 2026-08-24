@@ -21,6 +21,18 @@ describe('renderEdge — style/corner overrides', () => {
     expect(body).toContain('stroke-dasharray="2 3"');
   });
 
+  it('adds a transparent, wider hit area without changing the visible route', () => {
+    const edge: RoutedEdge = {
+      id: 'e-hit', sourceId: 'a', targetId: 'b', flowType: 'sequence',
+      points: [{ x: 0, y: 0 }, { x: 100, y: 0 }],
+    };
+    const { body } = renderEdge(edge);
+    expect(body).toContain('class="diagram-edge-hit-area"');
+    expect(body).toContain('stroke="transparent" stroke-width="12"');
+    expect(body).toContain('class="diagram-edge-visible"');
+    expect(body).toContain('stroke="black" stroke-width="1.5"');
+  });
+
   it('draws solid (no dasharray) even for a normally-dashed flowType when style: solid is set', () => {
     const edge: RoutedEdge = {
       id: 'e1', sourceId: 'a', targetId: 'b', flowType: 'message', style: 'solid',

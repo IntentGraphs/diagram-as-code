@@ -9,6 +9,38 @@ import { normalizeSequencePlacement } from './sequencePlacement.js';
 const POOL_TOP_PADDING = 12;
 /** Horizontal/vertical clearance past a node bbox before the first orthogonal turn. */
 const EDGE_STUB = 14;
+const PORT_SIDES: Side[] = ['left', 'right', 'top', 'bottom'];
+
+function closestPortSide(node: PositionedNode, point: { x: number; y: number }): Side {
+  return PORT_SIDES.reduce((closest, side) => {
+    const candidate = portOnShape(node, side);
+    const distance = (candidate.x - point.x) ** 2 + (candidate.y - point.y) ** 2;
+    return distance < closest.distance ? { side, distance } : closest;
+  }, { side: 'left' as Side, distance: Number.POSITIVE_INFINITY }).side;
+}
+
+function portOffset(node: PositionedNode, side: Side, point: { x: number; y: number }): number {
+  return side === 'left' || side === 'right'
+    ? point.y - (node.y + node.height / 2)
+    : point.x - (node.x + node.width / 2);
+}
+
+function resolveFinalPorts(edges: RoutedEdge[], nodes: PositionedNode[]): RoutedEdge[] {
+  const nodeById = new Map(flattenPositioned(nodes).map((node) => [node.id, node]));
+  return edges.map((edge) => {
+    if (edge.points.length < 2) return edge;
+    const source = nodeById.get(edge.sourceId);
+    const target = nodeById.get(edge.targetId);
+    if (!source || !target) return edge;
+    return {
+      ...edge,
+      resolvedFrom: closestPortSide(source, edge.points[0]),
+      resolvedTo: closestPortSide(target, edge.points[edge.points.length - 1]),
+      resolvedFromOffset: portOffset(source, closestPortSide(source, edge.points[0]), edge.points[0]),
+      resolvedToOffset: portOffset(target, closestPortSide(target, edge.points[edge.points.length - 1]), edge.points[edge.points.length - 1]),
+    };
+  });
+}
 
 function facingSides(source: { x: number; y: number; width: number; height: number }, target: { x: number; y: number; width: number; height: number }): { from: Side; to: Side } {
   const dx = (target.x + target.width / 2) - (source.x + source.width / 2);
@@ -432,19 +464,21 @@ function horizontalBandLanes(diagram: Diagram, positioned: PositionedDiagram): P
     };
   });
 
+  const finalEdges = rerouteCrossPoolEdges(
+    newEdges,
+    newNodes,
+    poolOfNode,
+    finalPools,
+    diagram.laneDirection,
+    diagram.routing,
+    Math.max(8, profile.edgeEdge / 2),
+    Math.max(12, Math.min(24, profile.edgeNode / 2)),
+  );
+
   return {
     pools: finalPools,
     nodes: newNodes,
-    edges: rerouteCrossPoolEdges(
-      newEdges,
-      newNodes,
-      poolOfNode,
-      finalPools,
-      diagram.laneDirection,
-      diagram.routing,
-      Math.max(8, profile.edgeEdge / 2),
-      Math.max(12, Math.min(24, profile.edgeNode / 2)),
-    ),
+    edges: resolveFinalPorts(finalEdges, newNodes),
   };
 }
 
@@ -601,15 +635,23 @@ function verticalBandLanes(diagram: Diagram, positioned: PositionedDiagram): Pos
     const targetX = target ? target.x + target.width / 2 : 0;
     return { ...edge, points: edge.points.map((point) => ({ x: point.x + (Math.abs(point.x - sourceX) <= Math.abs(point.x - targetX) ? sourceDelta ?? 0 : targetDelta ?? 0), y: point.y })) };
   });
+  const finalEdges = rerouteCrossPoolEdges(
+    edges,
+    nodes,
+    new Map(
+      diagram.pools.flatMap((pool) => pool.lanes.flatMap((lane) => lane.nodeIds.map((id) => [id, pool.id] as const))),
+    ),
+    pools,
+    diagram.laneDirection,
+    diagram.routing,
+    Math.max(8, profile.edgeEdge / 2),
+    Math.max(12, Math.min(24, profile.edgeNode / 2)),
+  );
+
   return {
     pools,
     nodes,
-      edges: rerouteCrossPoolEdges(edges, nodes, new Map(
-        diagram.pools.flatMap((pool) => pool.lanes.flatMap((lane) => lane.nodeIds.map((id) => [id, pool.id] as const))),
-      ), pools, diagram.laneDirection, diagram.routing,
-      Math.max(8, profile.edgeEdge / 2),
-      Math.max(12, Math.min(24, profile.edgeNode / 2)),
-      ),
+    edges: resolveFinalPorts(finalEdges, nodes),
   };
 }
 

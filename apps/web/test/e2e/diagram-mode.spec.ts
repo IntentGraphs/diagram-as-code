@@ -59,6 +59,22 @@ test('Edit as Diagram is disabled while there is a parse error', async ({ page }
   await expect(page.locator('#edit-as-diagram')).toBeDisabled();
 });
 
+test('Freeze as Manual converts the current rendered BPMN layout into manual DSL', async ({ page }) => {
+  await page.goto('/');
+  const editor = page.locator('#editor');
+  const freezeButton = page.locator('#freeze-as-manual');
+
+  await expect(freezeButton).toBeEnabled();
+  await expect(editor).not.toHaveValue(/positioning: manual/);
+  await freezeButton.click();
+
+  await expect(editor).toHaveValue(/positioning: manual/);
+  await expect(editor).toHaveValue(/ at \(-?\d+, -?\d+\)/);
+  await expect(page.locator('#preview svg')).toBeVisible();
+  await expect(page.locator('#errors .error-item')).toHaveCount(0);
+  await expect(freezeButton).toBeDisabled();
+});
+
 test('Open loads a valid .bpmn file exported from Text mode', async ({ page }) => {
   await page.goto('/');
   await page.locator('#export-menu-btn').click();

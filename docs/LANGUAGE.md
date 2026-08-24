@@ -356,6 +356,9 @@ pool "<name>"
   lane "<name>"
     <node declarations>
 ```
+- A frozen manual snapshot may add `at (x, y) size (w, h)` to both `pool` and `lane` lines. These
+  frame coordinates are renderer-facing canvas geometry; ordinary hand-authored diagrams can
+  omit them and let the selected layout engine derive the frames.
 - A `pool` line must be at indent 0.
 - `lane` lines nest one level under their pool; node declarations nest one level under their lane (each level exactly 2 spaces deeper, §1).
 - A node belongs to the lane it's textually declared inside; edges between nodes in different lanes of the same pool are auto-detected as cross-lane and routed accordingly.
@@ -391,6 +394,8 @@ Optional trailing `[key: value, ...]`, comma-separated, any subset, any order. T
 | `corner` | `sharp` &#124; `round` | Cosmetic bezier-smoothing at each orthogonal bend — never changes the routed path, only how it's drawn | `sharp` |
 | `from` | `left` &#124; `right` &#124; `top` &#124; `bottom` | Which side of the **source** node the edge exits from | auto-picked by the router based on relative position |
 | `to` | `left` &#124; `right` &#124; `top` &#124; `bottom` | Which side of the **target** node the edge enters | auto-picked by the router based on relative position |
+| `fromOffset` | number | Along-side offset from the source port midpoint; positive moves down/right | `0` |
+| `toOffset` | number | Along-side offset from the target port midpoint; positive moves down/right | `0` |
 | `via` | one or more `(x,y)` pairs | Interior waypoints between exit and entry stubs (same coordinate rules as `at (x, y)`). Prefer axis-aligned segments; non-orthogonal via pairs warn in `validate` | auto-routed |
 | `labelAt` | number in `[0,1]` | Fraction along the routed polyline for the edge label | midpoint-ish default |
 | `labelSide` | `above` &#124; `below` &#124; `left` &#124; `right` | Offset the label from the path | slightly above the path |

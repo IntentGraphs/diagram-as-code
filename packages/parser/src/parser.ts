@@ -1,4 +1,4 @@
-import type { Diagram, DiagramNode, DiagramEdge, ActivityType, ActivityNode, Pool, Lane, LayoutSpacing, RoutingMode, DiagramDirection, LaneDirection, PaginationMode, PageBreakStrategy, ShapeSizeGroup, ShapeSizes } from '@bpm/ast';
+import type { Diagram, DiagramNode, DiagramEdge, ActivityType, ActivityNode, Pool, Lane, LayoutSpacing, RoutingMode, DiagramDirection, LaneDirection, PaginationMode, PageBreakStrategy, ShapeSizeGroup, ShapeSizes, DiagramSourceMap, SourceLocation } from '@bpm/ast';
 import type { ParseError } from './errors.js';
 import { checkBpmnLegality } from './bpmnLegality.js';
 import { isEventCategory, isEventTrigger, isGatewayType, isValidId, EDGE_ARROW_TO_FLOW_TYPE } from './tokens.js';
@@ -21,8 +21,8 @@ const PAGINATE_DIRECTIVE_LINE = /^paginate:\s*(\S+)$/;
 const PAGE_BREAK_DIRECTIVE_LINE = /^pageBreak:\s*(\S+)$/;
 const POSITION_SUFFIX = /\s+at\s*\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)\s*$/;
 const EDGE_ATTRS_SUFFIX = /\s*\[([^\]]*)\]\s*$/;
-const POOL_LINE = /^pool\s+"([^"]*)"$/;
-const LANE_LINE = /^lane\s+"([^"]*)"$/;
+const POOL_LINE = /^pool\s+"([^"]*)"(.*)$/;
+const LANE_LINE = /^lane\s+"([^"]*)"(.*)$/;
 const EDGE_LINE = /^(\S+)\s*(->>|->|=>|~>|\.\.>)\s*(\S+)(?:\s*:\s*"?([^"]*?)"?)?$/;
 
 const ACTIVITY_TYPE_MAP: Record<string, ActivityType> = {
@@ -58,12 +58,34 @@ function isPaginationMode(value: string): value is PaginationMode { return ['non
 function isPageBreakStrategy(value: string): value is PageBreakStrategy { return ['pool', 'lane', 'group', 'branch'].includes(value); }
 function isShapeSizeGroup(value: string): value is ShapeSizeGroup { return SHAPE_SIZE_GROUPS.includes(value as ShapeSizeGroup); }
 
+interface FrameSuffix {
+  position?: { x: number; y: number };
+  sizeHint?: { width: number; height: number };
+}
+
+function parseFrameSuffix(raw: string, lineNumber: number, errors: ParseError[]): FrameSuffix | null {
+  if (raw.trim() === '') return {};
+  const match = raw.match(/^\s*at\s*\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)\s+size\s*\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)\s*$/);
+  if (!match) {
+    errors.push({ line: lineNumber, column: 1, message: 'Malformed pool/lane frame; expected at (x, y) size (w, h)' });
+    return null;
+  }
+  const sizeHint = parseSizeHint(match[3], match[4], lineNumber, errors);
+  if (!sizeHint) return null;
+  return {
+    position: { x: Number(match[1]), y: Number(match[2]) },
+    sizeHint,
+  };
+}
+
 export interface ParseResult {
   diagram: Diagram;
   /** Syntactic / grammar errors — diagram may be partial or empty. */
   errors: ParseError[];
   /** BPMN 2.0 structural legality violations — only populated when `errors` is empty. */
   semanticErrors: ParseError[];
+  /** Semantic-id to source-declaration mapping used by editors and other workspace integrations. */
+  sourceLocations: DiagramSourceMap;
 }
 
 interface Frame {
@@ -84,7 +106,9 @@ function indentOf(rawLine: string): number {
 }
 
 export function parse(text: string): ParseResult {
-  const lines = text.split('\n');
+  // Browser textareas normalize line endings, but CLI/IDE callers may provide CRLF or CR-only
+  // documents. Normalize once so grammar matching, source columns, and editor offsets agree.
+  const lines = text.replace(/\r\n?/g, '\n').split('\n');
   const errors: ParseError[] = [];
   let edgeCounter = 0;
   let poolCounter = 0;
@@ -225,6 +249,8 @@ export function parse(text: string): ParseResult {
   const allNodesById = new Map<string, DiagramNode>();
   const nodeSourceLines = new Map<string, number>();
   const edgeSourceLines = new Map<string, number>();
+  const poolSourceLines = new Map<string, number>();
+  const laneSourceLines = new Map<string, number>();
 
   function currentFrame(): Frame {
     return stack[stack.length - 1];
@@ -251,18 +277,24 @@ export function parse(text: string): ParseResult {
 
     const poolMatch = line.match(POOL_LINE);
     if (poolMatch && indent === 0) {
+      const frameGeometry = parseFrameSuffix(poolMatch[2], lineNumber, errors);
+      if (frameGeometry === null) return;
       poolCounter += 1;
-      const pool: Pool = { id: `pool${poolCounter}`, name: poolMatch[1], lanes: [] };
+      const pool: Pool = { id: `pool${poolCounter}`, name: poolMatch[1], lanes: [], ...frameGeometry };
       pools.push(pool);
+      poolSourceLines.set(pool.id, lineNumber);
       stack.push({ indent: expectedChildIndent, nodes: root.nodes, edges: root.edges, knownIds: root.knownIds, pool });
       return;
     }
 
     const laneMatch = line.match(LANE_LINE);
     if (laneMatch && frame.pool && indent === frame.indent) {
+      const frameGeometry = parseFrameSuffix(laneMatch[2], lineNumber, errors);
+      if (frameGeometry === null) return;
       laneCounter += 1;
-      const lane: Lane = { id: `lane${laneCounter}`, name: laneMatch[1], nodeIds: [] };
+      const lane: Lane = { id: `lane${laneCounter}`, name: laneMatch[1], nodeIds: [], ...frameGeometry };
       frame.pool.lanes.push(lane);
+      laneSourceLines.set(lane.id, lineNumber);
       stack.push({ indent: expectedChildIndent, nodes: root.nodes, edges: root.edges, knownIds: root.knownIds, lane });
       return;
     }
@@ -535,5 +567,24 @@ export function parse(text: string): ParseResult {
     ? checkBpmnLegality(diagram, { nodeSourceLines, edgeSourceLines })
     : [];
 
-  return { diagram, errors, semanticErrors };
+  const sourceLocation = (line: number): SourceLocation => ({
+    line,
+    startColumn: 1,
+    endColumn: (lines[line - 1]?.length ?? 0) + 1,
+  });
+  const locations = (entries: Map<string, number>): Record<string, SourceLocation> => Object.fromEntries(
+    [...entries].map(([id, line]) => [id, sourceLocation(line)]),
+  );
+
+  return {
+    diagram,
+    errors,
+    semanticErrors,
+    sourceLocations: {
+      nodes: locations(nodeSourceLines),
+      edges: locations(edgeSourceLines),
+      pools: locations(poolSourceLines),
+      lanes: locations(laneSourceLines),
+    },
+  };
 }

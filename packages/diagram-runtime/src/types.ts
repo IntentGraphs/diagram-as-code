@@ -5,7 +5,7 @@ export type DiagramFamilyId = typeof DIAGRAM_FAMILIES[number];
 import type { ValidationMetrics } from '@bpm/validate';
 import type { GanttTimescale, PageSpec } from '@bpm/diagram-core';
 import type { PaginatedScene } from '@bpm/diagram-core';
-import type { DiagramDirection, LaneDirection, PageBreakStrategy, PaginationMode, RoutingMode } from '@bpm/ast';
+import type { DiagramDirection, DiagramSourceMap, LaneDirection, PageBreakStrategy, PaginationMode, RoutingMode } from '@bpm/ast';
 export type { PageFit, PageSpec, PageUnit } from '@bpm/diagram-core';
 export type { PageBreakStrategy, PaginationMode } from '@bpm/ast';
 export type { GanttTimescale } from '@bpm/diagram-core';
@@ -30,6 +30,8 @@ export interface FamilyParseResult<Ast> {
   semanticErrors: DiagramDiagnostic[];
   /** Optional non-blocking diagnostics discovered during family parsing/preflight. */
   warnings?: DiagramDiagnostic[];
+  /** Optional semantic-id to source-declaration mapping for editor and workspace integrations. */
+  sourceLocations?: DiagramSourceMap;
 }
 
 export interface FamilyValidationResult {

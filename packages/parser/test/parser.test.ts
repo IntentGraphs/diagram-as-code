@@ -3,6 +3,42 @@ import { parse } from '../src/index.js';
 import type { EventNode, GatewayNode, ActivityNode, DataObjectNode } from '@bpm/ast';
 
 describe('parse — flat node kinds', () => {
+  it('normalizes CRLF input before matching declarations and source ranges', () => {
+    const result = parse('task "A" as a\r\ntask "B" as b\r\na -> b\r\n');
+    expect(result.errors).toEqual([]);
+    expect(result.sourceLocations.nodes).toEqual({
+      a: { line: 1, startColumn: 1, endColumn: 14 },
+      b: { line: 2, startColumn: 1, endColumn: 14 },
+    });
+    expect(result.sourceLocations.edges.e1).toEqual({ line: 3, startColumn: 1, endColumn: 7 });
+  });
+
+  it('returns source locations for semantic nodes, edges, pools, and lanes', () => {
+    const result = parse([
+      'pool "Operations"',
+      '  lane "Clinic"',
+      '    task "Start" as start',
+      '    task "Finish" as finish',
+      '',
+      'start -> finish',
+    ].join('\n'));
+    expect(result.sourceLocations).toEqual({
+      nodes: {
+        start: { line: 3, startColumn: 1, endColumn: 26 },
+        finish: { line: 4, startColumn: 1, endColumn: 28 },
+      },
+      edges: {
+        e1: { line: 6, startColumn: 1, endColumn: 16 },
+      },
+      pools: {
+        pool1: { line: 1, startColumn: 1, endColumn: 18 },
+      },
+      lanes: {
+        lane1: { line: 2, startColumn: 1, endColumn: 16 },
+      },
+    });
+  });
+
   it('parses pagination directives and preserves absent defaults', () => {
     expect(parse('task "A" as a').diagram.paginate).toBeUndefined();
     const result = parse('paginate: semantic\npageBreak: lane\n\ntask "A" as a');

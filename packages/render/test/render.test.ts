@@ -108,6 +108,21 @@ describe('render — node kinds', () => {
     expect(rendered.label.indexOf('<rect')).toBeLessThan(rendered.label.indexOf('<text'));
   });
 
+  it('keeps semantic ids on final-pass node and edge labels', () => {
+    const diagram: PositionedDiagram = {
+      pools: [{ id: 'pool1', name: 'Operations', x: 0, y: 0, width: 180, height: 120, lanes: [{ id: 'lane1', name: 'Clinic', x: 0, y: 0, width: 180, height: 120 }] }],
+      nodes: [
+        node({ id: 'n1', kind: 'activity', label: 'A', activityType: 'task', collapsed: false, children: [], childEdges: [] } as any),
+        node({ id: 'n2', kind: 'activity', label: 'B', activityType: 'task', collapsed: false, children: [], childEdges: [], x: 100 } as any),
+      ],
+      edges: [{ id: 'e1', sourceId: 'n1', targetId: 'n2', flowType: 'sequence', label: 'next', points: [{ x: 40, y: 20 }, { x: 100, y: 20 }] }],
+    };
+    const svg = render(diagram);
+    expect(svg).toContain('<text data-node-label-id="n1"');
+    expect(svg).toContain('<g data-edge-label-id="e1" class="diagram-edge-label">');
+    expect(svg).toContain('<text data-lane-label-id="lane1"');
+  });
+
   it('renders dataObject, dataStore, textAnnotation, and group with distinct shapes', () => {
     const diagram: PositionedDiagram = {
       pools: [], edges: [],

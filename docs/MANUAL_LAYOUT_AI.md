@@ -38,9 +38,17 @@ reimplement ELK or the visibility-graph router in its prompt.
 
 - root nodes use canvas-absolute coordinates;
 - pooled nodes use lane-local coordinates;
+- frozen pools and lanes may carry their resolved canvas frame as `at (x, y) size (w, h)`;
 - expanded subprocess/transaction children use subprocess-content-local coordinates;
 - boundary events remain automatically placed relative to their host;
-- resolved edge interiors become source-frame `via` points where they can be represented safely.
+- resolved edge endpoint ports become explicit `from`/`to` values, non-central docking becomes
+  `fromOffset`/`toOffset`, and edge interiors become source-frame `via` points where they can be
+  represented safely.
+
+The resulting manual text is a complete renderer-facing snapshot for the representable scene:
+container frames, node boxes, and routable edge geometry are all replayed by the manual engine.
+Boundary-event placement remains derived from its host because that relationship is intentionally
+owned by the shared boundary pass.
 
 Use `bpm freeze input.bpm -o manual.bpm` or `generateDiagram(..., { positioning: 'manual' })`.
 

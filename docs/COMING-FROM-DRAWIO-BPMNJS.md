@@ -19,7 +19,8 @@ The Diagram Editor is a separate visual authoring path inside the web app:
 1. Open or create a BPMN diagram in Diagram mode.
 2. Use the visual canvas to edit pools, lanes, events, gateways, activities, and flows.
 3. Save/export BPMN XML or SVG when the visual model is the deliverable.
-4. Choose **Import to Text** when the `.bpm` source should become the durable, reviewable artifact.
+4. Choose **Import to Text** when the `.bpm` source should become the durable, reviewable artifact; supported
+   pool/lane frames, node bounds, edge waypoints, ports, and port offsets are emitted as manual DSL geometry.
 5. Review the generated text and the preserved/transformed/dropped conversion accounting, then explicitly confirm insertion; the editor never silently overwrites text.
 
 This is intentionally one-shot. Diagram-mode edits and text-mode edits are not continuously synchronized, and PowerPoint edits do not round-trip into the source.

@@ -264,6 +264,17 @@
         display: flex;
         flex-direction: column;
         background: var(--bg);
+        position: relative;
+      }
+
+      #editor-line-highlight {
+        position: absolute;
+        display: none;
+        pointer-events: none;
+        z-index: 0;
+        border-left: 3px solid color-mix(in srgb, var(--accent) 82%, transparent);
+        background: color-mix(in srgb, var(--accent) 12%, transparent);
+        box-sizing: border-box;
       }
 
       #editor-action-bar {
@@ -481,7 +492,13 @@
         min-width: 0;
         width: 100%;
         min-height: 0;
-        background: var(--bg);
+        position: relative;
+        z-index: 1;
+        background: transparent;
+        white-space: pre;
+        overflow-wrap: normal;
+        overflow-x: auto;
+        tab-size: 2;
         color: var(--ink);
         font-family: var(--font-mono);
         font-size: 13px;
@@ -494,6 +511,7 @@
         transition: border-left-color 0.15s;
       }
       #editor:focus { outline: none; border-left-color: var(--accent); }
+      .diagram-edge-hit-area { cursor: pointer; }
 
       #splitter {
         flex: 0 0 6px;
@@ -510,7 +528,7 @@
         left: -4px; right: -4px;
       }
 
-      #preview-container { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
+      #preview-container { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; position: relative; }
 
       #errors {
         flex: 0 0 auto;
@@ -559,6 +577,37 @@
         min-height: 100%;
       }
       #preview.stale { filter: grayscale(0.25); opacity: 0.7; }
+      #preview-tooltip {
+        position: absolute;
+        max-width: min(360px, 42vw);
+        padding: 6px 8px;
+        color: var(--ink);
+        background: var(--surface);
+        border: 1px solid var(--accent);
+        border-radius: 3px;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        line-height: 1.35;
+        white-space: pre-wrap;
+        pointer-events: none;
+        z-index: 4;
+      }
+      #preview-tooltip[hidden] { display: none; }
+      #preview [data-node-id],
+      #preview [data-node-label-id],
+      #preview [data-edge-id],
+      #preview [data-edge-label-id],
+      #preview [data-pool-id],
+      #preview [data-lane-id],
+      #preview [data-lane-label-id] { cursor: pointer; }
+      #preview [data-node-id].diagram-selection-active { filter: drop-shadow(0 0 3px var(--accent)); }
+      #preview [data-node-label-id].diagram-selection-active { fill: var(--accent); font-weight: 700; }
+      #preview [data-pool-id].diagram-selection-active,
+      #preview [data-lane-id].diagram-selection-active,
+      #preview [data-lane-label-id].diagram-selection-active { filter: drop-shadow(0 0 3px var(--accent)); }
+      #preview [data-edge-id].diagram-selection-active .diagram-edge-visible { stroke: var(--accent) !important; stroke-width: 3 !important; }
+      #preview [data-edge-label-id].diagram-selection-active text { fill: var(--accent); font-weight: 700; }
 
       #review-panel {
         flex: 0 0 auto;
@@ -991,6 +1040,7 @@
             <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="square"/></svg>
           </button>
           <button id="edit-as-diagram" class="toolbar-btn" disabled>Edit as Diagram</button>
+          <button id="freeze-as-manual" class="toolbar-btn" disabled title="Convert the current automatic layout into manual DSL coordinates">Freeze as Manual</button>
         </div>
         <div class="toolbar-group toolbar-secondary-group">
           <div id="export-menu-container"></div>
@@ -1035,7 +1085,8 @@
       </aside>
       <div id="project-splitter" role="separator" aria-label="Resize project panel" aria-orientation="vertical" tabindex="0"></div>
       <div id="editor-pane">
-        <textarea id="editor" aria-label="Diagram source" spellcheck="false"></textarea>
+        <div id="editor-line-highlight" aria-hidden="true"></div>
+        <textarea id="editor" aria-label="Diagram source" spellcheck="false" wrap="off"></textarea>
         <div id="editor-action-bar" aria-label="Editor actions">
           <div id="editor-action-row">
             <button id="clear-btn" class="toolbar-btn">Clear</button>
@@ -1054,6 +1105,7 @@
       <div id="preview-container" aria-label="Diagram preview">
         <div id="errors" role="alert" aria-live="assertive"></div>
         <div id="preview"></div>
+        <div id="preview-tooltip" role="tooltip" hidden></div>
         <div id="settings-panel-container"></div>
       </div>
       <dialog id="diagram-name-dialog">

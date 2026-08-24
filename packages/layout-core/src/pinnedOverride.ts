@@ -1,6 +1,6 @@
 import type { Diagram } from '@bpm/ast';
 import type { PositionedDiagram } from './types.js';
-import { facingSides, sideOf } from './anchors.js';
+import { facingSides, portOnShape } from './anchors.js';
 import { createSequentialRouter } from '@bpm/diagram-core';
 import { middleRoute, waypointMapper } from './routing/middleRoute.js';
 import { assertNoOverlaps } from './overlap.js';
@@ -56,8 +56,8 @@ export function overridePinnedNodes(diagram: Diagram, autoPositioned: Positioned
     // the same diagram looked like straight out of the editor/generator (found via a real
     // diagram-to-text round trip: a canvas edit's re-export visibly kinked at every event/gateway
     // endpoint that the initial layout hadn't).
-    const start = sideOf(source, fromSide);
-    const end = sideOf(target, toSide);
+    const start = portOnShape(source, fromSide, edge.fromOffset ?? 0);
+    const end = portOnShape(target, toSide, edge.toOffset ?? 0);
     const obstacles = [...nodeById.values()].filter((n) => n.id !== source.id && n.id !== target.id);
     const middle = middleRoute(
       edge, start, end, obstacles, router,

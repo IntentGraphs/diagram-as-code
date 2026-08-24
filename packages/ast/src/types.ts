@@ -82,6 +82,24 @@ export interface SizeHint {
   height: number;
 }
 
+/** A source declaration range associated with a rendered diagram element. */
+export interface SourceLocation {
+  /** One-based source line number. */
+  line: number;
+  /** One-based inclusive start column. */
+  startColumn: number;
+  /** One-based exclusive end column. */
+  endColumn: number;
+}
+
+/** Family-neutral semantic-id to source-location mapping. */
+export interface DiagramSourceMap {
+  nodes: Record<string, SourceLocation>;
+  edges: Record<string, SourceLocation>;
+  pools: Record<string, SourceLocation>;
+  lanes: Record<string, SourceLocation>;
+}
+
 /** Shape-type groups accepted by the diagram-level `shapeSize:` directive. */
 export type ShapeSizeGroup = 'all' | 'event' | 'task' | 'gateway' | 'data' | 'annotation' | 'group';
 
@@ -178,6 +196,10 @@ export interface DiagramEdge {
   from?: Side;
   /** Optional override for which side of the target node this edge enters; auto-picked when unset. */
   to?: Side;
+  /** Optional along-side offset from the source port midpoint; positive means down/right. */
+  fromOffset?: number;
+  /** Optional along-side offset from the target port midpoint; positive means down/right. */
+  toOffset?: number;
   /** Interior waypoints between exit and entry stubs (same coordinate rules as `at (x, y)`). */
   waypoints?: Position[];
   labelPlacement?: EdgeLabelPlacement;
@@ -187,12 +209,18 @@ export interface Lane {
   id: string;
   name: string;
   nodeIds: string[];
+  /** Renderer-facing lane frame captured by a manual layout snapshot. */
+  position?: Position;
+  sizeHint?: SizeHint;
 }
 
 export interface Pool {
   id: string;
   name: string;
   lanes: Lane[];
+  /** Renderer-facing pool frame captured by a manual layout snapshot. */
+  position?: Position;
+  sizeHint?: SizeHint;
 }
 
 export interface Diagram {

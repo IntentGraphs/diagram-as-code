@@ -5,7 +5,7 @@ import {
 } from './project/store.js';
 
 /** Bump when the serialized PipelineResult contract or renderer output changes. */
-export const RENDERER_VERSION = 'web-render-v3';
+export const RENDERER_VERSION = 'web-render-v4';
 
 export interface RenderCacheIdentity {
   projectId?: string;
@@ -38,10 +38,26 @@ function cloneResult(result: PipelineResult): PipelineResult {
   return JSON.parse(JSON.stringify(result)) as PipelineResult;
 }
 
+function hasSourceMap(value: unknown): boolean {
+  if (!value || typeof value !== 'object') return false;
+  const map = value as Record<string, unknown>;
+  return ['nodes', 'edges', 'pools', 'lanes'].every((key) => {
+    const entries = map[key];
+    return Boolean(entries && typeof entries === 'object' && !Array.isArray(entries));
+  });
+}
+
 function isUsableResult(value: unknown): value is PipelineResult {
   if (!value || typeof value !== 'object') return false;
   const result = value as Partial<PipelineResult>;
-  return typeof result.svg === 'string' && Array.isArray(result.errors) && result.errors.length === 0;
+  // BPMN results participate in diagram-to-source navigation. A cached SVG without its source
+  // map is visually usable but unsafe for this feature, so force one fresh render after the
+  // cache contract changes. Other families may not expose source locations yet and retain the
+  // existing render-cache UX.
+  return typeof result.svg === 'string'
+    && Array.isArray(result.errors)
+    && result.errors.length === 0
+    && (result.family !== 'bpmn' || hasSourceMap(result.sourceLocations));
 }
 
 export interface RenderCache {

@@ -8,7 +8,7 @@ import {
 import type { ValidationIssue, ValidationResult } from '@bpm/validate';
 import { importXml as importBpmnXml, IMPORT_LIMITS } from '@bpm/import-xml';
 import { freezeDiagram, printDiagram } from '@bpm/print-dsl';
-import type { Diagram } from '@bpm/ast';
+import type { Diagram, SourceLocation } from '@bpm/ast';
 import type { PositionedDiagram } from '@bpm/layout';
 import type { PptxExportWarning } from '@bpm/export-pptx';
 import { destroyModeler, hasUnsavedChanges } from './diagramMode.js';
@@ -37,7 +37,10 @@ import { createOperationStateCoordinator } from './operationState.js';
 const editor = document.querySelector<HTMLTextAreaElement>('#editor')!;
 const editorPane = document.querySelector<HTMLDivElement>('#editor-pane')!;
 const splitter = document.querySelector<HTMLDivElement>('#splitter')!;
+const editorLineHighlight = document.querySelector<HTMLDivElement>('#editor-line-highlight')!;
 const preview = document.querySelector<HTMLDivElement>('#preview')!;
+const previewContainer = document.querySelector<HTMLDivElement>('#preview-container')!;
+const previewTooltip = document.querySelector<HTMLDivElement>('#preview-tooltip')!;
 const errorsEl = document.querySelector<HTMLDivElement>('#errors')!;
 const engineBadge = document.querySelector<HTMLSpanElement>('#engine-badge')!;
 const clearBtn = document.querySelector<HTMLButtonElement>('#clear-btn')!;
@@ -48,6 +51,7 @@ const projectSaveBtn = document.querySelector<HTMLButtonElement>('#project-save-
 const fullscreenBtn = document.querySelector<HTMLButtonElement>('#fullscreen-btn')!;
 const modeTextBtn = document.querySelector<HTMLButtonElement>('#mode-text-btn')!;
 const modeDiagramBtn = document.querySelector<HTMLButtonElement>('#mode-diagram-btn')!;
+const freezeAsManualBtn = document.querySelector<HTMLButtonElement>('#freeze-as-manual')!;
 const body = document.querySelector<HTMLDivElement>('#body')!;
 const diagramBody = document.querySelector<HTMLDivElement>('#diagram-body')!;
 const toolbarActions = document.querySelector<HTMLDivElement>('#toolbar-actions')!;
@@ -114,6 +118,188 @@ let renderBusy = false;
 let lastRenderElapsedMs = 0;
 let textExportMenu!: ReturnType<typeof createExportMenu>;
 
+type PreviewSelection = { kind: 'node' | 'edge' | 'pool' | 'lane'; id: string };
+let previewSelection: PreviewSelection | null = null;
+let sourceHighlightLocation: SourceLocation | null = null;
+const PREVIEW_TARGETS = [
+  { kind: 'node', attributes: ['data-node-id', 'data-node-label-id'] },
+  { kind: 'edge', attributes: ['data-edge-id', 'data-edge-label-id'] },
+  { kind: 'pool', attributes: ['data-pool-id'] },
+  { kind: 'lane', attributes: ['data-lane-id', 'data-lane-label-id'] },
+] as const;
+
+function selectionFromTarget(target: EventTarget | null): PreviewSelection | null {
+  if (!(target instanceof Element)) return null;
+  let element: Element | null = target;
+  while (element && element !== preview) {
+    for (const target of PREVIEW_TARGETS) {
+      for (const attribute of target.attributes) {
+        const id = element.getAttribute(attribute);
+        if (id) return { kind: target.kind, id };
+      }
+    }
+    element = element.parentElement;
+  }
+  return null;
+}
+
+function applyPreviewSelection(selection: PreviewSelection | null): void {
+  const active = preview.querySelectorAll('.diagram-selection-active');
+  active.forEach((element) => element.classList.remove('diagram-selection-active'));
+  if (!selection) return;
+  const target = PREVIEW_TARGETS.find((candidate) => candidate.kind === selection.kind);
+  if (!target) return;
+  for (const attribute of target.attributes) {
+    preview.querySelectorAll(`[${attribute}]`).forEach((element) => {
+      if (element.getAttribute(attribute) === selection.id) element.classList.add('diagram-selection-active');
+    });
+  }
+}
+
+function sourceLocationForSelection(selection: PreviewSelection): SourceLocation | undefined {
+  // Invalid/stale previews remain visible by design, but their old source map must never move
+  // the cursor in newer text that has not rendered yet.
+  if (!lastResult || lastResultSource !== editor.value) return undefined;
+  const mapKey = selection.kind === 'node' ? 'nodes' : selection.kind === 'edge' ? 'edges' : selection.kind === 'pool' ? 'pools' : 'lanes';
+  return lastResult?.sourceLocations?.[mapKey]?.[selection.id];
+}
+
+function updateEditorSourceHighlight(): void {
+  if (!sourceHighlightLocation) {
+    editorLineHighlight.style.display = 'none';
+    return;
+  }
+  const lineIndex = Math.max(0, sourceHighlightLocation.line - 1);
+  const style = getComputedStyle(editor);
+  const lineHeight = Number.parseFloat(style.lineHeight) || 20;
+  const borderTop = Number.parseFloat(style.borderTopWidth) || 0;
+  const paddingTop = Number.parseFloat(style.paddingTop) || 0;
+  const top = editor.offsetTop + borderTop + paddingTop + lineIndex * lineHeight - editor.scrollTop;
+  const bottom = editor.offsetTop + editor.clientHeight;
+  if (top + lineHeight < editor.offsetTop || top > bottom) {
+    editorLineHighlight.style.display = 'none';
+    return;
+  }
+  editorLineHighlight.style.display = 'block';
+  editorLineHighlight.style.left = `${editor.offsetLeft}px`;
+  editorLineHighlight.style.top = `${top}px`;
+  editorLineHighlight.style.width = `${editor.offsetWidth}px`;
+  editorLineHighlight.style.height = `${lineHeight}px`;
+}
+
+function selectEditorLocation(location: SourceLocation): void {
+  const lines = editor.value.split('\n');
+  const lineIndex = Math.max(0, Math.min(lines.length - 1, location.line - 1));
+  const lineStart = lines.slice(0, lineIndex).reduce((offset, line) => offset + line.length + 1, 0);
+  const start = lineStart + Math.max(0, location.startColumn - 1);
+  const end = Math.max(start, Math.min(lineStart + lines[lineIndex].length, lineStart + Math.max(0, location.endColumn - 1)));
+  sourceHighlightLocation = location;
+  editor.focus({ preventScroll: true });
+  editor.setSelectionRange(start, end, 'select');
+  const lineHeight = Number.parseFloat(getComputedStyle(editor).lineHeight) || 20;
+  const paddingTop = Number.parseFloat(getComputedStyle(editor).paddingTop) || 0;
+  const targetScrollTop = Math.max(0, paddingTop + lineIndex * lineHeight - editor.clientHeight / 2 + lineHeight / 2);
+  editor.scrollTop = targetScrollTop;
+  updateEditorSourceHighlight();
+  requestAnimationFrame(() => {
+    editor.scrollTop = targetScrollTop;
+    updateEditorSourceHighlight();
+  });
+}
+
+function describePreviewSelection(selection: PreviewSelection): string {
+  const kind = selection.kind[0].toUpperCase() + selection.kind.slice(1);
+  const location = sourceLocationForSelection(selection);
+  const line = location ? editor.value.split('\n')[location.line - 1]?.trim() : '';
+  return `${kind} · ${selection.id}${location ? `\nDSL line ${location.line}${line ? `: ${line}` : ''}` : ''}`;
+}
+
+function showPreviewTooltip(event: PointerEvent, selection: PreviewSelection): void {
+  previewTooltip.textContent = describePreviewSelection(selection);
+  previewTooltip.hidden = false;
+  const containerRect = previewContainer.getBoundingClientRect();
+  const margin = 8;
+  const maxLeft = Math.max(margin, containerRect.width - previewTooltip.offsetWidth - margin);
+  const maxTop = Math.max(margin, containerRect.height - previewTooltip.offsetHeight - margin);
+  previewTooltip.style.left = `${Math.min(maxLeft, Math.max(margin, event.clientX - containerRect.left + 12))}px`;
+  previewTooltip.style.top = `${Math.min(maxTop, Math.max(margin, event.clientY - containerRect.top + 12))}px`;
+}
+
+function hidePreviewTooltip(): void {
+  previewTooltip.hidden = true;
+}
+
+/**
+ * Source edits invalidate the semantic identity of the currently selected preview element.
+ * Edges currently receive generated ids (e1, e2, ...), so retaining a selection across an edit
+ * could silently select a different edge after the next parse. Clearing is safer than guessing.
+ */
+function clearPreviewSelection(): void {
+  previewSelection = null;
+  sourceHighlightLocation = null;
+  applyPreviewSelection(null);
+  updateEditorSourceHighlight();
+  hidePreviewTooltip();
+}
+
+/** Keep all programmatic source replacements on the same invalidation path as typing. */
+function replaceEditorSource(value: string): void {
+  if (editor.value !== value) clearPreviewSelection();
+  editor.value = value;
+}
+
+function selectPreviewElement(selection: PreviewSelection): void {
+  previewSelection = selection;
+  applyPreviewSelection(selection);
+  const location = sourceLocationForSelection(selection);
+  if (location) selectEditorLocation(location);
+  else {
+    sourceHighlightLocation = null;
+    updateEditorSourceHighlight();
+  }
+}
+
+preview.addEventListener('pointerover', (event) => {
+  const selection = selectionFromTarget(event.target);
+  if (selection) showPreviewTooltip(event, selection);
+});
+
+preview.addEventListener('pointermove', (event) => {
+  const selection = selectionFromTarget(event.target);
+  if (selection) showPreviewTooltip(event, selection);
+  else hidePreviewTooltip();
+});
+
+preview.addEventListener('pointerleave', hidePreviewTooltip);
+
+preview.addEventListener('click', (event) => {
+  const selection = selectionFromTarget(event.target);
+  if (!selection) {
+    previewSelection = null;
+    sourceHighlightLocation = null;
+    applyPreviewSelection(null);
+    updateEditorSourceHighlight();
+    hidePreviewTooltip();
+    return;
+  }
+  event.preventDefault();
+  selectPreviewElement(selection);
+  showPreviewTooltip(event, selection);
+});
+
+preview.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    previewSelection = null;
+    sourceHighlightLocation = null;
+    applyPreviewSelection(null);
+    updateEditorSourceHighlight();
+    hidePreviewTooltip();
+  }
+});
+
+editor.addEventListener('scroll', updateEditorSourceHighlight);
+window.addEventListener('resize', updateEditorSourceHighlight);
+
 /** Disable actions that consume the last committed text-mode render while it is stale or busy. */
 function updateRenderDependentActions(): void {
   const committedSourceIsCurrent = Boolean(lastResult && lastResultSource === editor.value);
@@ -126,6 +312,17 @@ function updateRenderDependentActions(): void {
     || !lastResult.positioned
     || lastResult.family !== 'bpmn'
     || lastResult.capabilities?.editorMode !== 'bpmn-js';
+  const canFreezeAsManual = actionsReady
+    && Boolean(lastResult?.diagram)
+    && Boolean(lastResult?.executionPositioned)
+    && lastResult?.family === 'bpmn'
+    && lastResult.diagram?.positioning !== 'manual';
+  freezeAsManualBtn.disabled = !canFreezeAsManual;
+  freezeAsManualBtn.title = canFreezeAsManual
+    ? 'Convert the current automatic layout into manual DSL coordinates'
+    : lastResult?.diagram?.positioning === 'manual'
+      ? 'This diagram already uses manual positioning'
+      : 'Render a valid automatic BPMN diagram before freezing its layout';
   textExportMenu?.setDisabled(!actionsReady);
 }
 
@@ -269,6 +466,47 @@ editAsDiagramBtn.addEventListener('click', async () => {
   } catch (err) {
     operation?.finish('error', `Could not load diagram preview: ${err instanceof Error ? err.message : String(err)}`);
     renderErrors([{ line: 1, column: 1, message: err instanceof Error ? err.message : String(err) }]);
+  }
+});
+
+freezeAsManualBtn.addEventListener('click', async () => {
+  if (renderBusy || lastResultSource !== editor.value) return;
+  const source = editor.value;
+  const result = lastResult;
+  if (
+    !result
+    || result.family !== 'bpmn'
+    || !result.diagram
+    || result.diagram.positioning === 'manual'
+    || !result.executionPositioned
+    || result.errors.length > 0
+  ) return;
+
+  freezeAsManualBtn.disabled = true;
+  try {
+    const frozenText = printDiagram(freezeDiagram(
+      result.diagram,
+      result.executionPositioned as PositionedDiagram,
+    ));
+    const validation = await validateDiagramSource(frozenText);
+    if (!validation.valid) {
+      renderErrors([...validation.errors, ...validation.semanticErrors]);
+      return;
+    }
+    // Validation is asynchronous. Do not overwrite a newer user edit or a render from another
+    // diagram that landed while the conversion was running.
+    if (editor.value !== source || lastResultSource !== source) return;
+
+    replaceEditorSource(frozenText);
+    renderController.invalidate();
+    updateRenderDependentActions();
+    projectController.scheduleAutosave();
+    editor.focus();
+    await rerender();
+  } catch (err) {
+    renderErrors([{ line: 1, column: 1, message: err instanceof Error ? err.message : String(err) }]);
+  } finally {
+    updateRenderDependentActions();
   }
 });
 
@@ -554,6 +792,7 @@ async function validateForReview(source: string, capabilities: PipelineResult['c
 async function commitRender(snapshot: RenderControllerSnapshot): Promise<void> {
   const { source, value: result } = snapshot;
   if (source !== editor.value || !renderController.isCurrent(snapshot)) return;
+  if (source !== lastResultSource) clearPreviewSelection();
   const aiCapabilities = result.capabilities?.aiCapabilities;
   const generateUnsupported = aiCapabilities?.generation !== true;
   const reviewUnsupported = aiCapabilities?.visualReview !== true;
@@ -701,6 +940,10 @@ async function commitRender(snapshot: RenderControllerSnapshot): Promise<void> {
   setGenerationDisabled(generateUnsupported ? unsupportedActionMessage('Generate', result.family) : null);
   lastResult = isRenderable ? result : undefined;
   lastResultSource = isRenderable ? source : undefined;
+  applyPreviewSelection(previewSelection);
+  const selectedSourceLocation = previewSelection ? sourceLocationForSelection(previewSelection) : undefined;
+  sourceHighlightLocation = selectedSourceLocation ?? null;
+  updateEditorSourceHighlight();
   updateRenderDependentActions();
   if (isRenderable && result.errors.length === 0) {
     void renderCache.put(activeOperationIdentity(), source, engineOverrideSelect.value || undefined, result);
@@ -931,7 +1174,7 @@ async function importSourceFile(file: File): Promise<void> {
     if (new TextEncoder().encode(source).byteLength > PROJECT_LIMITS.bodyBytes) {
       throw new Error(`Diagram source exceeds the ${PROJECT_LIMITS.bodyBytes / (1024 * 1024)} MiB limit.`);
     }
-    editor.value = source;
+    replaceEditorSource(source);
     renderController.invalidate();
     updateRenderDependentActions();
     projectController.scheduleAutosave();
@@ -971,7 +1214,7 @@ heavyRenderOnceBtn.addEventListener('click', () => {
 clearBtn.addEventListener('click', () => {
   if (renderDebounceHandle) clearTimeout(renderDebounceHandle);
   renderController.invalidate();
-  editor.value = '';
+  replaceEditorSource('');
   updateRenderDependentActions();
   editor.focus();
   projectController.scheduleAutosave();
@@ -980,6 +1223,9 @@ clearBtn.addEventListener('click', () => {
 
 editor.addEventListener('input', () => {
   renderController.invalidate();
+  if (lastResultSource !== editor.value) {
+    clearPreviewSelection();
+  }
   updateRenderDependentActions();
   projectController.scheduleAutosave();
   scheduleAutomaticRender();
@@ -1205,7 +1451,7 @@ engineOverrideSelect.addEventListener('change', () => {
  * leaving-diagram branch exactly, minus the confirm gate.
  */
 function switchToTextAfterImport(text: string): void {
-  editor.value = text;
+  replaceEditorSource(text);
   renderController.invalidate();
   updateRenderDependentActions();
   currentMode = 'text';
@@ -1239,7 +1485,7 @@ diagramAgentBtn.addEventListener('click', () => {
 });
 
 setInsertTextHandler((text) => {
-  editor.value = text;
+  replaceEditorSource(text);
   renderController.invalidate();
   updateRenderDependentActions();
   projectController.scheduleAutosave();
@@ -1250,7 +1496,7 @@ setApplyPatchHandler((patch) => {
   const current = editor.value;
   const idx = current.indexOf(patch.find);
   if (idx === -1) return false;
-  editor.value = current.slice(0, idx) + patch.replace + current.slice(idx + patch.find.length);
+  replaceEditorSource(current.slice(0, idx) + patch.replace + current.slice(idx + patch.find.length));
   renderController.invalidate();
   updateRenderDependentActions();
   projectController.scheduleAutosave();

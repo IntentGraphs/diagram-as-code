@@ -32,6 +32,8 @@ describe('freezeDiagram', () => {
 
     expect(result.frozen.positioning).toBe('manual');
     expect(result.frozen.nodes.every((node) => node.kind === 'event' && node.attachedToId ? !node.position : Boolean(node.position))).toBe(true);
+    expect(result.frozen.edges.every((edge) => edge.from && edge.to)).toBe(true);
+    expect(result.frozen.edges.find((edge) => edge.id === 'e1')).toMatchObject({ from: 'right', to: 'left' });
     const validation = await validate(result.printed);
     expect(validation.valid).toBe(true);
     expect(validation.metrics?.nodeOverlaps).toBe(0);
@@ -53,8 +55,24 @@ describe('freezeDiagram', () => {
     const warehouse = result.frozen.nodes.find((node) => node.id === 'ship');
     expect(sales?.position?.y).toBeGreaterThanOrEqual(0);
     expect(warehouse?.position?.y).toBeGreaterThanOrEqual(0);
+    expect(result.frozen.pools[0].position).toBeDefined();
+    expect(result.frozen.pools[0].sizeHint).toBeDefined();
+    expect(result.frozen.pools[0].lanes[0].position).toBeDefined();
+    expect(result.frozen.pools[0].lanes[0].sizeHint).toBeDefined();
+    expect(result.printed).toContain('pool "Order" at (');
+    expect(result.printed).toContain('lane "Sales" at (');
     expect(result.reparsed.diagram.positioning).toBe('manual');
+    expect(result.reparsed.diagram.pools[0].lanes[0].sizeHint).toEqual(result.frozen.pools[0].lanes[0].sizeHint);
     expect((await validate(result.printed)).valid).toBe(true);
+
+    // The serialized frame snapshot must be consumed by the manual engine, not just survive
+    // parsing. This is the core guarantee for reproducing the complete rendered scene.
+    const replayed = await layout(result.reparsed.diagram);
+    expect(replayed.pools).toEqual(result.positioned.pools);
+    expect(replayed.nodes.map(({ id, x, y, width, height }) => ({ id, x, y, width, height })))
+      .toEqual(result.positioned.nodes.map(({ id, x, y, width, height }) => ({ id, x, y, width, height })));
+    expect(replayed.edges.map(({ id, points }) => ({ id, points })))
+      .toEqual(result.positioned.edges.map(({ id, points }) => ({ id, points })));
   });
 
   it('freezes nested subprocess children and child routes', async () => {
