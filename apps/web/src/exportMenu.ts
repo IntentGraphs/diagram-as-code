@@ -18,8 +18,10 @@ export function createExportMenu(idPrefix: string, buttonLabel = 'Export'): Expo
   const button = document.createElement('button');
   button.type = 'button';
   button.id = `${idPrefix}-btn`;
-  button.className = 'toolbar-btn export-menu-btn';
-  button.textContent = `${buttonLabel} ▾`;
+  button.className = 'toolbar-btn export-menu-btn icon-button';
+  button.setAttribute('aria-label', buttonLabel);
+  button.title = buttonLabel;
+  button.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2v8M5 7l3 3 3-3M3 12v2h10v-2" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="square" stroke-linejoin="round"/><path d="M11 2h2v2" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>';
   button.setAttribute('aria-haspopup', 'true');
   button.setAttribute('aria-expanded', 'false');
   button.disabled = true;

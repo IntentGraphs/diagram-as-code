@@ -8,14 +8,16 @@ import {
   type ProjectSeed,
   type SessionMeta,
   type StoredDiagram,
+  type StoredRenderSnapshot,
 } from './types.js';
 
 const DB_NAME = 'bpm-projects';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 const STORE_META = 'meta';
 const STORE_PROJECTS = 'projects';
 const STORE_DIAGRAMS = 'diagrams';
+const STORE_RENDERS = 'renders';
 
 /** Persistence limits are deliberately conservative: they bound browser work without
  * changing the normal editing experience. Existing records outside these limits are ignored
@@ -98,6 +100,19 @@ function isStoredDiagram(value: unknown): value is StoredDiagram {
     && (d.family === undefined || isFamily(d.family));
 }
 
+function isStoredRenderSnapshot(value: unknown): value is StoredRenderSnapshot {
+  if (!value || typeof value !== 'object') return false;
+  const snapshot = value as Partial<StoredRenderSnapshot>;
+  return isBoundedString(snapshot.key, PROJECT_LIMITS.idLength * 4)
+    && isBoundedString(snapshot.projectId, PROJECT_LIMITS.idLength)
+    && isBoundedString(snapshot.diagramId, PROJECT_LIMITS.idLength)
+    && isBoundedString(snapshot.sourceHash, 64)
+    && (snapshot.engineOverride === null || typeof snapshot.engineOverride === 'string')
+    && isBoundedString(snapshot.rendererVersion, 128)
+    && snapshot.result !== undefined
+    && isTimestamp(snapshot.updatedAt);
+}
+
 function isSessionMeta(value: unknown): value is SessionMeta {
   if (!value || typeof value !== 'object') return false;
   const meta = value as Partial<SessionMeta>;
@@ -116,6 +131,7 @@ function openDb(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(STORE_META)) db.createObjectStore(STORE_META);
       if (!db.objectStoreNames.contains(STORE_PROJECTS)) db.createObjectStore(STORE_PROJECTS, { keyPath: 'id' });
       if (!db.objectStoreNames.contains(STORE_DIAGRAMS)) db.createObjectStore(STORE_DIAGRAMS, { keyPath: 'id' });
+      if (!db.objectStoreNames.contains(STORE_RENDERS)) db.createObjectStore(STORE_RENDERS, { keyPath: 'key' });
       request.transaction?.objectStore(STORE_META).put(DB_VERSION, 'schemaVersion');
     };
     request.onsuccess = () => resolve(request.result);
@@ -231,6 +247,54 @@ async function getDiagram(id: string): Promise<StoredDiagram | undefined> {
   }
   const result = await withStore<StoredDiagram | undefined>(STORE_DIAGRAMS, 'readonly', (store) => store.get(id));
   return isStoredDiagram(result) ? result : undefined;
+}
+
+export async function getRenderSnapshot(key: string): Promise<StoredRenderSnapshot | undefined> {
+  if (useMemoryBackend()) {
+    const memory = getMemoryBackend() as MemoryBackend & { renders?: Map<string, StoredRenderSnapshot> };
+    const renders = memory.renders ?? (memory.renders = new Map());
+    const value = renders.get(key);
+    return isStoredRenderSnapshot(value) ? value : undefined;
+  }
+  const result = await withStore<StoredRenderSnapshot | undefined>(STORE_RENDERS, 'readonly', (store) => store.get(key));
+  return isStoredRenderSnapshot(result) ? result : undefined;
+}
+
+export async function putRenderSnapshot(snapshot: StoredRenderSnapshot): Promise<void> {
+  if (!isStoredRenderSnapshot(snapshot)) throw new Error('Invalid render snapshot');
+  if (useMemoryBackend()) {
+    const memory = getMemoryBackend() as MemoryBackend & { renders?: Map<string, StoredRenderSnapshot> };
+    const renders = memory.renders ?? (memory.renders = new Map());
+    renders.set(snapshot.key, snapshot);
+    return;
+  }
+  await withStore(STORE_RENDERS, 'readwrite', (store) => {
+    store.put(snapshot);
+  });
+}
+
+export async function deleteRenderSnapshotsForDiagram(diagramId: string): Promise<void> {
+  if (useMemoryBackend()) {
+    const memory = getMemoryBackend() as MemoryBackend & { renders?: Map<string, StoredRenderSnapshot> };
+    memory.renders && [...memory.renders.values()]
+      .filter((snapshot) => snapshot.diagramId === diagramId)
+      .forEach((snapshot) => memory.renders!.delete(snapshot.key));
+    return;
+  }
+  const db = await openDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(STORE_RENDERS, 'readwrite');
+    const store = tx.objectStore(STORE_RENDERS);
+    const request = store.getAll();
+    request.onsuccess = () => {
+      for (const value of request.result as unknown[]) {
+        if (isStoredRenderSnapshot(value) && value.diagramId === diagramId) store.delete(value.key);
+      }
+    };
+    tx.oncomplete = () => { db.close(); resolve(); };
+    tx.onerror = () => { db.close(); reject(tx.error ?? new Error('Failed to delete render snapshots')); };
+    tx.onabort = () => { db.close(); reject(tx.error ?? new Error('Failed to delete render snapshots')); };
+  });
 }
 
 async function putDiagram(diagram: StoredDiagram): Promise<void> {
@@ -542,6 +606,7 @@ export async function deleteDiagram(id: string): Promise<void> {
       if (nextSession) stores[STORE_META].put(nextSession, META_SESSION_KEY);
     });
   }
+  await deleteRenderSnapshotsForDiagram(id);
 }
 
 export async function setActiveDiagram(projectId: string, diagramId: string): Promise<void> {

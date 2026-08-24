@@ -176,6 +176,22 @@ describe('printDiagram — round trip', () => {
     expect(reparsed).toEqual(original);
   });
 
+  it('preserves grouped shape-size directives before the body', () => {
+    const text = [
+      'shapeSize: task (180, 70)',
+      'shapeSize: event (50, 50)',
+      '',
+      'task "A" as a',
+      'event end none "Done" as e',
+      '',
+      'a -> e',
+    ].join('\n');
+    const { original, printed, reparsed } = roundTrip(text);
+    expect(printed).toContain('shapeSize: task (180, 70)');
+    expect(printed).toContain('shapeSize: event (50, 50)');
+    expect(reparsed).toEqual(original);
+  });
+
   it('prints the web editor render mode when present on the AST', () => {
     const { diagram } = parse('task "A" as a');
     diagram.renderMode = 'manual';

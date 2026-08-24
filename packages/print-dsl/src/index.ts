@@ -136,6 +136,9 @@ export function printDiagram(diagram: Diagram): string {
   if (diagram.positioning === 'manual') header.push('positioning: manual');
   if (diagram.layout) header.push(`layout: ${diagram.layout}`);
   if (diagram.layoutSpacing && diagram.layoutSpacing !== 'normal') header.push(`layoutSpacing: ${diagram.layoutSpacing}`);
+  for (const [group, size] of Object.entries(diagram.shapeSizes ?? {})) {
+    header.push(`shapeSize: ${group} (${fmtCoord(size.width)}, ${fmtCoord(size.height)})`);
+  }
   if (diagram.page) {
     header.push(`page: ${diagram.page.width}${diagram.page.unit} x ${diagram.page.height}${diagram.page.unit}`);
     if (diagram.page.fit !== 'contain') header.push(`fit: ${diagram.page.fit}`);

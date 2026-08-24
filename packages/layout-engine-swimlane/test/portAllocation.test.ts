@@ -99,7 +99,7 @@ describe('assignPorts', () => {
     expect(ports.get('yes')!.source).toMatchObject({ side: 'bottom', offset: 0 });
   });
 
-  it('keeps same-direction gateway fan-out on one cardinal side with distinct slots', () => {
+  it('keeps same-direction gateway fan-out on one cardinal vertex', () => {
     const nodes = new Map([
       ['gate', gateway('gate', 200, 200)],
       ['upper-a', task('upper-a', 150, 50)],
@@ -113,7 +113,7 @@ describe('assignPorts', () => {
     ], nodes);
     const branches = ['branch-a', 'branch-b', 'branch-c'].map((id) => ports.get(id)!.source);
     expect(branches.every((port) => port.side === 'top')).toBe(true);
-    expect(new Set(branches.map((port) => port.offset)).size).toBe(3);
+    expect(branches.every((port) => port.offset === 0)).toBe(true);
     expect(branches.every((port) => port.role === 'outgoing')).toBe(true);
   });
 

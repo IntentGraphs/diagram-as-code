@@ -47,11 +47,9 @@
 
       #toolbar {
         flex: 0 0 auto;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        column-gap: 20px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
         row-gap: 8px;
         min-height: 44px;
         height: auto;
@@ -60,9 +58,15 @@
         border-bottom: 1px solid var(--border);
       }
       #brand {
-        font-size: 12px;
-        font-weight: 600;
-        letter-spacing: 0.08em;
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        line-height: 1.2;
+        white-space: nowrap;
+      }
+      .toolbar-heading-group {
+        align-self: flex-start;
+        padding-top: 4px;
       }
       #toolbar-actions, #diagram-toolbar-actions {
         display: flex;
@@ -71,13 +75,13 @@
         row-gap: 6px;
       }
       #toolbar-actions {
-        flex: 1 1 760px;
+        width: 100%;
         min-width: 0;
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-columns: auto minmax(0, 1fr) auto;
         grid-template-areas:
-          "status navigation"
-          "primary secondary";
+          "navigation navigation navigation"
+          "mode primary secondary";
         align-items: center;
         gap: 6px 12px;
       }
@@ -87,12 +91,11 @@
         border-left: none;
         gap: 6px;
       }
-      #toolbar-actions > .toolbar-group:nth-child(1) { grid-area: status; }
-      #toolbar-actions > .toolbar-group:nth-child(2) { grid-area: navigation; justify-content: flex-end; }
-      #toolbar-actions > .toolbar-group:nth-child(3) { grid-area: primary; }
-      #toolbar-actions > .toolbar-group:nth-child(4) { grid-area: secondary; justify-content: flex-end; }
-      #toolbar-actions .toolbar-status-group { overflow: hidden; }
-      #toolbar-actions .toolbar-status-group .badge { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      #toolbar-actions > .toolbar-navigation-group { grid-area: navigation; justify-content: flex-end; }
+      #toolbar-actions > .toolbar-mode-group { grid-area: mode; justify-content: flex-start; }
+      #toolbar-actions > .toolbar-primary-group { grid-area: primary; }
+      #toolbar-actions > .toolbar-secondary-group { grid-area: secondary; justify-content: flex-end; }
+      #toolbar-actions .toolbar-status-group { display: none; }
       #render-btn:not(:disabled) { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
       #clear-btn { color: var(--muted); }
       .toolbar-group {
@@ -119,6 +122,7 @@
         align-items: center;
       }
       .mode-btn[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+      .mode-btn[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 14%, transparent); box-shadow: inset 0 -2px 0 var(--accent); }
       .mode-btn:hover { border-color: var(--accent); }
       .mode-btn-icon { margin-right: 5px; }
       .family-badge-icon { margin-right: 4px; vertical-align: -1px; }
@@ -148,10 +152,11 @@
         #toolbar-actions {
           flex-basis: 100%;
           grid-template-columns: 1fr;
-          grid-template-areas: "status" "navigation" "primary" "secondary";
+          grid-template-areas: "navigation" "mode" "primary" "secondary";
         }
-        #toolbar-actions > .toolbar-group:nth-child(2),
-        #toolbar-actions > .toolbar-group:nth-child(4) { justify-content: flex-start; }
+        #toolbar-actions > .toolbar-navigation-group,
+        #toolbar-actions > .toolbar-mode-group,
+        #toolbar-actions > .toolbar-secondary-group { justify-content: flex-start; }
       }
 
       /* ID selectors otherwise beat the [hidden] attribute selector's specificity. */
@@ -195,6 +200,16 @@
       }
       .toolbar-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
       .toolbar-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+      .icon-button {
+        width: 34px;
+        min-width: 34px;
+        height: 32px;
+        padding: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .icon-button svg { width: 16px; height: 16px; }
       .zoom-label {
         min-width: 44px;
         text-align: center;
@@ -233,6 +248,53 @@
       .export-menu-item:hover { background: var(--bg); color: var(--accent); }
 
       #body { flex: 1; display: flex; min-height: 0; }
+
+      #editor-pane {
+        flex: 0 0 50%;
+        min-width: 0;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg);
+      }
+
+      #editor-action-bar {
+        position: sticky;
+        bottom: 0;
+        z-index: 2;
+        flex: 0 0 auto;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 8px 12px;
+        background: color-mix(in srgb, var(--surface) 96%, transparent);
+        border-top: 1px solid var(--border);
+        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.14);
+      }
+      #editor-action-row { display: flex; gap: 8px; }
+      #editor-status-summary {
+        align-self: stretch;
+        min-width: 0;
+        display: flex;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 3px 12px;
+        overflow: hidden;
+        color: color-mix(in srgb, var(--muted) 78%, transparent);
+        font-size: 10px;
+        line-height: 1.4;
+        letter-spacing: 0.03em;
+        opacity: 0.78;
+      }
+      #editor-status-summary .editor-status-item { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      #editor-status-summary .editor-status-label { color: var(--muted); text-transform: uppercase; }
+      #editor-status-summary #family-badge { color: inherit; }
+      #editor-status-summary #render-status { max-width: min(560px, 72vw); }
+      #editor-status-summary #render-elapsed,
+      #editor-status-summary #operation-status { border: 0; padding: 0; }
+      #editor-action-bar #render-btn:not(:disabled) { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
 
       #project-panel {
         flex: 0 0 290px;
@@ -407,9 +469,10 @@
       #diagram-new-btn:hover { border-color: var(--accent); color: var(--accent); }
 
       #editor {
-        flex: 0 0 50%;
+        flex: 1 1 auto;
         min-width: 0;
-        height: 100%;
+        width: 100%;
+        min-height: 0;
         background: var(--bg);
         color: var(--ink);
         font-family: var(--font-mono);
@@ -419,7 +482,7 @@
         border-left: 3px solid var(--border);
         border-right: 1px solid var(--border);
         padding: 16px;
-        resize: none;
+        resize: vertical;
         transition: border-left-color 0.15s;
       }
       #editor:focus { outline: none; border-left-color: var(--accent); }
@@ -487,7 +550,7 @@
         min-width: 100%;
         min-height: 100%;
       }
-      #preview.stale { filter: grayscale(0.4); opacity: 0.55; }
+      #preview.stale { filter: grayscale(0.25); opacity: 0.7; }
 
       #review-panel {
         flex: 0 0 auto;
@@ -808,6 +871,32 @@
         font-size: 12px;
       }
       #settings-panel[hidden] { display: none; }
+      .panel-resize-handle {
+        flex: 0 0 10px;
+        height: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: ns-resize;
+        touch-action: none;
+        background: color-mix(in srgb, var(--surface) 92%, var(--bg));
+        border-bottom: 1px solid var(--border);
+      }
+      .panel-resize-handle::after {
+        content: '';
+        width: 34px;
+        height: 2px;
+        border-top: 1px solid var(--muted);
+        border-bottom: 1px solid var(--muted);
+        opacity: 0.6;
+      }
+      .panel-resize-handle:hover,
+      .panel-resize-handle:focus-visible {
+        background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+        outline: none;
+      }
+      .panel-resize-handle:hover::after,
+      .panel-resize-handle:focus-visible::after { border-color: var(--accent); opacity: 1; }
       #settings-panel .review-settings { flex-wrap: wrap; }
       #settings-panel input {
         font-family: var(--font-mono);
@@ -850,8 +939,11 @@
   </head>
   <body>
     <div id="toolbar" role="toolbar" aria-label="Diagram editor controls">
-      <div class="toolbar-group">
-        <div id="brand">&#9633; DIAGRAM EDITOR</div>
+      <div class="toolbar-group toolbar-heading-group">
+        <div id="brand">Diagram as Code</div>
+      </div>
+      <div id="toolbar-actions">
+        <div class="toolbar-group toolbar-mode-group">
         <div id="mode-toggle" role="group" aria-label="Editing mode">
           <button id="mode-text-btn" class="mode-btn" aria-pressed="true">
             <svg class="mode-btn-icon" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false">
@@ -871,23 +963,6 @@
           </button>
         </div>
       </div>
-      <div id="toolbar-actions">
-        <div class="toolbar-group toolbar-status-group" aria-label="Diagram status">
-          <span id="engine-badge" class="badge"></span>
-          <span id="family-badge" class="badge" aria-live="polite">
-            <svg class="family-badge-icon" viewBox="0 0 16 16" width="10" height="10" aria-hidden="true" focusable="false">
-              <rect x="1" y="6" width="4.5" height="4" fill="none" stroke="currentColor" stroke-width="1"/>
-              <rect x="10.5" y="6" width="4.5" height="4" fill="none" stroke="currentColor" stroke-width="1"/>
-              <path d="M5.5 8h5" stroke="currentColor" stroke-width="1"/>
-            </svg>
-            <span id="family-badge-label">No family</span>
-          </span>
-          <span id="render-status" class="badge" role="status" aria-live="polite" hidden></span>
-          <span id="render-spinner" class="render-spinner" hidden aria-hidden="true"></span>
-          <span id="render-elapsed" class="badge" hidden></span>
-          <button id="render-cancel-btn" class="toolbar-btn" hidden>Cancel Render</button>
-          <span id="operation-status" class="badge" role="status" aria-live="polite" hidden></span>
-        </div>
         <div class="toolbar-group toolbar-navigation-group">
           <button id="project-toggle-btn" class="toolbar-btn" aria-pressed="true">Projects</button>
           <div class="segmented-group">
@@ -897,15 +972,19 @@
           </div>
         </div>
         <div class="toolbar-group toolbar-primary-group">
-          <button id="clear-btn" class="toolbar-btn">Clear</button>
-          <button id="render-btn" class="toolbar-btn">Render</button>
-          <button id="source-open-btn" class="toolbar-btn">Open source</button>
+          <button id="source-open-btn" class="toolbar-btn icon-button" aria-label="Open source" title="Open source">
+            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2 4.5h4l1.5 1.5H14v7H2z" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M2 4.5V3h4l1.5 1.5" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+          </button>
           <input type="file" id="source-open-input" accept=".bpm,.txt,.bpmn,.xml,.bpm-project.json,application/json,text/plain,application/xml" aria-label="Open diagram source or project bundle" hidden />
-          <button id="project-save-btn" class="toolbar-btn" title="Download all project sources and render snapshots">Save project</button>
-          <button id="fullscreen-btn" class="toolbar-btn">Fullscreen</button>
+          <button id="project-save-btn" class="toolbar-btn icon-button" aria-label="Save project" title="Download all project sources and render snapshots">
+            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 2h8l2 2v10H3z" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M5 2v4h5V2M5 14v-4h6v4" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+          </button>
+          <button id="fullscreen-btn" class="toolbar-btn icon-button" aria-label="Fullscreen preview" title="Fullscreen preview">
+            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="square"/></svg>
+          </button>
+          <button id="edit-as-diagram" class="toolbar-btn" disabled>Edit as Diagram</button>
         </div>
         <div class="toolbar-group toolbar-secondary-group">
-          <button id="edit-as-diagram" class="toolbar-btn" disabled>Edit as Diagram</button>
           <div id="export-menu-container"></div>
         </div>
       </div>
@@ -947,7 +1026,22 @@
         <button id="diagram-new-btn" type="button" class="toolbar-btn">+ New diagram</button>
       </aside>
       <div id="project-splitter" role="separator" aria-label="Resize project panel" aria-orientation="vertical" tabindex="0"></div>
-      <textarea id="editor" aria-label="Diagram source" spellcheck="false"></textarea>
+      <div id="editor-pane">
+        <textarea id="editor" aria-label="Diagram source" spellcheck="false"></textarea>
+        <div id="editor-action-bar" aria-label="Editor actions">
+          <div id="editor-action-row">
+            <button id="clear-btn" class="toolbar-btn">Clear</button>
+            <button id="render-btn" class="toolbar-btn">Render</button>
+          </div>
+          <div id="editor-status-summary" role="status" aria-live="polite" aria-label="Diagram information log">
+            <span class="editor-status-item"><span class="editor-status-label">Engine:</span> <span id="engine-badge">—</span></span>
+            <span id="family-badge" class="editor-status-item" aria-live="polite"><span class="editor-status-label">Family:</span> <span id="family-badge-label">No family</span></span>
+            <span class="editor-status-item"><span id="render-status" role="status" aria-live="polite" hidden></span><span id="render-spinner" class="render-spinner" hidden aria-hidden="true"></span><span id="render-elapsed" hidden></span></span>
+            <button id="render-cancel-btn" class="toolbar-btn" hidden>Cancel Render</button>
+            <span id="operation-status" class="editor-status-item" role="status" aria-live="polite" hidden></span>
+          </div>
+        </div>
+      </div>
       <div id="splitter" role="separator" aria-label="Resize source and preview panes" aria-orientation="vertical" tabindex="0"></div>
       <div id="preview-container" aria-label="Diagram preview">
         <div id="errors" role="alert" aria-live="assertive"></div>

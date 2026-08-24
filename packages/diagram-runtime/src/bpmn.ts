@@ -2,7 +2,7 @@ import type { Diagram } from '@bpm/ast';
 import { layout, type LayoutOptions, type PositionedDiagram } from '@bpm/layout';
 import { parse } from '@bpm/parser';
 import { render } from '@bpm/render';
-import { checkDiagramResourceLimits, layoutComplexityWarning, MAX_SOURCE_CHARS, validate } from '@bpm/validate';
+import { checkDiagramResourceLimits, layoutComplexityWarning, MAX_SOURCE_CHARS, shapeSizeOverrideWarnings, validate } from '@bpm/validate';
 import { exportToXml } from '@bpm/export-xml';
 import type { DiagramFamilyAdapter } from './types.js';
 
@@ -24,13 +24,22 @@ function limitDiagnostics(text: string, diagram: Diagram) {
 
 function warningDiagnostics(diagram: Diagram) {
   const issue = layoutComplexityWarning(diagram);
-  return issue ? [{
+  const complexityWarnings = issue ? [{
     line: issue.line ?? 1,
     column: issue.column ?? 1,
     message: issue.message,
     ...(issue.code ? { code: issue.code } : {}),
     severity: issue.severity,
   }] : [];
+  const shapeWarnings = shapeSizeOverrideWarnings(diagram).map((warning) => ({
+    line: warning.line ?? 1,
+    column: warning.column ?? 1,
+    message: warning.message,
+    ...(warning.code ? { code: warning.code } : {}),
+    ...(warning.nodeIds ? { nodeIds: warning.nodeIds } : {}),
+    severity: warning.severity,
+  }));
+  return [...complexityWarnings, ...shapeWarnings];
 }
 
 export const bpmnAdapter: DiagramFamilyAdapter<Diagram, PositionedDiagram> = {

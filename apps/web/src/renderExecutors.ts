@@ -36,24 +36,29 @@ function createRenderWorker(): Worker {
 export function createWorkerRenderExecutor(
   createWorker: () => Worker = createRenderWorker,
 ): RenderExecutor {
+  let worker: Worker | undefined;
+
   return (source, engineOverride, { signal, onPhase }) => new Promise<PipelineResult>((resolve, reject) => {
     if (signal.aborted) {
       reject(signal.reason ?? new Error('Render aborted'));
       return;
     }
     const requestId = ++requestCounter;
-    const worker = createWorker();
+    worker ??= createWorker();
     let settled = false;
 
-    const finish = (fn: () => void) => {
+    const finish = (fn: () => void, terminate = false) => {
       if (settled) return;
       settled = true;
       signal.removeEventListener('abort', onAbort);
-      worker.terminate();
+      if (terminate) {
+        worker?.terminate();
+        worker = undefined;
+      }
       fn();
     };
 
-    const onAbort = () => finish(() => reject(signal.reason ?? new Error('Render aborted')));
+    const onAbort = () => finish(() => reject(signal.reason ?? new Error('Render aborted')), true);
     signal.addEventListener('abort', onAbort);
 
     worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
@@ -66,10 +71,10 @@ export function createWorkerRenderExecutor(
       finish(() => {
         if (message.ok) resolve(message.result);
         else reject(Object.assign(new Error('Render failed in worker'), { diagnostics: message.diagnostics }));
-      });
+      }, !message.ok);
     };
     worker.onerror = (event: ErrorEvent) => {
-      finish(() => reject(event.error instanceof Error ? event.error : new Error(event.message)));
+      finish(() => reject(event.error instanceof Error ? event.error : new Error(event.message)), true);
     };
 
     const request: WorkerRequest = { type: 'render', requestId, source, ...(engineOverride ? { engineOverride } : {}) };

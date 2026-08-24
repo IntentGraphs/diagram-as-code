@@ -20,6 +20,26 @@ describe('runPipeline', () => {
     expect(result.svg).toContain('<svg');
   });
 
+  it('returns grouped shape-size deviations as warnings while still rendering the SVG', async () => {
+    const result = await runPipeline([
+      'positioning: manual',
+      'render: auto',
+      'shapeSize: task (220, 60)',
+      '',
+      'event start none "Start" as s at (0, 10) size (40, 40)',
+      'task "Work" as a at (80, 0) size (198, 60)',
+      'event end none "End" as e at (320, 10)',
+      '',
+      's -> a',
+      'a -> e',
+    ].join('\n'));
+    expect(result.errors).toEqual([]);
+    expect(result.svg).toContain('<svg');
+    expect(result.warnings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'shape_size_override', severity: 'warning' }),
+    ]));
+  });
+
   it('accepts an explicit BPMN directive and rejects an unknown family before parsing', async () => {
     const explicit = await runPipeline('diagram: bpmn\ntask "Review" as n1');
     expect(explicit.errors).toEqual([]);

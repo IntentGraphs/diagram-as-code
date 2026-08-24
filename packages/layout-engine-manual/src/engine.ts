@@ -64,7 +64,7 @@ function routeFlatEdges(
   });
 }
 
-function placeSubprocessContents(node: DiagramNode, originX: number, originY: number): PositionedNode {
+function placeSubprocessContents(node: DiagramNode, originX: number, originY: number, shapeSizes?: Diagram['shapeSizes']): PositionedNode {
   if (node.kind !== 'activity') {
     throw new Error(`placeSubprocessContents called on non-activity node "${node.id}"`);
   }
@@ -72,7 +72,7 @@ function placeSubprocessContents(node: DiagramNode, originX: number, originY: nu
   const contentOriginY = originY + SUBPROCESS_HEADER_INSET_Y;
   // Boundary events stay for positionBoundaryEvents; do not placeNode them here.
   const placeableChildren = node.children.filter((c) => !isBoundaryEvent(c));
-  const placedChildren = placeableChildren.map((child) => placeNode(child, contentOriginX, contentOriginY));
+  const placedChildren = placeableChildren.map((child) => placeNode(child, contentOriginX, contentOriginY, shapeSizes));
   assertNoOverlaps(placedChildren);
 
   const maxRight = placedChildren.length > 0 ? Math.max(...placedChildren.map((c) => c.x + c.width)) : originX + 100;
@@ -96,7 +96,7 @@ function placeSubprocessContents(node: DiagramNode, originX: number, originY: nu
 }
 
 /** Places one node (and validates it) at `originX/originY + node.position`. No pool/lane context. */
-export function placeNode(node: DiagramNode, originX: number, originY: number): PositionedNode {
+export function placeNode(node: DiagramNode, originX: number, originY: number, shapeSizes?: Diagram['shapeSizes']): PositionedNode {
   if (isBoundaryEvent(node)) {
     throw new Error(`Boundary event "${node.id}" cannot be manually positioned — it is always placed relative to its host.`);
   }
@@ -104,9 +104,9 @@ export function placeNode(node: DiagramNode, originX: number, originY: number): 
     throw new Error(`Node "${node.id}" has no position — every node needs "at (x, y)" in a manual-positioning diagram.`);
   }
   if (isExpandedSubprocess(node)) {
-    return placeSubprocessContents(node, originX + node.position.x, originY + node.position.y);
+    return placeSubprocessContents(node, originX + node.position.x, originY + node.position.y, shapeSizes);
   }
-  const { width, height } = sizeOf(node);
+  const { width, height } = sizeOf(node, shapeSizes);
   if (node.kind === 'activity') {
     const { children: _c, childEdges: _e, ...rest } = node;
     return { ...rest, x: originX + node.position.x, y: originY + node.position.y, width, height } as PositionedNode;
@@ -117,9 +117,9 @@ export function placeNode(node: DiagramNode, originX: number, originY: number): 
 export async function layoutManual(diagram: Diagram): Promise<PositionedDiagram> {
   const laneNodeIds = new Set(diagram.pools.flatMap((pool) => pool.lanes.flatMap((lane) => lane.nodeIds)));
   const unassigned = diagram.nodes.filter((n) => !laneNodeIds.has(n.id) && !isBoundaryEvent(n));
-  const placedLoose = unassigned.map((n) => placeNode(n, 0, 0));
+  const placedLoose = unassigned.map((n) => placeNode(n, 0, 0, diagram.shapeSizes));
 
-  const stackedPools = stackLanes(diagram, placeNode);
+  const stackedPools = stackLanes(diagram, (node, x, y) => placeNode(node, x, y, diagram.shapeSizes));
   const placedPooled = stackedPools.flatMap((p) => p.placedNodes);
 
   const allPlaced = [...placedLoose, ...placedPooled];

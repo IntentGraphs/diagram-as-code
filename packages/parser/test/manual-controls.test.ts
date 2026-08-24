@@ -78,6 +78,44 @@ describe('parse layoutSpacing', () => {
   });
 });
 
+describe('parse shapeSize groups', () => {
+  it('parses grouped fixed shape sizes from the leading directive block', () => {
+    const { errors, diagram } = parse([
+      'shapeSize: task (180, 70)',
+      'shapeSize: event (50, 50)',
+      '',
+      'task "A very long label that must wrap" as a',
+      'event end none "Done" as e',
+    ].join('\n'));
+    expect(errors).toEqual([]);
+    expect(diagram.shapeSizes).toEqual({
+      task: { width: 180, height: 70 },
+      event: { width: 50, height: 50 },
+    });
+  });
+
+  it('allows blank lines between leading directives', () => {
+    const { errors, diagram } = parse([
+      'positioning: manual',
+      '',
+      'shapeSize: task (180, 70)',
+      '',
+      'task "A" as a at (0, 0)',
+    ].join('\n'));
+    expect(errors).toEqual([]);
+    expect(diagram.positioning).toBe('manual');
+    expect(diagram.shapeSizes).toEqual({ task: { width: 180, height: 70 } });
+  });
+
+  it('rejects unknown or malformed shapeSize directives', () => {
+    const unknown = parse('shapeSize: widget (120, 60)\ntask "A" as a');
+    expect(unknown.errors.some((error) => /Unknown shapeSize group/.test(error.message))).toBe(true);
+
+    const malformed = parse('shapeSize: task 120 x 60\ntask "A" as a');
+    expect(malformed.errors.some((error) => /Malformed shapeSize directive/.test(error.message))).toBe(true);
+  });
+});
+
 describe('parse routing', () => {
   it('accepts the opt-in fast routing profile', () => {
     const { errors, diagram } = parse('routing: fast\n\ntask "A" as a');

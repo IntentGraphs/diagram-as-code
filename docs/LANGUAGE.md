@@ -11,6 +11,7 @@ _This document is self-contained: it's meant to be handed to any AI assistant �
 [layout: <engine>]              ← optional, leading directive for BPMN
 [positioning: manual]           ← optional, first line(s)
 [layoutSpacing: <preset>]       ← optional, first line(s)
+[shapeSize: <group> (w, h)]     ← optional, repeated by shape family
 [routing: quality|hybrid|fast]  ← optional automatic-routing profile
 [page: 6in x 9in]               ← optional, common output page
 [fit: contain]                  ← optional, page fit policy
@@ -23,17 +24,17 @@ _This document is self-contained: it's meant to be handed to any AI assistant �
 <edge declarations>
 ```
 
-- For BPMN, `layout:`, `positioning:`, `layoutSpacing:`, `routing:`, `direction:`, `laneDirection:`, `paginate:`, and `pageBreak:` are optional leading directives. They may appear in any order before the first body line; do not insert a blank line inside this leading block. `paginate:` and `pageBreak:` reject duplicates; the other core directives currently use the last value when repeated. For family files, `diagram: <family>` must be the first non-blank line; shared header directives are described in §2.1.
+- For BPMN, `layout:`, `positioning:`, `layoutSpacing:`, `shapeSize:`, `routing:`, `direction:`, `laneDirection:`, `paginate:`, and `pageBreak:` are optional leading directives. They may appear in any order before the first body line, with blank lines allowed between directives. `paginate:` and `pageBreak:` reject duplicates; the other core directives currently use the last value when repeated. For family files, `diagram: <family>` must be the first non-blank line; shared header directives are described in §2.1.
 - `page:` and `fit:` are common output directives. For non-BPMN families, place them after the required first-line `diagram: <family>` selector. `page:` accepts positive dimensions in `in`, `mm`, or `px`; omitted units default to inches. `fit:` defaults to `contain` and may be set to `strict` to reject diagrams that would be rendered below the minimum readable scale. These directives are accepted for every diagram family and do not change the layout coordinate system.
 - `timescale:` is Gantt-only and changes the visual horizontal time scale without changing task dates, weekday durations, dependencies, or structured schedule exports. It accepts `day`/`daily`, `week`/`weekly`, `fortnight`/`fortnightly`/`biweekly`, `month`/`monthly`, `quarter`/`quarterly`, `halfyear`/`half-year`/`half a year`/`semiannual`/`semiannually`, or `auto`. A Gantt `calendar:` value of `weekdays`/`weekday` retains the fixed Monday-Friday scheduling calendar; cadence values are shorthand for the same visual scale. When a page is declared, Gantt distributes the start/end date range across the available page width. `auto` selects a coarser scale from the timeline span.
-- `render: auto` and `render: manual` control the web editor's live preview. `auto` is the default for light diagrams; the editor automatically switches heavy diagrams to an explicit Render action. A heavy diagram that explicitly requests `render: auto` shows a warning instead of starting repeated live layouts. `manual` always requires the Render action. This directive does not affect CLI/export rendering.
+- `render: auto` and `render: manual` control the web editor's live preview. `auto` is the default for light diagrams; the editor automatically switches heavy diagrams to an explicit Render action. While a diagram is being built incrementally, a soft-heavy change may still auto-render when the node/edge/source delta is small and the previous render was fast enough; larger edits remain explicit. A hard-blocked diagram stops automatic rendering immediately. A heavy diagram that explicitly requests `render: auto` shows a warning instead of starting repeated live layouts. `manual` always requires the Render action. This directive does not affect CLI/export rendering.
 - For CLI/export verification, a page declaration is consumed by both SVG and structured exporters. Use `validate --json` to inspect the resolved geometry before rendering or exporting; see `docs/CLI.md` for a copy-safe SVG/PPTX workflow.
 - DOCX export is CLI-only and uses one vector-backed SVG image per semantic page. If semantic pages derive different intrinsic dimensions, provide a common `page:` directive so the Word document has one consistent physical page size; incompatible aspect ratios are rejected rather than silently distorted. DOCX is not a native Word-shape or semantic round-trip format.
 - SVG/page fitting and editable-PPTX readability are separate checks. `fit: contain` allows the complete SVG to be scaled into the declared page, even when labels become small; `fit: strict` blocks supported runtime/export paths when the complete diagram or semantic page falls below the shared minimum page scale. Editable PPTX export still writes the native-shape deck when a label's projected text box or font is small, but reports an `editable_text_density` warning so the user can review readability, split the diagram, or choose a visual/image-based presentation workflow. Structural PPTX/DOCX limits, invalid geometry, invalid continuation structure, unsupported families, and Gantt slide-count limits remain blocking errors.
 - Everything else is either a **node declaration** (§3) or an **edge declaration** (§5), one per line.
 - Nesting (pools/lanes, subprocess bodies) is by indentation: each nested level is indented deeper than the line it belongs to.
 - **Nesting indentation must be exactly 2 spaces per level, using space characters only — never tabs, never 3 or 4 spaces.** This is a hard parser requirement, not a style preference: the parser expects each child line at precisely `parent indent + 2`, not merely "deeper than the parent." A 4-space or tab habit (the common default for many editors and most other languages) will fail to parse, and the resulting error — `Could not parse line: "..."` — gives no hint that indentation width is the cause. When generating multi-line diagrams (any pool/lane or subprocess), indent every nested level by exactly 2 spaces, consistently, for the whole file.
-- Blank lines are ignored in diagram bodies. A blank line ends the BPMN leading-directive block, so keep all leading directives contiguous.
+- Blank lines are ignored in diagram bodies and may separate BPMN leading directives.
 
 ## 2. Directives
 
@@ -42,6 +43,7 @@ _This document is self-contained: it's meant to be handed to any AI assistant �
 | `layout: <name>` | `swimlane`, `flat`, or any future registered engine name | Forces a specific auto-layout engine, overriding auto-detection. Unrecognized names fail at **layout time**, not parse time. |
 | `positioning: manual` | `manual` (only accepted value) | Every node must carry `at (x, y)` (§6); no layout engine runs. Cannot be combined with `layout:` — parse error if both are present. |
 | `layoutSpacing: <preset>` | `compact` &#124; `normal` &#124; `relaxed` &#124; `spacious` | Controls inter-node and inter-edge spacing for all layout engines. `normal` matches the original defaults. `compact` tightens gaps; `relaxed`/`spacious` widen them progressively. |
+| `shapeSize: <group> (w, h)` | `all` &#124; `event` &#124; `task` &#124; `gateway` &#124; `data` &#124; `annotation` &#124; `group` | Sets the parent bbox for that shape family before label measurement. Repeat the directive for multiple groups. A matching top-level `shapeSize` takes precedence over node-level `size (w, h)`. |
 | `routing: <mode>` | `quality` &#124; `hybrid` &#124; `fast` | Automatic edge-routing profile. `quality` is the default; `hybrid` keeps quality routing inside pools while using bounded routing for global message flows; `fast` skips expensive post-layout edge separation entirely. Both degraded modes can contain edge crossings and edge-through-node findings. |
 | `page: <width> x <height>` | Positive dimensions in `in`, `mm`, or `px`; default unit is `in` | Fits the rendered diagram into a fixed output page while preserving its aspect ratio. `page: 6 x 9` is a portrait 2:3 page. |
 | `fit: contain` | Requires `page:` | Shows the complete diagram with uniform scaling and safe margins; this is the default. |
@@ -51,7 +53,7 @@ _This document is self-contained: it's meant to be handed to any AI assistant �
 | `direction: <value>` | `right` &#124; `left` &#124; `down` &#124; `up` | Selects process/tree growth. Flowcharts support all four and default to `down`; mind maps support all four and default to `right`; BPMN supports `right` and defaults to it. Architecture and Gantt do not support this directive. |
 | `laneDirection: <value>` | BPMN only: `horizontal` &#124; `vertical` | Selects BPMN pool-lane composition independently of process direction. `horizontal` remains the default; `vertical` arranges lanes left-to-right. Non-BPMN use is invalid. |
 | `timescale: <scale>` | Gantt only: canonical `daily` &#124; `weekly` &#124; `fortnightly` &#124; `monthly` &#124; `quarterly` &#124; `halfyear` &#124; `auto`, plus documented aliases | Compresses or expands the visual Gantt axis while preserving the exact schedule dates and durations. `auto` chooses a scale from the date span. |
-| `render: auto` | `auto` &#124; `manual` | Allows live preview for light diagrams; heavy diagrams require an explicit Render action and show a warning if auto-render was requested. |
+| `render: auto` | `auto` &#124; `manual` | Allows live preview for light diagrams and small incremental edits; larger heavy changes require an explicit Render action and show a warning if auto-render was requested. |
 | `render: manual` | `auto` &#124; `manual` | Never schedules live preview from typing; the web editor waits for the Render action. |
 | `diagram: <family>` | `bpmn` &#124; `mindmap` &#124; `flowchart` &#124; `architecture` &#124; `gantt` | Selects the family parser. Omit it for the backwards-compatible BPMN grammar. |
 
@@ -410,11 +412,31 @@ For BPMN node declarations, after `as <id>` (and optional `at (x, y)`):
 
 | Form | Meaning |
 |---|---|
-| `size (w, h)` | Requested outer bbox; layout clamps up to kind defaults/minimums |
+| `size (w, h)` | Node-level requested outer bbox; used when no matching parent `shapeSize` exists, otherwise retained for a non-blocking mismatch warning. |
 | `label:` | `inside` &#124; `below` &#124; `above` &#124; `left` &#124; `right` |
 | `wrap:` | `1`…`5` max text lines |
 | `font:` | `small` &#124; `normal` &#124; `large` |
 | `align:` | `left` &#124; `center` (reserved for future; centered today) |
+
+For diagrams that need standardized geometry, add one or more leading shape-family directives:
+
+```
+shapeSize: task (180, 70)
+shapeSize: event (50, 50)
+shapeSize: gateway (64, 64)
+```
+
+`shapeSize:` is a fixed parent size: the activity label does not make that family grow before layout. The groups are `all`, `event`, `task` (all activity/task shapes), `gateway`, `data` (`dataObject` and `dataStore`), `annotation`, and `group`. A family-specific directive wins over `all`, and either top-level directive wins over an individual node's `size (w, h)`. `validate` reports differing node-level sizes as warnings; they do not make the diagram invalid or stop rendering. Events and gateways remain square, and all sizes are clamped to the minimum geometry required by their shape.
+
+The same grouping works in full manual mode. The leading directives establish the common geometry; an individual declaration may document a different requested size, but the parent `shapeSize` remains authoritative:
+
+```
+positioning: manual
+shapeSize: task (160, 72)
+
+task "Review" as review at (40, 40)
+task "Exception handling" as exception at (240, 40) size (220, 80)
+```
 
 ### 5.5 Camunda vendor extensions (opt-in)
 
@@ -449,7 +471,7 @@ Turned on with a leading `positioning: manual` directive (§2).
 - A node declared inside a `lane`: `(x, y)` is relative to **that lane's own top-left** — lanes still auto-stack top-to-bottom and auto-size to whatever content is placed in them, so placing content in a later lane never requires knowing how tall earlier lanes ended up.
 
 ### 6.3 What stays automatic even in manual mode
-- **Node width/height** — auto-sized from the label by default; optionally overridden with `size (w, h)` (§5.4), which clamps up to kind minimums. See §6.5 for the default sizes.
+- **Node width/height** — auto-sized from the label by default; optionally standardized with leading `shapeSize:` directives. A matching parent `shapeSize` controls the final dimensions; node-level `size (w, h)` remains a warning source when it differs. Explicit sizes clamp up to kind minimums. See §6.5 for the default sizes.
 - **Lane band sizing and stacking order** — computed from content, same as auto-layout.
 - **Edge routing between fixed points** — the same shared obstacle-avoiding orthogonal router used by auto-layout; `from`/`to` (§5.3) only pick which side each end anchors to, not the bends in between.
 - **Boundary event placement** — always computed relative to its host's border; never given its own `at (x, y)`.
@@ -460,7 +482,7 @@ Turned on with a leading `positioning: manual` directive (§2).
 
 ### 6.5 Node dimensions (compute these before choosing coordinates)
 
-Width/height default to node kind and, for activities, label length — optionally overridden with `size (w, h)` (§5.4) which clamps up to kind minimums. The default formula is deterministic, so you can precompute every box's footprint and pick non-overlapping `at (x, y)` values on the first attempt instead of hitting the overlap error (§6.4) and resubmitting:
+Width/height default to node kind and, for activities, label length. A leading `shapeSize:` directive replaces that label-aware sizing with a fixed parent shape-family footprint; an individual `size (w, h)` (§5.4) is ignored when a matching parent size exists and is retained as a warning source. The default formula is deterministic, so you can precompute every box's footprint and pick non-overlapping `at (x, y)` values on the first attempt instead of hitting the overlap error (§6.4) and resubmitting:
 
 | Node kind | Width | Height |
 |---|---|---|
@@ -688,7 +710,7 @@ review -> g1 [via: (240,75) (260,75), labelAt: 0.5, labelSide: above]
 g1 -> approve: "yes" [labelAt: 0.35, labelSide: above]
 approve -> e1
 ```
-This combines `layoutSpacing:` (wider gaps), `size (w, h)` (custom node dimensions), node visual `[label: inside, wrap: 3]`, edge `via` waypoints, and edge label placement (`labelAt`, `labelSide`) — all in a single auto-layout diagram (no `positioning: manual` needed for these features). See `examples/manual-controls/` for more.
+This combines `layoutSpacing:` (wider gaps), `size (w, h)` (node-level size requests), node visual `[label: inside, wrap: 3]`, edge `via` waypoints, and edge label placement (`labelAt`, `labelSide`) — all in a single auto-layout diagram (no `positioning: manual` needed for these features). Add leading grouped `shapeSize:` directives when a parent-level geometry contract should control all matching shapes. See `examples/manual-controls/` for more.
 
 More canonical examples exercising every node/trigger/gateway kind: `packages/layout-core/test-utils/verificationDiagrams.ts` (`crowdedBoundary`, `nestedSubprocess`, `orderToCashStacked`, etc.) — useful for browsing the repo, but everything needed to generate a first-attempt-correct diagram is already above.
 
@@ -714,6 +736,7 @@ Whatever produced this text — human or AI, whichever model — verify all of t
 - [ ] Edge arrows match intent: `->` normal flow, `=>` conditional branch, `->>` default branch, `~>` message (cross-pool), `..>` association (data/annotation link, not a flow) (§5.1).
 - [ ] Labels are short phrases, not sentences (§10).
 - [ ] If `layoutSpacing:` is used, it's one of `compact`, `normal`, `relaxed`, `spacious` (§2).
+- [ ] If `shapeSize:` is used, matching group sizes are treated as the parent contract; differing node-level `size (w, h)` values produce warnings and do not override it (§5.4).
 - [ ] Event category/trigger and gateway combinations obey BPMN 2.0 legality (§3.6) — run `bpm validate` and fix any `semanticErrors`.
 - [ ] If `size (w, h)` is used, values are reasonable for the node kind — `validate` warns on undersized nodes (§5.4).
 
