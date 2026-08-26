@@ -59,6 +59,34 @@ function flattenPositioned(nodes: PositionedNode[], into: PositionedNode[] = [])
   return into;
 }
 
+/** Stable priority used only by the experimental router. Long cross-lane trunks are
+ * routed before short/local edges so they reserve the scarce corridors first. */
+function experimentalEdgePriority(
+  edge: RoutedEdge,
+  laneIndexByNodeId: Map<string, number>,
+): [number, number, string] {
+  const sourceLane = laneIndexByNodeId.get(edge.sourceId);
+  const targetLane = laneIndexByNodeId.get(edge.targetId);
+  const laneSpan = sourceLane !== undefined && targetLane !== undefined
+    ? Math.abs(targetLane - sourceLane)
+    : 0;
+  const geometricLength = edge.points.reduce((sum, point, index) => {
+    const previous = edge.points[index - 1];
+    return previous ? sum + Math.abs(point.x - previous.x) + Math.abs(point.y - previous.y) : sum;
+  }, 0);
+  return [laneSpan, geometricLength, edge.id];
+}
+
+function compareExperimentalEdges(
+  a: RoutedEdge,
+  b: RoutedEdge,
+  laneIndexByNodeId: Map<string, number>,
+): number {
+  const [aSpan, aLength, aId] = experimentalEdgePriority(a, laneIndexByNodeId);
+  const [bSpan, bLength, bId] = experimentalEdgePriority(b, laneIndexByNodeId);
+  return bSpan - aSpan || bLength - aLength || aId.localeCompare(bId);
+}
+
 function laneLabelObstacles(pools: PositionedDiagram['pools']) {
   return pools.flatMap((pool) => pool.lanes.map((lane) => ({
     // Lane labels are rendered at the lane origin and are intentionally treated as
@@ -99,7 +127,7 @@ function rerouteCrossPoolEdges(
 
   const nodeObstacles = [...nodeById.values()];
   const visualObstacles = laneLabelObstacles(pools);
-  const assignedPorts = assignPorts(crossPool, nodeById);
+  const assignedPorts = assignPorts(crossPool, nodeById, { experimental: routing === 'experimental' });
   const routerByPoolPair = new Map<string, ReturnType<typeof createSequentialRouter>>();
   const rerouted = new Map<string, Array<{ x: number; y: number }>>();
 
@@ -120,7 +148,7 @@ function rerouteCrossPoolEdges(
     const exitStub = stubFrom(start, from, EDGE_STUB);
     const entryStub = stubFrom(end, to, EDGE_STUB);
     const obstacles = [
-      ...nodeObstacles.filter((node) => node.id !== source.id && node.id !== target.id),
+      ...(routing === 'experimental' ? nodeObstacles : nodeObstacles.filter((node) => node.id !== source.id && node.id !== target.id)),
       ...visualObstacles,
     ];
     // Keep route corridors scoped to a directed pool pair for this bounded
@@ -128,7 +156,10 @@ function rerouteCrossPoolEdges(
     // global reverse-direction interaction scoring remains a follow-up once the
     // router can score external paths without turning them into hard obstacles.
     const pairKey = `${poolOfNode.get(edge.sourceId)}->${poolOfNode.get(edge.targetId)}`;
-    const router = routerByPoolPair.get(pairKey) ?? createSequentialRouter({ edgeObstaclePolicy: 'hard' });
+    const router = routerByPoolPair.get(pairKey) ?? createSequentialRouter({
+      edgeObstaclePolicy: 'hard',
+      experimental: routing === 'experimental',
+    });
     routerByPoolPair.set(pairKey, router);
     const preferredFirstTurn: PreferredFirstTurn = from === 'left' || from === 'right' ? 'vertical' : 'horizontal';
     const edgeClass: RouteEdgeClass = edge.flowType === 'message'
@@ -211,6 +242,7 @@ function horizontalBandLanes(diagram: Diagram, positioned: PositionedDiagram): P
   const deltaYById = new Map<string, number>();
   const allChannelRepairedEdgeIds = new Set<string>();
   const repairedEdgePoints = new Map<string, Array<{ x: number; y: number }>>();
+  const gatewayLabelsAbove = new Set<string>();
 
   const newPools = positioned.pools.map((positionedPool) => {
     const pool = diagram.pools.find((p) => p.id === positionedPool.id);
@@ -295,7 +327,17 @@ function horizontalBandLanes(diagram: Diagram, positioned: PositionedDiagram): P
       ...node,
       y: node.y + (deltaYById.get(node.id) ?? 0),
     }]));
-    const assignedPorts = assignPorts(poolEdges, routedNodeById);
+    const assignedPorts = assignPorts(poolEdges, routedNodeById, {
+      experimental: diagram.routing === 'experimental',
+      laneIndexByNodeId,
+    });
+    if (diagram.routing === 'experimental') {
+      for (const edge of poolEdges) {
+        const ports = assignedPorts.get(edge.id);
+        const source = routedNodeById.get(edge.sourceId);
+        if (source?.kind === 'gateway' && ports?.source.side === 'bottom') gatewayLabelsAbove.add(source.id);
+      }
+    }
 
     // In quality mode, build each cross-lane edge's real path with the shared orthogonal router, instead of
     // linearly interpolating the old (now-invalid) ELK path. Each edge side-exits the source
@@ -310,6 +352,7 @@ function horizontalBandLanes(diagram: Diagram, positioned: PositionedDiagram): P
     // remain hard-obstacle routed.
     const router = createSequentialRouter({
       edgeObstaclePolicy: diagram.routing === 'fast' ? 'none' : 'hard',
+      experimental: diagram.routing === 'experimental',
     });
     const routeWithStubs = (edge: (typeof positioned.edges)[number]) => {
       const source = positionedNodeById.get(edge.sourceId)!;
@@ -328,7 +371,7 @@ function horizontalBandLanes(diagram: Diagram, positioned: PositionedDiagram): P
       // populated for every node in the pool by this point (computed in the loop above) but
       // hasn't been written back onto the positioned nodes yet.
       const obstacles = allPoolNodes
-        .filter((n) => n.id !== edge.sourceId && n.id !== edge.targetId)
+        .filter((n) => diagram.routing === 'experimental' || (n.id !== edge.sourceId && n.id !== edge.targetId))
         .map((n) => ({ ...n, y: n.y + (deltaYById.get(n.id) ?? 0) }));
       const preferredFirstTurn: PreferredFirstTurn = fromSide === 'left' || fromSide === 'right' ? 'vertical' : 'horizontal';
       const sourceLane = laneIndexByNodeId.get(edge.sourceId);
@@ -337,20 +380,44 @@ function horizontalBandLanes(diagram: Diagram, positioned: PositionedDiagram): P
         ? 'none'
         : sourceLane !== undefined && targetLane !== undefined && sourceLane !== targetLane
           ? 'soft'
+          : diagram.routing === 'experimental' && target.x + target.width / 2 < source.x + source.width / 2
+            // Reverse sequence flow is a deliberate feedback loop. Do not let
+            // a previously reserved horizontal trunk force it into the source
+            // task; endpoint-safe shape routing is more important than edge
+            // separation for this corridor.
+            ? 'none'
           : 'hard';
       const edgeClass: RouteEdgeClass = edge.flowType === 'message'
         ? 'message'
         : edge.flowType === 'association' ? 'association' : 'sequence';
-      const middlePoints = router.route(exitStub, entryStub, obstacles, preferredFirstTurn, edgeObstaclePolicy, {
-        edgeClass,
-        readableEdgeGap: Math.max(8, profile.edgeEdge / 2),
-        shapeReadableGap: Math.max(12, Math.min(24, profile.edgeNode / 2)),
-      });
+      const sourceY = source.y + sourceDelta;
+      const targetY = target.y + targetDelta;
+      const isReverseSameLane = diagram.routing === 'experimental'
+        && sourceLane !== undefined
+        && sourceLane === targetLane
+        && target.x + target.width / 2 < source.x + source.width / 2;
+      const middlePoints = isReverseSameLane
+        ? (() => {
+          const loopY = Math.min(sourceY, targetY) - EDGE_STUB - Math.max(8, profile.edgeNode / 2);
+          return [exitStub, { x: exitStub.x, y: loopY }, { x: entryStub.x, y: loopY }, entryStub];
+        })()
+        : router.route(exitStub, entryStub, obstacles, preferredFirstTurn, edgeObstaclePolicy, {
+          edgeClass,
+          readableEdgeGap: Math.max(8, profile.edgeEdge / 2),
+          shapeReadableGap: Math.max(12, Math.min(24, profile.edgeNode / 2)),
+        });
       repairedEdgePoints.set(edge.id, [start, ...middlePoints, end]);
       allChannelRepairedEdgeIds.add(edge.id);
     };
     if (diagram.routing !== 'fast') {
-      for (const interval of channelIntervals) {
+      const intervals = diagram.routing === 'experimental'
+        ? [...channelIntervals].sort((a, b) => {
+          const aEdge = edgeById.get(a.id)!;
+          const bEdge = edgeById.get(b.id)!;
+          return compareExperimentalEdges(aEdge, bEdge, laneIndexByNodeId);
+        })
+        : channelIntervals;
+      for (const interval of intervals) {
         const edge = edgeById.get(interval.id)!;
         routeWithStubs(edge);
       }
@@ -358,7 +425,14 @@ function horizontalBandLanes(diagram: Diagram, positioned: PositionedDiagram): P
       // the Y-shift by array index. Each node can have its own banding offset, so a middle
       // corner received a blend that matched neither endpoint and turned an orthogonal
       // dogleg into a diagonal. Route them through the same stub + sequential router path.
-      for (const edge of positioned.edges) {
+      const sameLaneEdges = positioned.edges.filter((edge) => {
+        if (allChannelRepairedEdgeIds.has(edge.id)) return false;
+        const sourceLane = laneIndexByNodeId.get(edge.sourceId);
+        const targetLane = laneIndexByNodeId.get(edge.targetId);
+        return sourceLane !== undefined && targetLane !== undefined && sourceLane === targetLane;
+      });
+      if (diagram.routing === 'experimental') sameLaneEdges.sort((a, b) => compareExperimentalEdges(a, b, laneIndexByNodeId));
+      for (const edge of sameLaneEdges) {
         if (allChannelRepairedEdgeIds.has(edge.id)) continue;
         const sourceLane = laneIndexByNodeId.get(edge.sourceId);
         const targetLane = laneIndexByNodeId.get(edge.targetId);
@@ -403,6 +477,7 @@ function horizontalBandLanes(diagram: Diagram, positioned: PositionedDiagram): P
     const yDelta = (deltaYById.get(node.id) ?? 0) + poolDelta;
     const xDelta = poolOfNode.has(node.id) ? HORIZONTAL_POOL_HEADER_WIDTH : 0;
     let shifted = xDelta ? shiftNodeXRecursively(node, xDelta) : node;
+    if (gatewayLabelsAbove.has(node.id)) shifted = { ...shifted, visual: { ...shifted.visual, label: 'above' } };
     return yDelta ? shiftNodeRecursively(shifted, yDelta) : shifted;
   });
 
@@ -562,6 +637,7 @@ function verticalBandLanes(diagram: Diagram, positioned: PositionedDiagram): Pos
 
     const router = createSequentialRouter({
       edgeObstaclePolicy: diagram.routing === 'fast' ? 'none' : 'hard',
+      experimental: diagram.routing === 'experimental',
     });
     const routeEdge = (edge: (typeof positioned.edges)[number]) => {
       const source = positionedNodeById.get(edge.sourceId);
@@ -578,7 +654,7 @@ function verticalBandLanes(diagram: Diagram, positioned: PositionedDiagram): Pos
       const exitStub = stubFrom(start, from, EDGE_STUB);
       const entryStub = stubFrom(end, to, EDGE_STUB);
       const obstacles = allPoolNodes
-        .filter((node) => node.id !== edge.sourceId && node.id !== edge.targetId)
+        .filter((node) => diagram.routing === 'experimental' || (node.id !== edge.sourceId && node.id !== edge.targetId))
         .map((node) => ({ ...node, x: node.x + (deltaXById.get(node.id) ?? 0) }));
       const preferredFirstTurn: PreferredFirstTurn = from === 'left' || from === 'right' ? 'vertical' : 'horizontal';
       const sourceLane = laneIndexByNodeId.get(edge.sourceId);
@@ -591,27 +667,52 @@ function verticalBandLanes(diagram: Diagram, positioned: PositionedDiagram): Pos
       const edgeClass: RouteEdgeClass = edge.flowType === 'message'
         ? 'message'
         : edge.flowType === 'association' ? 'association' : 'sequence';
-      repairedEdgePoints.set(edge.id, [start, ...router.route(
-        exitStub,
-        entryStub,
-        obstacles,
-        preferredFirstTurn,
-        edgeObstaclePolicy,
-        {
-          edgeClass,
-          readableEdgeGap: Math.max(8, profile.edgeEdge / 2),
-          shapeReadableGap: Math.max(12, Math.min(24, profile.edgeNode / 2)),
-        },
-      ), end]);
+      const isReverseSameLane = diagram.routing === 'experimental'
+        && sourceLane !== undefined
+        && sourceLane === targetLane
+        && target.x + target.width / 2 < source.x + source.width / 2;
+      const middlePoints = isReverseSameLane
+        // Reserve the space above the lane's node band for feedback loops. A
+        // generic shortest-path search can otherwise reuse the source center
+        // line, causing the return edge to visibly pass through its own task.
+        ? (() => {
+          const loopY = Math.min(source.y, target.y) - EDGE_STUB - Math.max(8, profile.edgeNode / 2);
+          return [exitStub, { x: exitStub.x, y: loopY }, { x: entryStub.x, y: loopY }, entryStub];
+        })()
+        : router.route(
+          exitStub,
+          entryStub,
+          obstacles,
+          preferredFirstTurn,
+          edgeObstaclePolicy,
+          {
+            edgeClass,
+            readableEdgeGap: Math.max(8, profile.edgeEdge / 2),
+            shapeReadableGap: Math.max(12, Math.min(24, profile.edgeNode / 2)),
+          },
+        );
+      repairedEdgePoints.set(edge.id, [start, ...middlePoints, end]);
       repairedEdges.add(edge.id);
     };
     if (diagram.routing !== 'fast') {
-      for (const edge of positioned.edges) {
+      const crossLaneEdges = positioned.edges.filter((edge) => {
+        const sourceLane = laneIndexByNodeId.get(edge.sourceId);
+        const targetLane = laneIndexByNodeId.get(edge.targetId);
+        return sourceLane !== undefined && targetLane !== undefined && sourceLane !== targetLane;
+      });
+      if (diagram.routing === 'experimental') crossLaneEdges.sort((a, b) => compareExperimentalEdges(a, b, laneIndexByNodeId));
+      for (const edge of crossLaneEdges) {
         const sourceLane = laneIndexByNodeId.get(edge.sourceId);
         const targetLane = laneIndexByNodeId.get(edge.targetId);
         if (sourceLane !== undefined && targetLane !== undefined && sourceLane !== targetLane) routeEdge(edge);
       }
-      for (const edge of positioned.edges) {
+      const sameLaneEdges = positioned.edges.filter((edge) => {
+        const sourceLane = laneIndexByNodeId.get(edge.sourceId);
+        const targetLane = laneIndexByNodeId.get(edge.targetId);
+        return sourceLane !== undefined && sourceLane === targetLane;
+      });
+      if (diagram.routing === 'experimental') sameLaneEdges.sort((a, b) => compareExperimentalEdges(a, b, laneIndexByNodeId));
+      for (const edge of sameLaneEdges) {
         const sourceLane = laneIndexByNodeId.get(edge.sourceId);
         const targetLane = laneIndexByNodeId.get(edge.targetId);
         if (!repairedEdges.has(edge.id) && sourceLane !== undefined && sourceLane === targetLane) routeEdge(edge);

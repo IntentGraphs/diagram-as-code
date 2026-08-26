@@ -44,7 +44,9 @@ export async function layout(diagram: Diagram, options?: LayoutOptions): Promise
   const routedDiagram: Diagram = {
     ...diagram,
     ...(options?.direction ? { direction: options.direction } : {}),
-    ...(options?.routing ? { routing: options.routing } : {}),
+    // Experimental is now the automatic default; explicit quality remains the
+    // compatibility opt-out for diagrams that need legacy route ordering.
+    routing: options?.routing ?? diagram.routing ?? 'experimental',
   };
   const engine = options?.engineOverride ? getEngineByName(options.engineOverride) : selectEngine(routedDiagram);
 

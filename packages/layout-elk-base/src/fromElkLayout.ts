@@ -116,7 +116,7 @@ function routeSupplementalEdges(
   positionedNodes: PositionedNode[],
   astNodes: DiagramNode[],
   laidOutEdges: RoutedEdge[] = [],
-  routing: Diagram['routing'] = 'quality',
+  routing: Diagram['routing'] = 'experimental',
 ): RoutedEdge[] {
   const nodeById = new Map(flattenPositioned(positionedNodes).map((node) => [node.id, node]));
   const astById = new Map(astNodes.map((node) => [node.id, node]));
@@ -152,7 +152,7 @@ function routeSupplementalEdges(
     });
 }
 
-export function positionNode(astNode: DiagramNode, elkNode: ElkNode, offsetX: number, offsetY: number, origins: Map<string, Origin>, routing: Diagram['routing'] = 'quality'): PositionedNode {
+export function positionNode(astNode: DiagramNode, elkNode: ElkNode, offsetX: number, offsetY: number, origins: Map<string, Origin>, routing: Diagram['routing'] = 'experimental'): PositionedNode {
   const { x, y } = abs(elkNode, offsetX, offsetY);
   const dimensions = { x, y, width: elkNode.width ?? 0, height: elkNode.height ?? 0 };
   const base: PositionedNode = astNode.kind === 'activity'

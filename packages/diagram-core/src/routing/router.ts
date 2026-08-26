@@ -46,6 +46,8 @@ export interface SequentialRouterOptions {
   readableEdgeGap?: number;
   shapeReadableGap?: number;
   tinyJogThreshold?: number;
+  /** Experimental mode routes high-conflict edges first and uses a stronger soft-path preference. */
+  experimental?: boolean;
 }
 
 export interface SequentialRouteContext {
@@ -332,7 +334,9 @@ export function createSequentialRouter(options: SequentialRouterOptions = {}): S
         : [];
       const path = safeAlternatives.length > 0 && (
         !pathClearsObstacles(hardPath, obstacles) ||
-        safeAlternatives.some((candidate) => shouldPreferSoftPath(hardPath, candidate))
+        safeAlternatives.some((candidate) => options.experimental
+          ? shouldPreferExperimentalPath(hardPath, candidate)
+          : shouldPreferSoftPath(hardPath, candidate))
       )
         ? selectSoftCandidate(safeAlternatives, routedEdgePaths, obstacles, {
           ...context,
@@ -352,4 +356,17 @@ export function createSequentialRouter(options: SequentialRouterOptions = {}): S
       return finalPath;
     },
   };
+}
+
+/**
+ * Experimental scoring favors readable, low-bend alternatives earlier than the legacy
+ * 1.75x detour threshold. This is deliberately opt-in while the score is being calibrated
+ * against the repository's known dense diagrams.
+ */
+function shouldPreferExperimentalPath(hardPath: Point[], alternative: Point[]): boolean {
+  const hardLength = pathLength(hardPath);
+  const alternativeLength = pathLength(alternative);
+  const hardBends = pathBends(hardPath);
+  const alternativeBends = pathBends(alternative);
+  return hardLength >= alternativeLength * 1.25 || hardBends >= alternativeBends + 2;
 }

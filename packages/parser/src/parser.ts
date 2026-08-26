@@ -43,7 +43,7 @@ const DATA_KIND_MAP: Record<string, DiagramNode['kind']> = {
 };
 const NESTABLE_ACTIVITY_TYPES: ActivityType[] = ['subProcess', 'transaction'];
 const LAYOUT_SPACINGS: LayoutSpacing[] = ['compact', 'normal', 'relaxed', 'spacious'];
-const ROUTING_MODES: RoutingMode[] = ['quality', 'hybrid', 'fast'];
+const ROUTING_MODES: RoutingMode[] = ['quality', 'hybrid', 'fast', 'experimental'];
 const DIRECTIONS: DiagramDirection[] = ['right', 'left', 'down', 'up'];
 const LANE_DIRECTIONS: LaneDirection[] = ['horizontal', 'vertical'];
 const SHAPE_SIZE_GROUPS: ShapeSizeGroup[] = ['all', 'event', 'task', 'gateway', 'data', 'annotation', 'group'];
@@ -184,7 +184,7 @@ export function parse(text: string): ParseResult {
       const routingDirectiveMatch = trimmed.match(ROUTING_DIRECTIVE_LINE);
       if (routingDirectiveMatch) {
         const value = routingDirectiveMatch[1].toLowerCase();
-        if (!isRoutingMode(value)) errors.push({ line: cursor + 1, column: 1, message: `Unknown routing mode "${routingDirectiveMatch[1]}" (expected quality, hybrid, or fast)`, code: 'invalid_routing' });
+        if (!isRoutingMode(value)) errors.push({ line: cursor + 1, column: 1, message: `Unknown routing mode "${routingDirectiveMatch[1]}" (expected quality, hybrid, fast, or experimental)`, code: 'invalid_routing' });
         else routing = value;
         cursor += 1;
         continue;

@@ -29,6 +29,12 @@ interface EndpointDemand {
   order: number;
 }
 
+export interface PortAllocationOptions {
+  /** Opt-in BPMN swimlane preferences. Legacy profiles retain their historical sides. */
+  experimental?: boolean;
+  laneIndexByNodeId?: Map<string, number>;
+}
+
 function endpointKey(edgeId: string, endpoint: 'source' | 'target'): string {
   return `${edgeId}:${endpoint}`;
 }
@@ -59,9 +65,27 @@ function gatewaySides(source: PositionedNode, target: PositionedNode, endpoint: 
  * destination keeps the side facing the source as its first choice. Orthogonal
  * sides are only fallbacks when a side has no role-safe capacity.
  */
-function preferredSides(source: PositionedNode, target: PositionedNode, endpoint: 'source' | 'target'): Side[] {
+function preferredSides(
+  source: PositionedNode,
+  target: PositionedNode,
+  endpoint: 'source' | 'target',
+  options: PortAllocationOptions,
+): Side[] {
   if ((endpoint === 'source' && source.kind === 'gateway') || (endpoint === 'target' && target.kind === 'gateway')) {
     return gatewaySides(source, target, endpoint);
+  }
+  const sourceLane = options.laneIndexByNodeId?.get(source.id);
+  const targetLane = options.laneIndexByNodeId?.get(target.id);
+  if (options.experimental && sourceLane !== undefined && targetLane !== undefined && sourceLane !== targetLane) {
+    // In a swimlane, a sequence flow should cross the lane boundary at the
+    // vertical sides. This keeps the horizontal process trunk separate from
+    // the lane transition and makes fan-in read as a merge from above/below.
+    if (endpoint === 'source') return targetLane > sourceLane
+      ? ['bottom', 'right', 'top', 'left']
+      : ['top', 'right', 'bottom', 'left'];
+    return sourceLane < targetLane
+      ? ['top', 'left', 'right', 'bottom']
+      : ['bottom', 'left', 'right', 'top'];
   }
   const a = center(source);
   const b = center(target);
@@ -114,6 +138,7 @@ function flowRole(flowType: RoutedEdge['flowType']): PortFlowRole {
 export function assignPorts(
   edges: RoutedEdge[],
   nodes: Map<string, PositionedNode>,
+  options: PortAllocationOptions = {},
 ): Map<string, AssignedEdgePorts> {
   const demands: EndpointDemand[] = [];
   for (const [order, edge] of edges.entries()) {
@@ -126,7 +151,7 @@ export function assignPorts(
       nodeId: edge.sourceId,
       role: 'outgoing',
       flowRole: flowRole(edge.flowType),
-      candidates: edge.from ? [edge.from] : preferredSides(source, target, 'source'),
+      candidates: edge.from ? [edge.from] : preferredSides(source, target, 'source', options),
       explicit: edge.from !== undefined,
       order,
     });
@@ -136,7 +161,7 @@ export function assignPorts(
       nodeId: edge.targetId,
       role: 'incoming',
       flowRole: flowRole(edge.flowType),
-      candidates: edge.to ? [edge.to] : preferredSides(source, target, 'target'),
+      candidates: edge.to ? [edge.to] : preferredSides(source, target, 'target', options),
       explicit: edge.to !== undefined,
       order,
     });

@@ -28,6 +28,19 @@ describe('assignPorts', () => {
     expect(ports.target.side).toBe('left');
   });
 
+  it('uses vertical ports for experimental cross-lane sequence flow', () => {
+    const nodes = new Map([
+      ['source', task('source', 100, 100)],
+      ['target', task('target', 400, 260)],
+    ]);
+    const ports = assignPorts([edge('e6', 'source', 'target')], nodes, {
+      experimental: true,
+      laneIndexByNodeId: new Map([['source', 0], ['target', 1]]),
+    }).get('e6')!;
+    expect(ports.source.side).toBe('bottom');
+    expect(ports.target.side).toBe('top');
+  });
+
   it('keeps incoming and outgoing roles from sharing the same physical side slot', () => {
     const nodes = new Map([
       ['center', task('center', 200, 100)],

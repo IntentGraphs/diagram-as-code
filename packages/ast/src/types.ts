@@ -52,7 +52,7 @@ export type FontSizeHint = 'small' | 'normal' | 'large';
 
 export type LayoutSpacing = 'compact' | 'normal' | 'relaxed' | 'spacious';
 /** Edge-routing quality/performance tradeoff for automatic layouts. */
-export type RoutingMode = 'quality' | 'hybrid' | 'fast';
+export type RoutingMode = 'quality' | 'hybrid' | 'fast' | 'experimental';
 
 export type DiagramDirection = 'right' | 'left' | 'down' | 'up';
 export type LaneDirection = 'horizontal' | 'vertical';
@@ -247,7 +247,7 @@ export interface Diagram {
   shapeSizes?: ShapeSizes;
   /** Optional spacing preset for auto/manual padding; default engines behave as `normal`. */
   layoutSpacing?: LayoutSpacing;
-  /** Optional automatic-routing profile; quality is the default and preserves edge separation. */
+  /** Optional automatic-routing profile; experimental is the automatic default, quality is the legacy opt-out. */
   routing?: RoutingMode;
   direction?: DiagramDirection;
   laneDirection?: LaneDirection;
