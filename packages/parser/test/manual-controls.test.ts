@@ -119,7 +119,7 @@ describe('parse shapeSize groups', () => {
 });
 
 describe('parse routing', () => {
-  it('accepts the opt-in experimental routing profile', () => {
+  it('accepts the experimental routing profile', () => {
     const { errors, diagram } = parse('routing: experimental\n\ntask "A" as a');
     expect(errors).toEqual([]);
     expect(diagram.routing).toBe('experimental');

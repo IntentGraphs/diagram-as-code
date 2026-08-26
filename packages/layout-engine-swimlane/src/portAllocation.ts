@@ -30,7 +30,7 @@ interface EndpointDemand {
 }
 
 export interface PortAllocationOptions {
-  /** Opt-in BPMN swimlane preferences. Legacy profiles retain their historical sides. */
+  /** BPMN swimlane preferences used by the experimental/default profile. Legacy profiles retain their historical sides. */
   experimental?: boolean;
   laneIndexByNodeId?: Map<string, number>;
 }

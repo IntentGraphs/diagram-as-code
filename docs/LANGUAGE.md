@@ -12,7 +12,7 @@ _This document is self-contained: it's meant to be handed to any AI assistant �
 [positioning: manual]           ← optional, first line(s)
 [layoutSpacing: <preset>]       ← optional, first line(s)
 [shapeSize: <group> (w, h)]     ← optional, repeated by shape family
-[routing: quality|hybrid|fast]  ← optional automatic-routing profile
+[routing: experimental|quality|hybrid|fast]  ← optional; experimental is the automatic default
 [page: 6in x 9in]               ← optional, common output page
 [fit: contain]                  ← optional, page fit policy
 [direction: right|left|down|up] ← optional process/tree direction
@@ -539,7 +539,7 @@ Without `positioning: manual`, any node may optionally carry `at (x, y)`. That n
 | `layoutSpacing:` | directive — spacing preset for layout engines (§2) |
 | `compact`, `normal`, `relaxed`, `spacious` | `layoutSpacing:` values |
 | `routing:` | directive — automatic edge-routing profile (§2) |
-| `quality`, `hybrid`, `fast` | `routing:` values |
+| `experimental`, `quality`, `hybrid`, `fast` | `routing:` values; `experimental` is the automatic default |
 | `[style: ..., corner: ..., from: ..., to: ..., via: ..., labelAt: ..., labelSide: ..., labelOffset: ...]` | edge attribute block |
 | `solid`, `dashed`, `dotted` | `style` values |
 | `sharp`, `round` | `corner` values |

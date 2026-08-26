@@ -146,6 +146,7 @@ export function printDiagram(diagram: Diagram): string {
   if (diagram.positioning === 'manual') header.push('positioning: manual');
   if (diagram.layout) header.push(`layout: ${diagram.layout}`);
   if (diagram.layoutSpacing && diagram.layoutSpacing !== 'normal') header.push(`layoutSpacing: ${diagram.layoutSpacing}`);
+  if (diagram.routing) header.push(`routing: ${diagram.routing}`);
   for (const [group, size] of Object.entries(diagram.shapeSizes ?? {})) {
     header.push(`shapeSize: ${group} (${fmtCoord(size.width)}, ${fmtCoord(size.height)})`);
   }

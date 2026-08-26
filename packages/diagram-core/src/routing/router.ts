@@ -360,8 +360,8 @@ export function createSequentialRouter(options: SequentialRouterOptions = {}): S
 
 /**
  * Experimental scoring favors readable, low-bend alternatives earlier than the legacy
- * 1.75x detour threshold. This is deliberately opt-in while the score is being calibrated
- * against the repository's known dense diagrams.
+ * 1.75x detour threshold. The profile is selectable explicitly for compatibility and is the
+ * default for automatic layouts.
  */
 function shouldPreferExperimentalPath(hardPath: Point[], alternative: Point[]): boolean {
   const hardLength = pathLength(hardPath);
