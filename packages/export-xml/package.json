@@ -17,7 +17,7 @@
   "devDependencies": {
     "@joint/vitest-plugin-mock-svg": "^0.3.1",
     "bpmn-js": "^17.11.1",
-    "camunda-bpmn-moddle": "^7.0.1",
+    "camunda-bpmn-moddle": "^8.0.1",
     "jsdom": "^25.0.0"
   }
 }
