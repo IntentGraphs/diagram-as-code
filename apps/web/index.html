@@ -1200,6 +1200,11 @@
           <div id="editor-status-summary" role="status" aria-live="polite" aria-label="Diagram information log">
             <span class="editor-status-item"><span class="editor-status-label">Engine:</span> <span id="engine-badge">—</span></span>
             <span id="family-badge" class="editor-status-item" aria-live="polite"><span class="editor-status-label">Family:</span> <span id="family-badge-label">No family</span></span>
+            <span id="family-capability-summary" class="editor-status-item" hidden aria-live="polite"></span>
+            <label id="architecture-view-control" class="editor-status-item" hidden>
+              <span class="editor-status-label">View:</span>
+              <select id="architecture-view-select" aria-label="Architecture view"></select>
+            </label>
             <span class="editor-status-item"><span id="render-status" role="status" aria-live="polite" hidden></span><span id="render-spinner" class="render-spinner" hidden aria-hidden="true"></span><span id="render-elapsed" hidden></span></span>
             <button id="render-cancel-btn" class="toolbar-btn" hidden>Cancel Render</button>
             <span id="operation-status" class="editor-status-item" role="status" aria-live="polite" hidden></span>

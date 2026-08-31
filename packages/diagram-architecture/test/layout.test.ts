@@ -36,6 +36,24 @@ checkout -> orders: "stores order"`);
     expect(positioned.height).toBeGreaterThan(0);
   });
 
+  it('projects a declared system-context view without internal containers or data stores', async () => {
+    const parsed = parseArchitecture(`person "Customer" as customer
+system "Ordering" as ordering
+  container "API" as api
+    component "Checkout" as checkout
+database "Orders" as orders
+customer -> api: "places order"
+checkout -> orders: "stores order"
+view systemContext ordering as context "Ordering Context"`);
+    expect(parsed.semanticErrors).toEqual([]);
+    const positioned = await layoutArchitecture(parsed.ast);
+    expect(positioned.viewType).toBe('systemContext');
+    expect(positioned.title).toBe('Ordering Context');
+    expect(positioned.nodes.map((node) => node.id)).toEqual(['customer', 'ordering']);
+    expect(positioned.nodes.find((node) => node.id === 'ordering')?.children).toEqual([]);
+    expect(positioned.edges).toHaveLength(1);
+  });
+
   it.each(['right', 'left', 'down', 'up'] as const)('honors the %s direction', async (direction) => {
     const ast = parseArchitecture('person "A" as a\nperson "B" as b\na -> b').ast;
     const positioned = await layoutArchitecture(ast, { direction });

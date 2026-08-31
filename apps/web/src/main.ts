@@ -90,6 +90,9 @@ const drawioCloseBtn = document.querySelector<HTMLButtonElement>('#drawio-close'
 const editAsDiagramBtn = document.querySelector<HTMLButtonElement>('#edit-as-diagram')!;
 const diagramErrorsEl = document.querySelector<HTMLDivElement>('#diagram-errors')!;
 const familyBadgeLabel = document.querySelector<HTMLSpanElement>('#family-badge-label')!;
+const familyCapabilitySummary = document.querySelector<HTMLSpanElement>('#family-capability-summary')!;
+const architectureViewControl = document.querySelector<HTMLLabelElement>('#architecture-view-control')!;
+const architectureViewSelect = document.querySelector<HTMLSelectElement>('#architecture-view-select')!;
 const renderStatusEl = document.querySelector<HTMLSpanElement>('#render-status')!;
 const renderSpinnerEl = document.querySelector<HTMLSpanElement>('#render-spinner')!;
 const renderElapsedEl = document.querySelector<HTMLSpanElement>('#render-elapsed')!;
@@ -161,6 +164,16 @@ canvasZoomOutBtn.addEventListener('click', () => svgViewport.zoomBy(1 / 1.2));
 canvasZoomInBtn.addEventListener('click', () => svgViewport.zoomBy(1.2));
 canvasZoomFitBtn.addEventListener('click', () => svgViewport.fit());
 canvasZoomSelect.addEventListener('change', () => svgViewport.setZoom(Number(canvasZoomSelect.value)));
+
+architectureViewSelect.addEventListener('change', () => {
+  if (!architectureViewSelect.value || !editor.value.includes('view ')) return;
+  const lines = editor.value.split('\n');
+  const directiveIndex = lines.findIndex((line) => /^\s*view:\s*[A-Za-z_][A-Za-z0-9_.-]*\s*$/i.test(line));
+  if (directiveIndex >= 0) lines[directiveIndex] = `view: ${architectureViewSelect.value}`;
+  else lines.push(`view: ${architectureViewSelect.value}`);
+  editor.value = lines.join('\n');
+  editor.dispatchEvent(new Event('input', { bubbles: true }));
+});
 
 function activeOperationIdentity() {
   const session = projectController?.getSession();
@@ -800,6 +813,36 @@ function renderErrors(errors: { line: number; column?: number; message: string }
   }
 }
 
+function renderFamilyCapabilitySummary(result: PipelineResult): void {
+  if (result.family !== 'architecture' || !result.capabilities) {
+    familyCapabilitySummary.hidden = true;
+    familyCapabilitySummary.textContent = '';
+    familyCapabilitySummary.removeAttribute('title');
+    return;
+  }
+  const exports = structuredExports(result.capabilities).map((descriptor) => descriptor.label).join(' · ');
+  familyCapabilitySummary.hidden = false;
+  familyCapabilitySummary.textContent = `C4 views · Downloads: ${exports}`;
+  familyCapabilitySummary.title = 'Architecture capabilities: system landscape, system context, container, component, and custom data/queue views; draw.io, C4 JSON, and Structurizr DSL downloads.';
+}
+
+function renderArchitectureViewSelector(result: PipelineResult): void {
+  const ast = result.ast as { views?: Array<{ key: string; type: string; title?: string }>; activeView?: string } | null;
+  if (result.family !== 'architecture' || !ast?.views?.length) {
+    architectureViewControl.hidden = true;
+    architectureViewSelect.replaceChildren();
+    return;
+  }
+  architectureViewSelect.replaceChildren(...ast.views.map((view) => {
+    const option = document.createElement('option');
+    option.value = view.key;
+    option.textContent = view.title ? `${view.title} (${view.type})` : `${view.key} (${view.type})`;
+    return option;
+  }));
+  architectureViewSelect.value = ast.activeView ?? ast.views[0].key;
+  architectureViewControl.hidden = false;
+}
+
 function renderPaginationDiagnostics(result: PipelineResult): void {
   errorsEl.replaceChildren();
   if (result.paginated || result.header?.paginate !== 'none') {
@@ -930,6 +973,8 @@ async function commitRender(snapshot: RenderControllerSnapshot): Promise<void> {
     renderErrors(result.errors);
     preview.classList.add('stale');
     familyBadgeLabel.textContent = familyLabel(result.family);
+    renderFamilyCapabilitySummary(result);
+    renderArchitectureViewSelector(result);
     // setItems([]) alone leaves the menu's open/closed state untouched (see exportMenu.ts —
     // only setDisabled() calls closeMenu()), so an in-flight error while the menu happens to be
     // open would otherwise leave a stale, empty-but-open menu. setDisabled(true) here forces it
@@ -961,6 +1006,8 @@ async function commitRender(snapshot: RenderControllerSnapshot): Promise<void> {
   svgViewport.sync(previewView);
   engineBadge.textContent = result.engineName!;
   familyBadgeLabel.textContent = familyLabel(result.family);
+  renderFamilyCapabilitySummary(result);
+  renderArchitectureViewSelector(result);
   familyBadge.title = result.family === 'bpmn'
     ? 'BPMN: BPMN editor and BPMN XML export available.'
     : result.family === 'mindmap'

@@ -15,6 +15,8 @@ personA -> orders: "reads & writes"`);
     expect(svg).toContain('&amp;');
     expect(svg).toContain('data-edge-label="r1"');
     expect(svg).toContain('data-node-label-id="personA"');
+    expect(svg).toContain('data-architecture-legend="true"');
+    expect(svg).toContain('Architecture diagram');
     expect(svg).toContain('fill="white" opacity="0.92"');
   });
 

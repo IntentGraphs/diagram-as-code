@@ -158,6 +158,7 @@ test('typing an architecture diagram renders with the family badge and download 
   await expect(page.locator('[data-node-id="ordering"]')).toBeVisible();
   await expect(page.locator('[data-node-id="orders"]')).toBeVisible();
   await expect(page.locator('#family-badge-label')).toHaveText('Architecture');
+  await expect(page.locator('#family-capability-summary')).toContainText('Structurizr DSL');
   await expect(page.locator('#edit-as-diagram')).toBeDisabled();
   await page.locator('#export-menu-btn').click();
   const [download] = await Promise.all([
@@ -171,6 +172,29 @@ test('typing an architecture diagram renders with the family badge and download 
   await expect(page.locator('#export-item-structured')).toHaveText('Export draw.io XML');
   await expect(page.locator('#export-item-architecture-c4-json')).toHaveText('Export C4 model JSON');
   await expect(page.locator('#export-item-architecture-structurizr-dsl')).toHaveText('Export Structurizr DSL');
+});
+
+test('architecture view selector switches the web preview between scoped C4 views', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#editor').fill(`diagram: architecture
+workspace "Ordering Architecture" "Processes orders" {
+model {
+  customer = person "Customer" "Places orders"
+  ordering = softwareSystem "Ordering System" "Processes orders"
+  api = container ordering "Order API" "Accepts orders" "Node.js"
+  customer -> ordering "Places orders" "HTTPS/JSON"
+}
+views {
+  view systemContext ordering as ordering-context "Ordering Context"
+  view container ordering as ordering-containers "Ordering Containers"
+}
+}`);
+  await expect(page.locator('#preview svg')).toBeVisible();
+  await expect(page.locator('#architecture-view-control')).toBeVisible();
+  await expect(page.locator('#architecture-view-select')).toHaveValue('ordering-context');
+  await expect(page.locator('[data-node-id="api"]')).toHaveCount(0);
+  await page.locator('#architecture-view-select').selectOption('ordering-containers');
+  await expect(page.locator('[data-node-id="api"]')).toBeVisible();
 });
 
 test('invalid mindmap text shows its diagnostic and keeps the preview stale', async ({ page }) => {

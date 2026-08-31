@@ -6,6 +6,25 @@ Containment is explicit and limited to `system > container > component`. `person
 
 The family exports SVG and lossy draw.io XML. It also exports `architecture-c4-json`, a project-specific C4 model serialization, and `architecture-structurizr-dsl`, a generated Structurizr workspace containing the model, standard C4 views, auto-layout direction, and styles. It is intentionally **not** advertised as a Structurizr `workspace.json` file: Structurizr's JSON is a compiled workspace format containing model, views, and layout data, and is not intended for hand editing.
 
+The source language remains backwards compatible with the original line-oriented form and now accepts workspace metadata, element attributes, Structurizr-style assignments, and view declarations. For example:
+
+```text
+workspace "Ordering Architecture" "Processes orders" {
+  model {
+    customer = person "Customer" "Places orders" [tags: "actor,external", external: true]
+    ordering = softwareSystem "Ordering System" "Processes orders"
+    api = container ordering "Order API" "Accepts orders" "Node.js/TypeScript"
+    customer -> ordering "Places orders" "HTTPS/JSON"
+  }
+  views {
+    view systemContext ordering as ordering-context "Ordering Context"
+    view container ordering as ordering-containers "Ordering Containers" [direction: down]
+  }
+}
+```
+
+Structured relationships receive deterministic IDs derived from their endpoints and intent; use `as <key>` or `id: "<key>"` when a domain-stable relationship key is required. Legacy line-oriented relationships retain their `r1`-style IDs for source compatibility. `deployment` and `dynamic` view declarations are accepted as reserved declarations and produce validation warnings until deployment entities and ordered interaction steps are added to the model.
+
 ## Layout and edit contract
 
 Architecture layout supports `direction: right|left|down|up`, hierarchical ELK layout, orthogonal routing, readable edge-label placement, and explicit route status (`clean`, `fallback`, or `degraded`) in the positioned result. Container titles reserve a header band so child labels do not overwrite the container name. Geometry must be checked after layout for node overlap, edge-through-node, crossings, label overlap, containment, and page readability; a valid parse alone is not a quality approval.

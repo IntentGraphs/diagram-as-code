@@ -3,6 +3,7 @@ import { createSequentialRouter, facingSides, getRouteFallbackCount, outlineAnch
 import { measureLabel, pointAlongPolyline, wrapLabel } from '@bpm/render-core';
 import type { ArchitectureDiagram, ArchitectureEdge, ArchitectureNode } from './ast.js';
 import type { DiagramDirection } from '@bpm/ast';
+import { selectArchitectureView } from './views.js';
 
 const elk = new ELK();
 const FONT_SIZE = 13;
@@ -18,9 +19,9 @@ const EDGE_LABEL_FONT_SIZE = 11;
 const EDGE_LABEL_MAX_WIDTH = 240;
 const EDGE_LABEL_GAP = 8;
 
-export interface PositionedArchitectureNode extends Rect { id: string; kind: ArchitectureNode['kind']; label: string; labelLines: string[]; children: PositionedArchitectureNode[]; parentId?: string; }
-export interface PositionedArchitectureEdge { id: string; sourceId: string; targetId: string; label?: string; points: Point[]; labelRect?: Rect; routeStatus?: 'clean' | 'fallback' | 'degraded'; }
-export interface PositionedArchitecture { nodes: PositionedArchitectureNode[]; edges: PositionedArchitectureEdge[]; width: number; height: number; }
+export interface PositionedArchitectureNode extends Rect { id: string; kind: ArchitectureNode['kind']; label: string; labelLines: string[]; description?: string; technology?: string; tags?: string[]; external?: boolean; group?: string; children: PositionedArchitectureNode[]; parentId?: string; }
+export interface PositionedArchitectureEdge { id: string; sourceId: string; targetId: string; label?: string; displayLabel?: string; technology?: string; protocol?: string; tags?: string[]; points: Point[]; labelRect?: Rect; routeStatus?: 'clean' | 'fallback' | 'degraded'; labelPlacement?: 'clean' | 'fallback'; }
+export interface PositionedArchitecture { nodes: PositionedArchitectureNode[]; edges: PositionedArchitectureEdge[]; width: number; height: number; direction?: DiagramDirection; title?: string; description?: string; viewKey?: string; viewType?: string; theme?: 'default' | 'high-contrast'; legend: boolean; }
 
 interface ElkArchitectureNode {
   id: string;
@@ -46,7 +47,8 @@ interface ElkArchitectureGraph extends ElkArchitectureNode {
 function sizeNode(node: ArchitectureNode) {
   const labelLines = wrapLabel(node.label, MAX_WIDTH - NODE_PADDING_X, FONT_SIZE, 5);
   const width = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, Math.max(...labelLines.map((line) => line.length * CHAR_WIDTH), 0) + NODE_PADDING_X));
-  const height = Math.max(52, labelLines.length * LINE_HEIGHT + NODE_PADDING_Y);
+  const detailLines = (node.technology ?? node.description) ? 1 : 0;
+  const height = Math.max(68, labelLines.length * LINE_HEIGHT + NODE_PADDING_Y + 18 + detailLines * 14);
   return { node, labelLines, width, height };
 }
 const ELK_DIRECTIONS: Record<DiagramDirection, 'DOWN' | 'UP' | 'RIGHT' | 'LEFT'> = { down: 'DOWN', up: 'UP', right: 'RIGHT', left: 'LEFT' };
@@ -63,7 +65,7 @@ function elkNode(node: ArchitectureNode, direction: 'DOWN' | 'UP' | 'RIGHT' | 'L
 function flatten(nodes: PositionedArchitectureNode[], into: PositionedArchitectureNode[] = []): PositionedArchitectureNode[] { for (const node of nodes) { into.push(node); flatten(node.children, into); } return into; }
 function absoluteNode(ast: ArchitectureNode, laid: ElkArchitectureNode, ox: number, oy: number, parentId?: string): PositionedArchitectureNode {
   const x = ox + (laid.x ?? 0), y = oy + (laid.y ?? 0), sized = sizeNode(ast);
-  return { id: ast.id, kind: ast.kind, label: ast.label, labelLines: sized.labelLines, x, y, width: laid.width ?? sized.width, height: laid.height ?? sized.height, parentId, children: ast.children.map((child) => absoluteNode(child, (laid.children ?? []).find((entry) => entry.id === child.id) ?? { id: child.id }, x, y, ast.id)) };
+  return { id: ast.id, kind: ast.kind, label: ast.label, labelLines: sized.labelLines, ...(ast.description ? { description: ast.description } : {}), ...(ast.technology ? { technology: ast.technology } : {}), ...(ast.tags ? { tags: ast.tags } : {}), ...(ast.external !== undefined ? { external: ast.external } : {}), ...(ast.group ? { group: ast.group } : {}), x, y, width: laid.width ?? sized.width, height: laid.height ?? sized.height, parentId, children: ast.children.map((child) => absoluteNode(child, (laid.children ?? []).find((entry) => entry.id === child.id) ?? { id: child.id }, x, y, ast.id)) };
 }
 function allEdges(ast: ArchitectureDiagram): ArchitectureEdge[] { return ast.edges; }
 
@@ -118,24 +120,27 @@ function labelRectCollides(rect: Rect, nodes: PositionedArchitectureNode[], labe
 }
 
 function placeEdgeLabel(edge: PositionedArchitectureEdge, nodes: PositionedArchitectureNode[], labels: Rect[], routes: Point[][]): Rect | undefined {
-  if (!edge.label || edge.points.length < 2) return undefined;
-  const candidates = labelRectCandidates(edge.points, edge.label);
+  const label = edge.displayLabel ?? edge.label;
+  if (!label || edge.points.length < 2) return undefined;
+  const candidates = labelRectCandidates(edge.points, label);
   return candidates.find((candidate) => !labelRectCollides(candidate, nodes, labels, routes, edge))
-    ?? edgeLabelRect(pointAlongPolyline(edge.points, 0.5), edge.label);
+    ?? edgeLabelRect(pointAlongPolyline(edge.points, 0.5), label);
 }
 
 export async function layoutArchitecture(ast: ArchitectureDiagram, options?: { direction?: DiagramDirection; engineOverride?: string }): Promise<PositionedArchitecture> {
-  const direction = ELK_DIRECTIONS[options?.direction ?? ast.direction ?? 'right'];
-  const graph: ElkArchitectureGraph = { id: 'architecture', layoutOptions: { 'elk.algorithm': 'layered', 'elk.direction': direction, 'elk.edgeRouting': 'ORTHOGONAL', 'elk.hierarchyHandling': 'INCLUDE_CHILDREN', 'elk.spacing.nodeNode': '48', 'elk.layered.spacing.nodeNodeBetweenLayers': '72' }, children: ast.nodes.map((node) => elkNode(node, direction)), edges: ast.edges.map((edge) => ({ id: edge.id, sources: [edge.sourceId], targets: [edge.targetId] })) };
+  const selected = selectArchitectureView(ast);
+  const viewAst = selected.ast;
+  const direction = ELK_DIRECTIONS[options?.direction ?? selected.view?.direction ?? viewAst.direction ?? 'right'];
+  const graph: ElkArchitectureGraph = { id: 'architecture', layoutOptions: { 'elk.algorithm': 'layered', 'elk.direction': direction, 'elk.edgeRouting': 'ORTHOGONAL', 'elk.hierarchyHandling': 'INCLUDE_CHILDREN', 'elk.spacing.nodeNode': '48', 'elk.layered.spacing.nodeNodeBetweenLayers': '72' }, children: viewAst.nodes.map((node) => elkNode(node, direction)), edges: viewAst.edges.map((edge) => ({ id: edge.id, sources: [edge.sourceId], targets: [edge.targetId] })) };
   const laid = await elk.layout(graph as never) as ElkArchitectureGraph;
-  const nodes = ast.nodes.map((node) => absoluteNode(node, laid.children.find((entry) => entry.id === node.id) ?? { id: node.id }, 0, 0));
+  const nodes = viewAst.nodes.map((node) => absoluteNode(node, laid.children.find((entry) => entry.id === node.id) ?? { id: node.id }, 0, 0));
   const flat = flatten(nodes);
   const byId = new Map(flat.map((node) => [node.id, node]));
   const router = createSequentialRouter({ edgeObstaclePolicy: 'soft', readableEdgeGap: 16, shapeReadableGap: 12, experimental: true });
   const obstacles = flat.map(({ id, x, y, width, height }) => ({ id, x, y, width, height }));
   const labelRects: Rect[] = [];
   const routedPaths: Point[][] = [];
-  const edges = allEdges(ast).flatMap((edge) => {
+  const edges = allEdges(viewAst).flatMap((edge) => {
     const source = byId.get(edge.sourceId), target = byId.get(edge.targetId);
     if (!source || !target) return [];
     const sides = facingSides(source, target);
@@ -146,9 +151,12 @@ export async function layoutArchitecture(ast: ArchitectureDiagram, options?: { d
     const fallbackCountBefore = getRouteFallbackCount();
     const points = router.route(start, end, routeObstacles);
     const routeStatus = getRouteFallbackCount() > fallbackCountBefore ? 'fallback' as const : 'clean' as const;
-    const positionedEdge: PositionedArchitectureEdge = { id: edge.id, sourceId: edge.sourceId, targetId: edge.targetId, ...(edge.label === undefined ? {} : { label: edge.label }), points, routeStatus };
-    if (positionedEdge.label) {
+    const displayLabel = [edge.label, edge.protocol ?? edge.technology].filter(Boolean).join(' · ');
+    const positionedEdge: PositionedArchitectureEdge = { id: edge.id, sourceId: edge.sourceId, targetId: edge.targetId, ...(edge.label === undefined ? {} : { label: edge.label }), ...(displayLabel ? { displayLabel } : {}), ...(edge.technology ? { technology: edge.technology } : {}), ...(edge.protocol ? { protocol: edge.protocol } : {}), ...(edge.tags ? { tags: edge.tags } : {}), points, routeStatus };
+    if (positionedEdge.displayLabel) {
       positionedEdge.labelRect = placeEdgeLabel(positionedEdge, flat, labelRects, routedPaths);
+      if (positionedEdge.displayLabel && positionedEdge.labelRect && !labelRectCandidates(points, positionedEdge.displayLabel).some((candidate) => candidate.x === positionedEdge.labelRect!.x && candidate.y === positionedEdge.labelRect!.y)) positionedEdge.labelPlacement = 'fallback';
+      else if (positionedEdge.labelRect) positionedEdge.labelPlacement = 'clean';
       if (positionedEdge.labelRect) labelRects.push(positionedEdge.labelRect);
     }
     routedPaths.push(points);
@@ -157,5 +165,5 @@ export async function layoutArchitecture(ast: ArchitectureDiagram, options?: { d
   const points = edges.flatMap((edge) => edge.points);
   const width = Math.max(1, laid.width ?? 0, ...flat.map((node) => node.x + node.width), ...points.map((point) => point.x));
   const height = Math.max(1, laid.height ?? 0, ...flat.map((node) => node.y + node.height), ...points.map((point) => point.y));
-  return { nodes, edges, width, height };
+  return { nodes, edges, width, height, direction: options?.direction ?? selected.view?.direction ?? ast.direction ?? 'right', ...((selected.view?.title ?? ast.title) ? { title: selected.view?.title ?? ast.title } : {}), ...((selected.view?.description ?? ast.description) ? { description: selected.view?.description ?? ast.description } : {}), ...(selected.view?.key ? { viewKey: selected.view.key } : {}), ...(selected.view?.type ? { viewType: selected.view.type } : {}), theme: selected.view?.theme ?? ast.theme ?? 'default', legend: ast.legend !== false };
 }

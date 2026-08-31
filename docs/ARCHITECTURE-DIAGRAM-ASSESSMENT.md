@@ -82,9 +82,9 @@ Do not use a model to invent coordinates that the layout engine can compute. Do 
 
 ## Next implementation phases
 
-The current branch implements the reusable layout/export foundation and download handoffs. The next phases should be:
+The current branch implements the reusable layout/export foundation, source-backed metadata/views, visible architecture capability status, and download handoffs. The next phases should be:
 
-- add first-class architecture view declarations or a view manifest that selects nodes/edges from one source model;
+- add a richer view manifest with explicit include/exclude expressions and per-view page policies;
 - add a safe draw.io import preview that reconciles metadata and reports dropped/ambiguous cells;
 - add optional Structurizr DSL validation in CI/CLI when the Structurizr CLI is available, without making Java/Docker a browser or core build dependency;
 - add an architecture visual-review prompt/provider capability after the deterministic inspection contract is stable;
