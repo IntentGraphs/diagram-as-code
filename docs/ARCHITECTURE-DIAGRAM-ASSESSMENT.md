@@ -35,10 +35,12 @@ The implementation should expose the capability honestly:
 
 1. **Text mode (canonical)** — edit declarations, containment, relationships, view directives, and labels.
 2. **In-app visual mode** — currently available for BPMN through bpmn-js. It is not silently advertised for architecture because bpmn-js does not understand C4 nodes or containment.
-3. **Embedded architecture edit mode** — open nested draw.io XML inside the embedded draw.io/diagrams.net editor, then use `Download .drawio` to persist edits. This is a visual editing projection, not a lossless round trip.
-4. **Import/reconciliation (future)** — if draw.io import is added, require explicit conflict handling and preserve semantic IDs/metadata. Do not overwrite canonical text from an arbitrary edited XML file without a preview and a user confirmation.
+3. **Architecture export handoffs** — download draw.io XML for visual editing in draw.io/diagrams.net, or download Structurizr DSL for semantic C4 editing in Structurizr Playground/Local. Both are projections, not lossless round trips into the source language.
+4. **Import/reconciliation (future)** — if draw.io or Structurizr import is added, require explicit conflict handling and preserve semantic IDs/metadata. Do not overwrite canonical text from an arbitrary edited artifact without a preview and a user confirmation.
 
-The architecture draw.io export now preserves parent cells, local child geometry, `architectureKind` metadata, container cells, endpoint references, and orthogonal waypoints. The C4 JSON export remains model interchange and should not be called a Structurizr workspace export.
+The architecture draw.io export now preserves parent cells, local child geometry, `architectureKind` metadata, container cells, endpoint references, and orthogonal waypoints. The C4 JSON export remains project-specific model interchange and should not be called a Structurizr workspace export. The Structurizr DSL export generates native people, software systems, containers, and components; maps root-level database/queue nodes to tagged custom elements; emits system-landscape, system-context, container, component, and custom-element views; disables implied relationships; and carries the selected layout direction into Structurizr auto-layout. It is intentionally marked lossy/no-round-trip because generated views/styles and custom-element mappings do not exist in the source DSL.
+
+Structurizr is a good complement for architecture semantics, not a replacement for the local renderer. The upstream repository provides the DSL parser, C4 model, themes, renderers, and exporters as a Java ecosystem. The project should consume its portable DSL at the file boundary and let users open it in Structurizr Playground/Local; vendoring the upstream runtime into the TypeScript browser bundle would duplicate layout/rendering responsibility and increase maintenance and bundle cost.
 
 ## Layout quality gates
 
@@ -80,10 +82,11 @@ Do not use a model to invent coordinates that the layout engine can compute. Do 
 
 ## Next implementation phases
 
-The current branch implements the reusable layout/export/edit-handoff foundation. The next phases should be:
+The current branch implements the reusable layout/export foundation and download handoffs. The next phases should be:
 
 - add first-class architecture view declarations or a view manifest that selects nodes/edges from one source model;
 - add a safe draw.io import preview that reconciles metadata and reports dropped/ambiguous cells;
+- add optional Structurizr DSL validation in CI/CLI when the Structurizr CLI is available, without making Java/Docker a browser or core build dependency;
 - add an architecture visual-review prompt/provider capability after the deterministic inspection contract is stable;
 - add deployment/relationship styles and a formal theme contract;
 - benchmark representative simple, nested, fan-out, and multi-view fixtures in CI with readable page-fit budgets.

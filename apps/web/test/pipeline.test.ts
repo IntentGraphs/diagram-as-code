@@ -59,7 +59,7 @@ describe('runPipeline', () => {
   it('runs the architecture family through the same web pipeline', async () => {
     const result = await runPipeline('diagram: architecture\nx "y" as z');
     expect(result.family).toBe('architecture');
-    expect(result.capabilities?.editorMode).toBe('external-export');
+    expect(result.capabilities?.editorMode).toBe('none');
     expect(result.diagnostics.length).toBeGreaterThan(0);
     expect(result.errors.length).toBeGreaterThan(0);
   });

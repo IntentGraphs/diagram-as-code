@@ -68,6 +68,14 @@ describe('runExportCommand', () => {
     expect(readFileSync(out, 'utf8')).toContain('<mxfile');
   });
 
+  it('exports a Structurizr DSL workspace for an architecture source', async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'bpm-cli-'));
+    const out = path.join(dir, 'architecture.dsl');
+    const result = await runExportCommand(parseArgv(['export', '-o', out, '--target', 'architecture-structurizr-dsl', fix('architecture.bpm')]));
+    expect(result.exitCode).toBe(0);
+    expect(readFileSync(out, 'utf8')).toMatch(/workspace "Architecture diagram"[\s\S]*systemLandscape/);
+  });
+
   it('exports a lossless DFD JSON target selected by format id', async () => {
     const dir = mkdtempSync(path.join(tmpdir(), 'bpm-cli-'));
     const out = path.join(dir, 'dfd.json');

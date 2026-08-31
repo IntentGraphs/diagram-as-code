@@ -151,30 +151,26 @@ test('PPTX readability warnings keep the SVG preview and report completed output
   await expect(page.locator('#preview svg')).toBeVisible();
 });
 
-test('typing an architecture diagram renders with the family badge and draw.io export', async ({ page }) => {
+test('typing an architecture diagram renders with the family badge and download exports', async ({ page }) => {
   await page.goto('/');
   await page.locator('#editor').fill('diagram: architecture\nperson "Customer" as customer\nsystem "Ordering" as ordering\n  container "API" as api\ndatabase "Orders" as orders\ncustomer -> api: "places orders"\napi -> orders: "stores order"');
   await expect(page.locator('#preview svg')).toBeVisible();
   await expect(page.locator('[data-node-id="ordering"]')).toBeVisible();
   await expect(page.locator('[data-node-id="orders"]')).toBeVisible();
   await expect(page.locator('#family-badge-label')).toHaveText('Architecture');
-  await expect(page.locator('#edit-as-diagram')).toBeEnabled();
-  await expect(page.locator('#edit-as-diagram')).toHaveText('Open in draw.io / diagrams.net');
-  await page.locator('#edit-as-diagram').click();
-  await expect(page.locator('#drawio-body')).toBeVisible();
-  await expect(page.locator('#drawio-frame')).toBeVisible();
+  await expect(page.locator('#edit-as-diagram')).toBeDisabled();
+  await page.locator('#export-menu-btn').click();
   const [download] = await Promise.all([
     page.waitForEvent('download'),
-    page.locator('#drawio-save').click(),
+    page.locator('#export-item-structured').click(),
   ]);
   expect(download.suggestedFilename()).toBe('diagram.drawio');
-  await expect(page.locator('#generate-btn')).toBeDisabled();
-  await page.locator('#drawio-close').click();
-  await expect(page.locator('#drawio-body')).toBeHidden();
   await page.locator('#export-menu-btn').click();
   await expect(page.locator('#export-item-svg')).toBeVisible();
   await expect(page.locator('#export-item-xml')).toHaveCount(0);
   await expect(page.locator('#export-item-structured')).toHaveText('Export draw.io XML');
+  await expect(page.locator('#export-item-architecture-c4-json')).toHaveText('Export C4 model JSON');
+  await expect(page.locator('#export-item-architecture-structurizr-dsl')).toHaveText('Export Structurizr DSL');
 });
 
 test('invalid mindmap text shows its diagnostic and keeps the preview stale', async ({ page }) => {

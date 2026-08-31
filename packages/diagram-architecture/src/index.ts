@@ -5,4 +5,4 @@ export { parseArchitecture } from './parser.js';
 export { layoutArchitecture, type PositionedArchitecture, type PositionedArchitectureEdge, type PositionedArchitectureNode } from './layout.js';
 export { renderArchitecture } from './render.js';
 export { architectureScene } from './scene.js';
-export { architectureAdapter, ARCHITECTURE_DRAWIO_EXPORT_FORMAT, ARCHITECTURE_C4_EXPORT_FORMAT } from './adapter.js';
+export { architectureAdapter, ARCHITECTURE_DRAWIO_EXPORT_FORMAT, ARCHITECTURE_C4_EXPORT_FORMAT, ARCHITECTURE_STRUCTURIZR_DSL_EXPORT_FORMAT } from './adapter.js';

@@ -146,12 +146,13 @@ Put `diagram: mindmap`, `diagram: flowchart`, `diagram: architecture`, `diagram:
 
 ```bash
 bpm export --target architecture-c4-json diagram.bpm
+bpm export --target architecture-structurizr-dsl diagram.bpm
 bpm export --target gantt-json release-plan.bpm
 bpm export --target gantt-csv release-plan.bpm
 bpm export --target pptx -o diagram.pptx diagram.bpm
 ```
 
-Architecture also supports `architecture-drawio-xml`; the web toolbar exposes the family-supported structured exports. Mindmap and flowchart draw.io XML exports likewise remain available through their family-aware web toolbar entries. `pptx` is a binary editable visual projection only for families that declare PPTX capability and requires `-o`; unsupported families fail at the CLI boundary. BPMN XML remains the semantic round-trip format.
+Architecture also supports `architecture-drawio-xml`, `architecture-c4-json`, and `architecture-structurizr-dsl`; the web toolbar exposes these family-supported downloads. Structurizr DSL is a semantic C4 projection with generated system-context, container, and component views; it is editable in Structurizr Playground/Local but has no import round trip into this source language. Mindmap and flowchart draw.io XML exports likewise remain available through their family-aware web toolbar entries. `pptx` is a binary editable visual projection only for families that declare PPTX capability and requires `-o`; unsupported families fail at the CLI boundary. BPMN XML remains the semantic round-trip format.
 
 Adding a family is not complete when a parser alone works. The adapter must be registered, capability metadata must agree with CLI/web actions, common inspection and source locations must be available, and representative CLI/export/E2E fixtures must pass. See [`EXTENDING-DIAGRAM-FAMILIES.md`](EXTENDING-DIAGRAM-FAMILIES.md).
 

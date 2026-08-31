@@ -149,7 +149,7 @@ describe('@bpm/diagram-runtime', () => {
     expect(getFamily('bpmn').capabilities.structuredExport).toEqual(['bpmn-xml']);
     expect(getFamily('mindmap').capabilities.structuredExport).toEqual(['mindmap-drawio-xml']);
     expect(getFamily('flowchart').capabilities.structuredExport).toEqual(['flowchart-drawio-xml']);
-    expect(getFamily('architecture').capabilities.structuredExport).toEqual(['architecture-drawio-xml', 'architecture-c4-json']);
+    expect(getFamily('architecture').capabilities.structuredExport).toEqual(['architecture-drawio-xml', 'architecture-c4-json', 'architecture-structurizr-dsl']);
     expect(getFamily('gantt').capabilities.structuredExport).toEqual(['gantt-json', 'gantt-csv']);
     expect(getFamily('dfd').capabilities.structuredExport).toEqual(['dfd-json']);
   });
