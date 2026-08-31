@@ -28,6 +28,7 @@ import { familyLabel, firstStructuredExport, structuredExports, unsupportedActio
 import { createRenderController, type RenderControllerSnapshot } from './renderController.js';
 import { createProjectController, type ProjectController } from './projectController.js';
 import { createDiagramModeController } from './diagramModeController.js';
+import { createDrawioModeController } from './drawioMode.js';
 import { mountDiagramAgentPanel, showDiagramAgentPanel, hideDiagramAgentPanel, resetDiagramAgentSession, setAdapterGetter as setDiagramAgentAdapterGetter, setCloseHandler as setDiagramAgentCloseHandler } from './diagramAgentPanel.js';
 import { assessIncrementalRender, assessRenderCost, renderDebounceMs, type RenderAssessment } from './renderPolicy.js';
 import { createRenderCache } from './renderCache.js';
@@ -56,8 +57,13 @@ const modeDiagramBtn = document.querySelector<HTMLButtonElement>('#mode-diagram-
 const freezeAsManualBtn = document.querySelector<HTMLButtonElement>('#freeze-as-manual')!;
 const body = document.querySelector<HTMLDivElement>('#body')!;
 const diagramBody = document.querySelector<HTMLDivElement>('#diagram-body')!;
+const drawioBody = document.querySelector<HTMLDivElement>('#drawio-body')!;
+const drawioFrame = document.querySelector<HTMLIFrameElement>('#drawio-frame')!;
+const drawioStatusEl = document.querySelector<HTMLDivElement>('#drawio-status')!;
+const drawioErrorsEl = document.querySelector<HTMLDivElement>('#drawio-errors')!;
 const toolbarActions = document.querySelector<HTMLDivElement>('#toolbar-actions')!;
 const diagramToolbarActions = document.querySelector<HTMLDivElement>('#diagram-toolbar-actions')!;
+const drawioToolbarActions = document.querySelector<HTMLDivElement>('#drawio-toolbar-actions')!;
 const diagramCanvas = document.querySelector<HTMLDivElement>('#diagram-canvas')!;
 const canvasGridBtn = document.querySelector<HTMLButtonElement>('#canvas-grid-btn')!;
 const canvasThemeBtn = document.querySelector<HTMLButtonElement>('#canvas-theme-btn')!;
@@ -79,6 +85,8 @@ const diagramZoomFitBtn = document.querySelector<HTMLButtonElement>('#diagram-zo
 const diagramZoomLabel = document.querySelector<HTMLSpanElement>('#diagram-zoom-label')!;
 const diagramAgentBtn = document.querySelector<HTMLButtonElement>('#diagram-agent-btn')!;
 const diagramStatusEl = document.querySelector<HTMLDivElement>('#diagram-status')!;
+const drawioSaveBtn = document.querySelector<HTMLButtonElement>('#drawio-save')!;
+const drawioCloseBtn = document.querySelector<HTMLButtonElement>('#drawio-close')!;
 const editAsDiagramBtn = document.querySelector<HTMLButtonElement>('#edit-as-diagram')!;
 const diagramErrorsEl = document.querySelector<HTMLDivElement>('#diagram-errors')!;
 const familyBadgeLabel = document.querySelector<HTMLSpanElement>('#family-badge-label')!;
@@ -377,7 +385,7 @@ function updateRenderDependentActions(): void {
   editAsDiagramBtn.disabled = !canBpmnEdit && !canExternalEdit;
   editAsDiagramBtn.textContent = canExternalEdit ? `Open in ${externalEdit?.externalEditor}` : 'Edit as Diagram';
   editAsDiagramBtn.title = canExternalEdit
-    ? `Download an editable ${externalEdit?.label} handoff for ${externalEdit?.externalEditor}.`
+    ? `Open an embedded ${externalEdit?.label} editor powered by ${externalEdit?.externalEditor}.`
     : canBpmnEdit
       ? 'Open the current BPMN diagram in the in-app editor.'
       : 'Render a supported diagram before opening an editor.';
@@ -431,22 +439,34 @@ const diagramModeController = createDiagramModeController({
   },
 });
 
-function setMode(mode: Mode): void {
+const drawioModeController = createDrawioModeController({
+  frame: drawioFrame,
+  statusEl: drawioStatusEl,
+  errorsEl: drawioErrorsEl,
+  onExit: () => setMode('text', true),
+});
+
+function setMode(mode: Mode, skipDrawioConfirm = false): void {
   if (mode === currentMode) return;
   if (mode === 'diagram' && modeDiagramBtn.disabled) return;
   if (currentMode === 'diagram' && !confirmDiscardUnsaved()) return;
+  if (currentMode === 'drawio' && !skipDrawioConfirm && drawioModeController.isDirty() && !confirm('Draw.io has unsaved changes — leave anyway?')) return;
   if (currentMode === 'text' && mode === 'diagram' && !confirmDiscardTextUnsaved()) return;
   renderController.invalidate();
   const leavingDiagram = currentMode === 'diagram';
+  const leavingDrawio = currentMode === 'drawio';
   currentMode = mode;
   const isDiagram = mode === 'diagram';
-  modeTextBtn.setAttribute('aria-pressed', String(!isDiagram));
+  const isDrawio = mode === 'drawio';
+  modeTextBtn.setAttribute('aria-pressed', String(mode === 'text'));
   modeDiagramBtn.setAttribute('aria-pressed', String(isDiagram));
-  body.hidden = isDiagram;
+  body.hidden = isDiagram || isDrawio;
   diagramBody.hidden = !isDiagram;
+  drawioBody.hidden = !isDrawio;
   toolbarActions.hidden = false;
-  toolbarActions.classList.toggle('diagram-mode', isDiagram);
+  toolbarActions.classList.toggle('diagram-mode', isDiagram || isDrawio);
   diagramToolbarActions.hidden = !isDiagram;
+  drawioToolbarActions.hidden = !isDrawio;
 
   if (isDiagram) {
     resetDiagramAgentSession();
@@ -454,11 +474,17 @@ function setMode(mode: Mode): void {
     setDiagramStatus('Diagram ready. No unsaved changes.');
     diagramModeController.createModeler();
     diagramCanvas.focus();
+  } else if (isDrawio) {
+    drawioFrame.focus();
   } else if (leavingDiagram) {
     hideDiagramAgentPanel();
     diagramAgentBtn.setAttribute('aria-pressed', 'false');
     destroyModeler();
     diagramModeController.setButtonsEnabled(false);
+    editor.focus();
+  }
+  if (leavingDrawio) {
+    drawioModeController.stop();
     editor.focus();
   }
 }
@@ -530,8 +556,8 @@ editAsDiagramBtn.addEventListener('click', async () => {
     if (!descriptor?.editable) return;
     try {
       const content = exportPositionedDiagram(lastResult.family, lastResult.ast, lastResult.executionPositioned, descriptor.format);
-      downloadFile(`diagram${descriptor.fileExtension}`, content, descriptor.mimeType);
-      diagramStatusEl.textContent = `Editable ${descriptor.label} handoff downloaded for ${descriptor.externalEditor ?? 'an external editor'}.`;
+      setMode('drawio');
+      drawioModeController.start(content, `${familyLabel(lastResult.family)} diagram`);
     } catch (err) {
       renderErrors([{ line: 1, column: 1, message: err instanceof Error ? err.message : String(err) }]);
     }
@@ -556,6 +582,14 @@ editAsDiagramBtn.addEventListener('click', async () => {
     renderErrors([{ line: 1, column: 1, message: err instanceof Error ? err.message : String(err) }]);
   }
 });
+
+drawioSaveBtn.addEventListener('click', () => {
+  const xml = drawioModeController.getXml();
+  if (!xml) return;
+  downloadFile('diagram.drawio', xml, 'application/xml');
+  drawioModeController.markSaved();
+});
+drawioCloseBtn.addEventListener('click', () => setMode('text'));
 
 freezeAsManualBtn.addEventListener('click', async () => {
   if (renderBusy || lastResultSource !== editor.value) return;
@@ -1647,6 +1681,10 @@ settingsBtn.addEventListener('click', () => {
 
 window.addEventListener('beforeunload', (event) => {
   if (currentMode === 'diagram' && hasUnsavedChanges()) {
+    event.preventDefault();
+    event.returnValue = '';
+  }
+  if (currentMode === 'drawio' && drawioModeController.isDirty()) {
     event.preventDefault();
     event.returnValue = '';
   }

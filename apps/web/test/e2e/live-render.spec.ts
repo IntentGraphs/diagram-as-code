@@ -160,12 +160,17 @@ test('typing an architecture diagram renders with the family badge and draw.io e
   await expect(page.locator('#family-badge-label')).toHaveText('Architecture');
   await expect(page.locator('#edit-as-diagram')).toBeEnabled();
   await expect(page.locator('#edit-as-diagram')).toHaveText('Open in draw.io / diagrams.net');
+  await page.locator('#edit-as-diagram').click();
+  await expect(page.locator('#drawio-body')).toBeVisible();
+  await expect(page.locator('#drawio-frame')).toBeVisible();
   const [download] = await Promise.all([
     page.waitForEvent('download'),
-    page.locator('#edit-as-diagram').click(),
+    page.locator('#drawio-save').click(),
   ]);
   expect(download.suggestedFilename()).toBe('diagram.drawio');
   await expect(page.locator('#generate-btn')).toBeDisabled();
+  await page.locator('#drawio-close').click();
+  await expect(page.locator('#drawio-body')).toBeHidden();
   await page.locator('#export-menu-btn').click();
   await expect(page.locator('#export-item-svg')).toBeVisible();
   await expect(page.locator('#export-item-xml')).toHaveCount(0);

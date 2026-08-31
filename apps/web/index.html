@@ -68,7 +68,7 @@
         align-self: flex-start;
         padding-top: 4px;
       }
-      #toolbar-actions, #diagram-toolbar-actions {
+      #toolbar-actions, #diagram-toolbar-actions, #drawio-toolbar-actions {
         display: flex;
         align-items: center;
         flex-wrap: wrap;
@@ -170,10 +170,13 @@
       /* ID selectors otherwise beat the [hidden] attribute selector's specificity. */
       #toolbar-actions[hidden],
       #diagram-toolbar-actions[hidden],
+      #drawio-toolbar-actions[hidden],
       #body[hidden],
-      #diagram-body[hidden] { display: none; }
+      #diagram-body[hidden],
+      #drawio-body[hidden] { display: none; }
 
       #diagram-body { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+      #drawio-body { flex: 1; display: flex; flex-direction: column; min-height: 0; }
       #diagram-status {
         flex: 0 0 auto;
         min-height: 24px;
@@ -184,6 +187,7 @@
       }
       #diagram-errors { flex: 0 0 auto; }
       #diagram-canvas { flex: 1; min-height: 0; background: var(--bg); }
+      #drawio-frame { flex: 1; width: 100%; min-height: 0; border: 0; background: #fff; }
       .badge {
         font-size: 11px;
         letter-spacing: 0.05em;
@@ -1164,6 +1168,12 @@
           <button id="diagram-agent-btn" class="toolbar-btn" aria-pressed="false" disabled>Manual AI Agent</button>
         </div>
       </div>
+      <div id="drawio-toolbar-actions" hidden>
+        <div class="toolbar-group">
+          <button id="drawio-save" class="toolbar-btn">Download .drawio</button>
+          <button id="drawio-close" class="toolbar-btn">Back to Text</button>
+        </div>
+      </div>
     </div>
     <main id="body">
       <aside id="project-panel">
@@ -1253,6 +1263,11 @@
       <div id="diagram-canvas" tabindex="0" aria-label="BPMN diagram canvas"></div>
       <div id="diagram-agent-panel-container"></div>
       <div id="import-panel-container"></div>
+    </div>
+    <div id="drawio-body" hidden aria-label="Embedded draw.io diagram editor">
+      <div id="drawio-status" role="status" aria-live="polite">Draw.io editor closed.</div>
+      <div id="drawio-errors" role="alert" aria-live="assertive"></div>
+      <iframe id="drawio-frame" title="Embedded draw.io editor" hidden></iframe>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

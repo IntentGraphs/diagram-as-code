@@ -35,7 +35,7 @@ The implementation should expose the capability honestly:
 
 1. **Text mode (canonical)** — edit declarations, containment, relationships, view directives, and labels.
 2. **In-app visual mode** — currently available for BPMN through bpmn-js. It is not silently advertised for architecture because bpmn-js does not understand C4 nodes or containment.
-3. **External architecture edit handoff** — download nested draw.io XML and open it in draw.io/diagrams.net. This is a visual editing projection, not a lossless round trip.
+3. **Embedded architecture edit mode** — open nested draw.io XML inside the embedded draw.io/diagrams.net editor, then use `Download .drawio` to persist edits. This is a visual editing projection, not a lossless round trip.
 4. **Import/reconciliation (future)** — if draw.io import is added, require explicit conflict handling and preserve semantic IDs/metadata. Do not overwrite canonical text from an arbitrary edited XML file without a preview and a user confirmation.
 
 The architecture draw.io export now preserves parent cells, local child geometry, `architectureKind` metadata, container cells, endpoint references, and orthogonal waypoints. The C4 JSON export remains model interchange and should not be called a Structurizr workspace export.
