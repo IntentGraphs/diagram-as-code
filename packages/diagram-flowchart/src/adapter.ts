@@ -4,11 +4,13 @@ import { parseFlowchart } from './parser.js';
 import { renderFlowchart } from './render.js';
 import type { DiagramFamilyAdapter } from './types.js';
 import { exportToDrawioXml, type DrawioNode } from '@bpm/export-drawio';
+import { flowchartScene } from './scene.js';
 
 export const FLOWCHART_DRAWIO_EXPORT_FORMAT = 'flowchart-drawio-xml';
 
 export const flowchartAdapter: DiagramFamilyAdapter<FlowchartDiagram, PositionedFlowchart> = {
-  id: 'flowchart', parse: parseFlowchart, layout: layoutFlowchart, render: renderFlowchart,
+  id: 'flowchart', parse: parseFlowchart, layout: layoutFlowchart, render: renderFlowchart, scene: flowchartScene,
+  async validate(source) { const result = parseFlowchart(source); return { valid: result.errors.length === 0 && result.semanticErrors.length === 0, errors: result.errors, semanticErrors: result.semanticErrors, warnings: result.warnings ?? [] }; },
   exportStructured(_ast, positioned, format) {
     if (format !== FLOWCHART_DRAWIO_EXPORT_FORMAT) throw new Error(`Unsupported structured export "${format}" for flowchart`);
     const nodes: DrawioNode[] = positioned.nodes.map((node) => ({ id: node.id, label: node.label, x: node.x, y: node.y, width: node.width, height: node.height, shape: node.kind === 'decision' ? 'rhombus' : 'rounded' }));

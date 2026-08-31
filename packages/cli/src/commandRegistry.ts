@@ -2,7 +2,7 @@ import { getFamily, listFamilies } from '@bpm/diagram-runtime';
 import type { DiagramFamilyId } from '@bpm/diagram-runtime';
 
 export const CLI_COMMANDS = [
-  'validate', 'render', 'export', 'review', 'fix', 'generate', 'import-diagram', 'freeze', 'capabilities',
+  'validate', 'render', 'export', 'review', 'fix', 'generate', 'import-diagram', 'freeze', 'capabilities', 'mcp',
 ] as const;
 
 export type CliCommand = typeof CLI_COMMANDS[number];
@@ -19,6 +19,7 @@ export const CLI_COMMAND_ALIASES: Readonly<Record<string, CliCommand>> = {
   import: 'import-diagram',
   freeze: 'freeze',
   capabilities: 'capabilities',
+  mcp: 'mcp',
 };
 
 export type CliOptionKind = 'boolean' | 'string' | 'positive-integer' | 'enum';
@@ -42,9 +43,10 @@ export interface CliCommandMetadata {
 
 const diagramCommands: readonly CliCommand[] = ['validate', 'render', 'export', 'review', 'fix', 'generate', 'freeze'];
 const artifactCommands: readonly CliCommand[] = ['render', 'export', 'generate', 'import-diagram', 'freeze', 'fix'];
+const resultCommands: readonly CliCommand[] = [...CLI_COMMANDS].filter((command) => command !== 'mcp');
 
 export const CLI_OPTIONS: readonly CliOptionMetadata[] = [
-  { id: 'json', flags: ['--json'], kind: 'boolean', commands: CLI_COMMANDS, description: 'emit the stable machine-readable result on stdout' },
+  { id: 'json', flags: ['--json'], kind: 'boolean', commands: resultCommands, description: 'emit the stable machine-readable result on stdout' },
   { id: 'output', flags: ['-o', '--out', '--output'], kind: 'string', commands: artifactCommands, description: 'write the artifact atomically to this path' },
   { id: 'layout', flags: ['--engine', '--layout'], kind: 'string', commands: diagramCommands, description: 'override the layout engine when supported' },
   { id: 'target', flags: ['--target'], kind: 'string', commands: ['export'], description: 'select a structured export target' },
@@ -72,6 +74,7 @@ const commandMetadataEntries: readonly CliCommandMetadata[] = [
   { command: 'import-diagram', aliases: ['import'], summary: 'convert BPMN XML to .bpm text', positional: 'file', options: ['json', 'output'] },
   { command: 'freeze', aliases: [], summary: 'serialize resolved BPMN geometry as manual DSL', positional: 'file', options: ['json', 'output', 'layout'] },
   { command: 'capabilities', aliases: [], summary: 'show runtime family and export capabilities', positional: 'none', options: ['json'] },
+  { command: 'mcp', aliases: [], summary: 'launch the MCP stdio server', positional: 'none', options: [] },
 ];
 
 export function canonicalCommand(value: string | undefined): CliCommand | undefined {
@@ -165,5 +168,5 @@ export function renderCliHelp(command?: CliCommand): string {
   }
   const capabilities = runtimeCapabilities();
   const commands = commandMetadataList().map((entry) => `  ${entry.command.padEnd(16)}${entry.summary}`).join('\n');
-  return `usage: bpm <command> <file|description> [options]\n\nCommands:\n${commands}\n\nAliases:\n  check          validate\n  import         import-diagram\n\nRuntime families: ${capabilities.families.map((family) => family.id).join(', ')}\nExport formats: ${capabilities.exportFormats.join(', ')}\n\nCommon options:\n  --json         emit machine-readable JSON on stdout\n  -o, --output   write an artifact atomically\n  --help, -h     show help\n  --version, -v  print the CLI version\n`;
+  return `usage: bpm <command> [file|description] [options]\n\nCommands:\n${commands}\n\nAliases:\n  check          validate\n  import         import-diagram\n\nRuntime families: ${capabilities.families.map((family) => family.id).join(', ')}\nExport formats: ${capabilities.exportFormats.join(', ')}\n\nCommon options:\n  --json         emit machine-readable JSON on stdout\n  -o, --output   write an artifact atomically\n  --help, -h     show help\n  --version, -v  print the CLI version\n`;
 }

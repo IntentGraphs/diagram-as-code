@@ -30,7 +30,9 @@ import { VERIFICATION_DIAGRAMS } from '@bpm/layout-core/test-utils/verificationD
 // claim zero edge proximity: the current analyzer does not count collinear edge overlap.
 const BASELINE_CROSSINGS: Record<string, number> = {
   screenshot: 1,
-  poolLaneTwoBoundary: 0,
+  // Repairing e2 around the boundary circle adds one legal edge crossing; preserving
+  // zero edge-through-node defects is the stronger invariant for this crowded fixture.
+  poolLaneTwoBoundary: 1,
   fanOut: 1,
   nestedSubprocess: 1,
   // Preferred first-turn routing now removes the two previously documented

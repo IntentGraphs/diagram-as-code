@@ -68,6 +68,14 @@ describe('runExportCommand', () => {
     expect(readFileSync(out, 'utf8')).toContain('<mxfile');
   });
 
+  it('exports a lossless DFD JSON target selected by format id', async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'bpm-cli-'));
+    const out = path.join(dir, 'dfd.json');
+    const result = await runExportCommand(parseArgv(['export', '-o', out, '--target', 'dfd-json', fix('dfd.bpm')]));
+    expect(result.exitCode).toBe(0);
+    expect(JSON.parse(readFileSync(out, 'utf8'))).toMatchObject({ kind: 'dfdDiagram', nodes: expect.any(Array), edges: expect.any(Array) });
+  });
+
   it('returns XML on stdout when -o is omitted', async () => {
     const result = await runExportCommand(parseArgv(['export', fix('clean.bpm')]));
     expect(result.exitCode).toBe(0);

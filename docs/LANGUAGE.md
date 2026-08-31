@@ -1,6 +1,6 @@
 # BPM Text Language Reference
 
-_Authoritative grammar and vocabulary for the text format. The BPMN grammar is parsed by `@bpm/parser`; the `diagram:` family grammars and shared header directives are parsed by `packages/diagram-runtime` and the family packages. This reference is verified against those implementations and describes currently accepted syntax, not aspirational syntax._
+_Authoritative grammar and vocabulary for the text format. The BPMN grammar is parsed by `@bpm/parser`; the `diagram:` family grammars and shared header directives are parsed by `packages/diagram-runtime` and the family packages. This reference is verified against those implementations and describes currently accepted syntax, not aspirational syntax. For extending a family or adding future DFD levels, see [`EXTENDING-DIAGRAM-FAMILIES.md`](EXTENDING-DIAGRAM-FAMILIES.md)._
 
 _This document is self-contained: it's meant to be handed to any AI assistant — regardless of provider or model — as the sole source needed to write a correct, well-laid-out diagram on the first try, including complex, multi-pool, multi-feature diagrams. §8–§11 exist specifically to make first-attempt output reliable; read them before generating anything non-trivial._
 
@@ -50,12 +50,12 @@ _This document is self-contained: it's meant to be handed to any AI assistant �
 | `fit: strict` | Requires `page:` | Fails when the complete diagram would fall below the minimum readable scale instead of silently producing a tiny diagram. |
 | `paginate: none` | `none` (default) | Keep the existing single-page render. `semantic` enables BPMN pool/lane multi-page output; `tile` and `hybrid` are reserved and unsupported. |
 | `pageBreak: pool|lane|group|branch` | `pool` for semantic BPMN | Break semantic BPMN by pool, or by lane with `lane`; `group` and `branch` fall back to pool grouping and report a warning. |
-| `direction: <value>` | `right` &#124; `left` &#124; `down` &#124; `up` | Selects process/tree growth. Flowcharts support all four and default to `down`; mind maps support all four and default to `right`; BPMN supports `right` and defaults to it. Architecture and Gantt do not support this directive. |
+| `direction: <value>` | `right` &#124; `left` &#124; `down` &#124; `up` | Selects process/tree growth. Flowcharts and architecture support all four; mind maps support all four and default to `right`; BPMN supports `right` and defaults to it; Gantt does not support this directive. |
 | `laneDirection: <value>` | BPMN only: `horizontal` &#124; `vertical` | Selects BPMN pool-lane composition independently of process direction. `horizontal` remains the default; `vertical` arranges lanes left-to-right. Non-BPMN use is invalid. |
 | `timescale: <scale>` | Gantt only: canonical `daily` &#124; `weekly` &#124; `fortnightly` &#124; `monthly` &#124; `quarterly` &#124; `halfyear` &#124; `auto`, plus documented aliases | Compresses or expands the visual Gantt axis while preserving the exact schedule dates and durations. `auto` chooses a scale from the date span. |
 | `render: auto` | `auto` &#124; `manual` | Allows live preview for light diagrams and small incremental edits; larger heavy changes require an explicit Render action and show a warning if auto-render was requested. |
 | `render: manual` | `auto` &#124; `manual` | Never schedules live preview from typing; the web editor waits for the Render action. |
-| `diagram: <family>` | `bpmn` &#124; `mindmap` &#124; `flowchart` &#124; `architecture` &#124; `gantt` | Selects the family parser. Omit it for the backwards-compatible BPMN grammar. |
+| `diagram: <family>` | `bpmn` &#124; `mindmap` &#124; `flowchart` &#124; `architecture` &#124; `gantt` &#124; `dfd` | Selects the family parser. Omit it for the backwards-compatible BPMN grammar. |
 
 If no directive is given: the diagram auto-detects `swimlane` (has ≥1 pool with ≥1 lane) or falls back to `flat`, with `normal` spacing.
 
@@ -66,9 +66,11 @@ diagram: mindmap
 diagram: flowchart
 diagram: architecture
 diagram: gantt
+diagram: bpmn
+diagram: dfd
 ```
 
-`diagram: <family>` must be the first non-blank line and may appear only once. It selects a family parser and renderer; `bpmn` is accepted explicitly, while omission selects BPMN for backwards compatibility. Family-specific files do not use the BPMN node/edge grammar below.
+`diagram: <family>` must be the first non-blank line and may appear only once. It selects a family parser and renderer; `bpmn` is accepted explicitly, while omission selects BPMN for backwards compatibility. Family-specific files do not use the BPMN node/edge grammar below. The accepted family list includes BPMN, mindmap, flowchart, architecture, Gantt, and bounded DFD.
 
 #### Mind maps
 
@@ -224,7 +226,32 @@ scope -> build
 build -> release
 ```
 
-Mind maps, flowcharts, architecture diagrams, and Gantt charts have family-specific
+#### Data-flow diagrams
+
+`diagram: dfd` accepts a bounded Level-0/context data-flow notation. It is independent
+of the BPMN node and edge grammar above:
+
+```
+diagram: dfd
+direction: down
+external "Customer" as customer
+process "Submit order" as submit
+dataStore "Orders" as orders
+dataFlow customer -> submit: "order details"
+dataFlow submit -> orders: "new order"
+```
+
+The supported node declarations are `external`, `process`, and `dataStore`; each requires
+a double-quoted, non-empty label and an id. `dataFlow` requires a quoted, non-empty label,
+directed endpoints, and declared source and target ids. Self-flows, duplicate ids, unknown
+endpoints, malformed lines, and unsupported BPMN declarations are rejected. Ids match
+`[A-Za-z_][A-Za-z0-9_.-]*`; source size, node count, flow count, and label length are bounded.
+`direction: right|left|down|up` controls the layered layout and defaults to `right`.
+
+DFD supports SVG/PNG rendering and lossless `dfd-json` export. It does not support BPMN XML,
+draw.io round-tripping, PPTX, manual positioning, or BPMN legality rules.
+
+Mind maps, flowcharts, architecture diagrams, Gantt charts, and DFD diagrams have family-specific
 parse/layout validation, but they do not use BPMN legality rules such as event-trigger or
 gateway-target checks.
 
@@ -238,7 +265,7 @@ The public editor keeps two deliberately separate controls:
 - `laneDirection` controls the arrangement of lanes inside a BPMN pool. BPMN defaults to `horizontal`; `vertical` arranges lanes left-to-right while keeping process-flow direction independent.
 - `routing: hybrid` and `routing: fast` are explicit performance tradeoffs for dense automatic diagrams. They are not semantic changes to the BPMN graph and do not affect manual positioning. Use them for responsive previews; inspect the result before treating it as presentation-ready.
 
-Architecture and Gantt do not accept direction semantics. Invalid values, duplicate directives, wrong-family `laneDirection`, and family-unsupported directions produce structured diagnostics. `fit: contain` keeps valid diagrams renderable; strict page-fit failures and unsupported capabilities block export.
+Gantt does not accept direction semantics. Flowcharts, mind maps, and architecture accept all four directions. Invalid values, duplicate directives, wrong-family `laneDirection`, and family-unsupported directions produce structured diagnostics. `fit: contain` keeps valid diagrams renderable; strict page-fit failures and unsupported capabilities block export.
 
 See the directive table above and [`docs/CLI.md`](CLI.md) for the machine-readable validation/export contract.
 
@@ -517,9 +544,10 @@ Without `positioning: manual`, any node may optionally carry `at (x, y)`. That n
 | `manual` | value of `positioning:` |
 | `swimlane`, `flat` | values of `layout:` (registered engine names) |
 | `page:`, `fit:`, `paginate:`, `pageBreak:`, `direction:`, `laneDirection:`, `routing:`, `timescale:`, `render:` | shared/header directives (§2) |
-| `bpmn`, `mindmap`, `flowchart`, `architecture`, `gantt` | `diagram:` family values |
-| `mindmap`, `box`, `decision`, `person`, `system`, `container`, `component`, `database`, `queue` | family-specific node declarations (§2.1) |
+| `bpmn`, `mindmap`, `flowchart`, `architecture`, `gantt`, `dfd` | `diagram:` family values |
+| `mindmap`, `box`, `decision`, `person`, `system`, `container`, `component`, `database`, `queue`, `external`, `process`, `dataStore` | family-specific node declarations (§2.1) |
 | `calendar:`, `group`, `milestone`, `duration`, `progress`, `lag` | Gantt syntax (§2.1) |
+| `dataFlow` | DFD syntax (§2.1) |
 | `event` | node kind |
 | `boundary` | node kind (boundary event) |
 | `gateway` | node kind |

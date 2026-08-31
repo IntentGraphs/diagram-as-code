@@ -38,6 +38,12 @@ describe('runValidateCommand', () => {
     expect(JSON.parse(result.stdout)).toMatchObject({ valid: true, errors: [], semanticErrors: [] });
   });
 
+  it('validates a DFD through the runtime family adapter', async () => {
+    const result = await runValidateCommand(cli(['validate', fix('dfd.bpm')]));
+    expect(result.exitCode).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({ valid: true, effectiveFamily: 'dfd', direction: 'down', errors: [], semanticErrors: [] });
+  });
+
   it('exposes effective family, direction, lane direction, capabilities, and inspection metadata', async () => {
     const bpmn = JSON.parse((await runValidateCommand(cli(['validate', fix('clean.bpm')]))).stdout);
     expect(bpmn).toMatchObject({ effectiveFamily: 'bpmn', direction: 'right', laneDirection: 'horizontal', capabilities: { pptx: true }, fitMode: null });

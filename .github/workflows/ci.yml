@@ -10,17 +10,23 @@ permissions:
 
 jobs:
   test:
+    name: test (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ['20', '22']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ matrix.node-version }}
           cache: npm
       - run: npm ci
       - run: npm run validate:workflows
       - run: npm run check:style
       - run: npm run build
+      - run: npm run test:mcp:e2e
       - run: npm run test:coverage
       - run: npm run check:third-party-notices
       - run: npm audit --omit=dev

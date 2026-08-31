@@ -8,10 +8,7 @@ export async function resolveValidation(
   adapter: DiagramFamilyAdapter,
   options?: FamilyLayoutOptions,
 ): Promise<AiValidationResult> {
-  if (adapter.validate) return adapter.validate(source, options) as Promise<AiValidationResult>;
-  const parsed = adapter.parse(source);
-  const valid = parsed.errors.length === 0 && parsed.semanticErrors.length === 0;
-  return { valid, errors: parsed.errors, semanticErrors: parsed.semanticErrors, warnings: [] };
+  return adapter.validate(source, options) as Promise<AiValidationResult>;
 }
 
 function toIssue(issue: {

@@ -4,14 +4,16 @@ import type { DiagramDiagnostic, FamilyParseResult } from './types.js';
 
 const diagnostic = (line: number, message: string, code: string, token?: string): DiagramDiagnostic => ({ line, column: 1, message, code, ...(token === undefined ? {} : { token }) });
 const leafKinds = new Set<ArchitectureNodeKind>(['person', 'database', 'queue', 'component']);
+function sourceLocation(line: number, text: string) { return { line, startColumn: 1, endColumn: text.length + 1 }; }
 
 export function parseArchitecture(source: string): FamilyParseResult<ArchitectureDiagram> {
   const ast: ArchitectureDiagram = { kind: 'architectureDiagram', nodes: [], edges: [] };
   const errors: DiagramDiagnostic[] = [];
   const semanticErrors: DiagramDiagnostic[] = [];
+  const sourceLocations = { nodes: {}, edges: {}, pools: {}, lanes: {} } as import('@bpm/ast').DiagramSourceMap;
   if (source.length > MAX_SOURCE_CHARS) {
     semanticErrors.push(diagnostic(1, `Diagram source exceeds the maximum of ${MAX_SOURCE_CHARS} characters (got ${source.length})`, 'source_too_large'));
-    return { ast, errors, semanticErrors };
+    return { ast, errors, semanticErrors, sourceLocations };
   }
   const ids = new Map<string, ArchitectureNode>();
   const relationshipIds = new Map<string, number>();
@@ -52,6 +54,7 @@ export function parseArchitecture(source: string): FamilyParseResult<Architectur
       const node: ArchitectureNode = { kind: kind as ArchitectureNodeKind, id, label, line, children: [] };
       if (parent) parent.children.push(node); else ast.nodes.push(node);
       if (!ids.has(id)) ids.set(id, node);
+      sourceLocations.nodes[id] = sourceLocation(line, text);
       nodeCount += 1;
       while (stack.length && stack[stack.length - 1].indent >= leading) stack.pop();
       stack.push({ indent: leading, node, depth });
@@ -68,6 +71,7 @@ export function parseArchitecture(source: string): FamilyParseResult<Architectur
       if (relationshipSignatures.has(signature)) semanticErrors.push(diagnostic(line, `Relationship ${sourceId} -> ${targetId} repeats the description used on line ${relationshipSignatures.get(signature)}`, 'duplicate_relationship', `${sourceId}->${targetId}`));
       else relationshipSignatures.set(signature, line);
       ast.edges.push({ id, sourceId, targetId, ...(label === undefined ? {} : { label }), line });
+      sourceLocations.edges[id] = sourceLocation(line, text);
       edgeCount += 1;
       continue;
     }
@@ -81,5 +85,5 @@ export function parseArchitecture(source: string): FamilyParseResult<Architectur
   }
   const validKinds = new Set(ARCHITECTURE_NODE_KINDS);
   for (const node of ids.values()) if (!validKinds.has(node.kind)) semanticErrors.push(diagnostic(node.line, `Unsupported architecture node kind "${node.kind}"`, 'unsupported_node_kind', node.kind));
-  return { ast, errors, semanticErrors };
+  return { ast, errors, semanticErrors, sourceLocations };
 }

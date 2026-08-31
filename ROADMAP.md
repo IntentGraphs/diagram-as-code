@@ -18,11 +18,12 @@ and [GitHub Projects](https://github.com/IntentGraphs/diagram-as-code/projects),
 - Improve the zero-install CLI experience when public package publishing is ready.
 - Expose validation and SARIF clearly for CI and AI-agent workflows.
 - Add a short workflow demo showing generate → validate → repair → export.
+- Ship the local MCP stdio server over the validated runtime capabilities.
 
 ## Later
 
 - Narrow GitHub Action integration.
-- Narrow MCP tools around capabilities, validation, rendering, exporting, importing, review, and generation.
+- Extend MCP tools with explicit apply/path-allowlist operations and external-client conformance coverage.
 - Shareable playground examples.
 - VS Code integration.
 - Stable public JavaScript APIs after the package boundary is ready.

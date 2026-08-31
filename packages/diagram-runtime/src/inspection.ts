@@ -1,75 +1,6 @@
 import { getRouteFallbackCount, rectsOverlap, segmentIntersectsRect, segmentsIntersect, overshootsAnchor } from '@bpm/diagram-core';
-import type { DiagramFamilyId, DiagramInspection, DiagramInspectionEdge, DiagramInspectionIssue, DiagramInspectionNode, DiagramInspectionRect } from './types.js';
-
-type RawRecord = Record<string, unknown>;
-type RawPoint = { x: number; y: number };
-
-function record(value: unknown): RawRecord | null {
-  return value && typeof value === 'object' ? value as RawRecord : null;
-}
-
-function number(value: unknown, fallback = 0): number {
-  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
-}
-
-function label(value: unknown): string { return typeof value === 'string' ? value : ''; }
-
-function nodeOf(value: unknown, parentId?: string): DiagramInspectionNode | null {
-  const item = record(value);
-  if (!item || typeof item.id !== 'string') return null;
-  if (![item.x, item.y, item.width, item.height].every((entry) => typeof entry === 'number' && Number.isFinite(entry))) return null;
-  return {
-    id: item.id,
-    kind: typeof item.kind === 'string' ? item.kind : 'node',
-    label: label(item.label ?? item.name),
-    x: item.x as number,
-    y: item.y as number,
-    width: item.width as number,
-    height: item.height as number,
-    ...(typeof item.parentId === 'string' ? { parentId: item.parentId } : parentId ? { parentId } : {}),
-  };
-}
-
-function childrenOf(value: unknown): unknown[] {
-  const item = record(value);
-  return item && Array.isArray(item.children) ? item.children : [];
-}
-
-function flatten(values: unknown[], parentId?: string, into: DiagramInspectionNode[] = []): DiagramInspectionNode[] {
-  for (const value of values) {
-    const node = nodeOf(value, parentId);
-    if (node) {
-      into.push(node);
-      flatten(childrenOf(value), node.id, into);
-    }
-  }
-  return into;
-}
-
-function pointsOf(value: unknown): RawPoint[] {
-  const item = record(value);
-  if (!item || !Array.isArray(item.points)) return [];
-  return item.points
-    .filter((point): point is RawRecord => Boolean(record(point)))
-    .map((point) => ({ x: number(point.x), y: number(point.y) }));
-}
-
-function edgeOf(value: unknown, index: number): DiagramInspectionEdge | null {
-  const item = record(value);
-  if (!item) return null;
-  const sourceId = item.sourceId ?? item.source ?? item.from;
-  const targetId = item.targetId ?? item.target ?? item.to;
-  if (typeof sourceId !== 'string' || typeof targetId !== 'string') return null;
-  return {
-    id: typeof item.id === 'string' ? item.id : `e${index}`,
-    sourceId,
-    targetId,
-    points: pointsOf(value),
-    ...(typeof item.label === 'string' ? { label: item.label } : {}),
-    ...(record(item.labelGeometry) && typeof record(item.labelGeometry)!.x === 'number' && typeof record(item.labelGeometry)!.y === 'number' && typeof record(item.labelGeometry)!.width === 'number' && typeof record(item.labelGeometry)!.height === 'number'
-      ? { labelRect: item.labelGeometry as DiagramInspectionEdge['labelRect'] } : {}),
-  };
-}
+import type { DiagramScene } from '@bpm/diagram-core';
+import type { DiagramInspection, DiagramInspectionEdge, DiagramInspectionIssue, DiagramInspectionNode, DiagramInspectionRect } from './types.js';
 
 function isAncestor(nodes: Map<string, DiagramInspectionNode>, ancestor: string, descendant: string): boolean {
   let current = nodes.get(descendant)?.parentId;
@@ -93,46 +24,10 @@ function boundsFor(nodes: DiagramInspectionNode[], edges: DiagramInspectionEdge[
   return { contentBounds, renderBounds: { x: minX - margin, y: minY - margin, width: contentBounds.width + margin * 2, height: contentBounds.height + margin * 2 } };
 }
 
-function extraction(family: DiagramFamilyId, positioned: RawRecord): { nodes: DiagramInspectionNode[]; edges: DiagramInspectionEdge[]; containers: DiagramInspectionNode[]; width: number; height: number } {
-  let nodes: DiagramInspectionNode[] = [];
-  let containers: DiagramInspectionNode[] = [];
-  let rawEdges: unknown[] = [];
-  if (family === 'mindmap' && positioned.root) {
-    nodes = flatten([positioned.root]);
-    rawEdges = Array.isArray(positioned.edges) ? positioned.edges : [];
-  } else if (family === 'gantt') {
-    const rows = Array.isArray(positioned.rows) ? positioned.rows : [];
-    nodes = rows.flatMap((row) => { const node = nodeOf(row); return node ? [node] : []; });
-    containers = nodes.filter((node) => node.kind === 'group');
-    rawEdges = Array.isArray(positioned.dependencies) ? positioned.dependencies : [];
-  } else {
-    const rawNodes = Array.isArray(positioned.nodes) ? positioned.nodes : [];
-    nodes = flatten(rawNodes);
-    rawEdges = Array.isArray(positioned.edges) ? positioned.edges : [];
-    if (family === 'bpmn' && Array.isArray(positioned.pools)) {
-      containers = positioned.pools.flatMap((pool) => {
-        const poolNode = nodeOf({ ...record(pool), kind: 'pool' });
-        const lanes = record(pool) && Array.isArray(record(pool)!.lanes) ? (record(pool)!.lanes as unknown[]).flatMap((lane) => {
-          const laneRecord = record(lane);
-          const laneNode = nodeOf({ ...laneRecord, kind: 'lane' }, poolNode?.id);
-          return laneNode ? [laneNode] : [];
-        }) : [];
-        return [...(poolNode ? [poolNode] : []), ...lanes];
-      });
-    }
-  }
-  const edges = rawEdges.map(edgeOf).filter((edge): edge is DiagramInspectionEdge => Boolean(edge));
-  const width = number(positioned.width, Math.max(1, ...nodes.map((node) => node.x + node.width)));
-  const height = number(positioned.height, Math.max(1, ...nodes.map((node) => node.y + node.height)));
-  return { nodes, edges, containers, width, height };
-}
-
-export function inspectPositionedDiagram(family: DiagramFamilyId, value: unknown, routeFallbacks = getRouteFallbackCount()): DiagramInspection {
-  const positioned = record(value) ?? {};
-  const extracted = extraction(family, positioned);
-  const nodes = extracted.nodes;
-  const edges = extracted.edges;
-  const containers = extracted.containers;
+export function inspectPositionedDiagram(scene: DiagramScene, routeFallbacks = getRouteFallbackCount()): DiagramInspection {
+  const nodes: DiagramInspectionNode[] = scene.nodes.map((node) => ({ ...node }));
+  const edges: DiagramInspectionEdge[] = scene.edges.map((edge) => ({ ...edge, points: edge.points.map((point) => ({ ...point })) }));
+  const containers = (scene.containers ?? []).map((container) => ({ ...container }));
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
   const containerIds = new Set([
     ...containers.map((node) => node.id),
@@ -150,7 +45,7 @@ export function inspectPositionedDiagram(family: DiagramFamilyId, value: unknown
 
   const inside = (rect: DiagramInspectionRect, outer: DiagramInspectionRect): boolean =>
     rect.x >= outer.x && rect.y >= outer.y && rect.x + rect.width <= outer.x + outer.width && rect.y + rect.height <= outer.y + outer.height;
-  const pageBounds = { x: 0, y: 0, width: extracted.width, height: extracted.height };
+  const pageBounds = { x: 0, y: 0, width: scene.width, height: scene.height };
 
   for (const node of nodes) {
     if (!inside(node, pageBounds)) boundsOverflows.push(`node "${node.label}" (${node.id}) exceeds the positioned bounds`);
@@ -160,11 +55,7 @@ export function inspectPositionedDiagram(family: DiagramFamilyId, value: unknown
     }
   }
   for (const edge of edges) {
-    const item = (value as RawRecord).edges;
-    const raw = Array.isArray(item) ? item.find((candidate) => record(candidate)?.id === edge.id) : undefined;
-    const rawRecord = record(raw);
-    const status = rawRecord?.routeStatus ?? rawRecord?.status;
-    if (status === 'degraded' || status === 'fallback' || rawRecord?.degraded === true || rawRecord?.routeFallback === true) routeDegraded.push(`edge ${edge.id} (${edge.sourceId}->${edge.targetId}) used a degraded route`);
+    if (edge.routeStatus === 'degraded' || edge.routeStatus === 'fallback') routeDegraded.push(`edge ${edge.id} (${edge.sourceId}->${edge.targetId}) used a degraded route`);
     if (edge.labelRect) {
       if (!inside(edge.labelRect, pageBounds)) boundsOverflows.push(`label on edge ${edge.id} exceeds the positioned bounds`);
       for (const node of nodes) if (!isContainer(node, containerIds) && rectsOverlap(edge.labelRect, node)) labelOverlaps.push(`label on edge ${edge.id} overlaps node "${node.label}" (${node.id})`);
@@ -252,7 +143,7 @@ export function inspectPositionedDiagram(family: DiagramFamilyId, value: unknown
     nodes,
     edges,
     ...(containers.length ? { containers } : {}),
-    ...boundsFor(nodes, edges, extracted.width, extracted.height),
+    ...boundsFor(nodes, edges, scene.width, scene.height),
     metrics,
     issues: { nodeOverlaps, edgeThroughNode, edgeOvershootsOwnEndpoint, routeDegraded, labelOverlaps, boundsOverflows, containmentViolations },
     issueDetails,

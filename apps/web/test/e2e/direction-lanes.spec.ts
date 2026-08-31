@@ -51,15 +51,16 @@ test.describe('direction and lane browser behavior', () => {
     await expect(page.locator('#export-item-xml')).toBeVisible();
   });
 
-  for (const family of ['architecture', 'gantt']) {
-    test(`${family} direction is rejected with a blocking diagnostic`, async ({ page }) => {
-      await page.goto('/');
-      const source = family === 'architecture'
-        ? 'diagram: architecture\ndirection: right\nsystem "Ordering" as ordering'
-        : 'diagram: gantt\ndirection: right\ntask "Release" as release start 2026-09-01 duration 2d';
-      await page.locator('#editor').fill(source);
-      await expect(page.locator('#errors .error-item')).toContainText(`Direction "right" is not supported for diagram family "${family}"`);
-      await expect(page.locator('#export-menu-btn')).toBeDisabled();
-    });
-  }
+  test('architecture supports explicit direction', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#editor').fill('diagram: architecture\ndirection: down\nperson "Customer" as customer\nsystem "Ordering" as ordering\ncustomer -> ordering');
+    await expectHealthyPreview(page, ['Customer', 'Ordering']);
+  });
+
+  test('gantt direction is rejected with a blocking diagnostic', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#editor').fill('diagram: gantt\ndirection: right\ntask "Release" as release start 2026-09-01 duration 2d');
+    await expect(page.locator('#errors .error-item')).toContainText('Direction "right" is not supported for diagram family "gantt"');
+    await expect(page.locator('#export-menu-btn')).toBeDisabled();
+  });
 });

@@ -1,0 +1,7 @@
+diagram: dfd
+direction: down
+external "Customer" as customer
+process "Submit order" as submit
+dataStore "Orders" as orders
+dataFlow customer -> submit: "order details"
+dataFlow submit -> orders: "new order"

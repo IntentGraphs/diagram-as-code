@@ -7,7 +7,31 @@ and this project uses [Semantic Versioning](https://semver.org/) via git tags.
 
 ## [Unreleased]
 
-No changes yet.
+### Added
+
+- Added `@bpm/mcp`, a dependency-free local MCP stdio server exposing runtime capabilities, validation, rendering, inspection, generation, freezing, and structured export with bounded schemas and explicit non-persistence for write-intent candidates.
+- Added `bpm mcp` to launch the MCP server without wrapping protocol traffic, plus compiled-process MCP E2E coverage.
+- Added a registered-family adapter contract test covering required parse, layout, render, neutral scene conversion, validation, SVG/PNG, and structured-export metadata.
+- Added the family-neutral `DiagramScene` contract, adapter-level validation boundary, source maps, and stable SVG identities to all six built-in diagram families; runtime inspection and CLI/web consumers now use the shared surfaces.
+- Added the bounded Level-0 DFD family with external/process/data-store nodes, labeled data flows, deterministic orthogonal layout, SVG/PNG rendering, lossless `dfd-json` export, source navigation, and capability metadata.
+- Added [`docs/EXTENDING-DIAGRAM-FAMILIES.md`](docs/EXTENDING-DIAGRAM-FAMILIES.md), documenting the family-neutral architecture boundary, DFD design, vertical-slice requirements, and release acceptance criteria.
+
+### Fixed
+
+- Re-routed ordinary BPMN edges that intersect boundary events added after swimlane banding, including nested subprocess edge collections, preserving the zero edge-through-node invariant in crowded pools.
+
+### Changed
+
+- CI now verifies the documented Node 20 and Node 22 support range instead of exercising only Node 20.
+- Updated the public documentation to describe the six shipped diagram families, the bounded DFD scope, and the completed family-neutral scene, source-map, renderer-identity, and adapter-validation foundation.
+
+### Documentation
+
+- Aligned the README, language reference, project status, CLI guide, contributor guide, release procedure, migration guide, documentation index, and public roadmap with the same six-family list, DFD boundary, extension contract, and verification state.
+
+### Verification
+
+- 952/952 unit tests, 101/101 browser tests, all 27 workspace builds, workflow validation, third-party notice validation, style checks, and `git diff --check` pass in the local workspace.
 
 ## [1.0.3] - 2026-08-24
 

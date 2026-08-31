@@ -216,12 +216,12 @@ export function readDiagramHeader(source: string): DiagramHeader {
   if (family === 'bpmn' && laneDirection === undefined) laneDirection = 'horizontal';
 
   if (directionSpecified && directiveFamily && isFamily(directiveFamily)) {
-    const supported = family === 'flowchart' || family === 'mindmap' || (family === 'bpmn' && direction === 'right');
+    const supported = family === 'flowchart' || family === 'mindmap' || family === 'dfd' || family === 'architecture' || (family === 'bpmn' && direction === 'right');
     if (!supported) {
       diagnostics.push(diagnostic(
         directionDirectiveLine,
-        `Direction "${direction}" is not supported for diagram family "${family}"; use a supported direction or choose flowchart/mindmap`,
-        { code: 'unsupported_direction', token: direction, supportedFamilies: ['bpmn', 'flowchart', 'mindmap'] },
+        `Direction "${direction}" is not supported for diagram family "${family}"; use a supported direction or choose flowchart/mindmap/dfd`,
+        { code: 'unsupported_direction', token: direction, supportedFamilies: ['bpmn', 'flowchart', 'mindmap', 'architecture', 'dfd'] },
       ));
     }
   }

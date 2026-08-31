@@ -1,0 +1,30 @@
+{
+  "name": "@bpm/mcp",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "bpm-mcp": "./dist/bin.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@bpm/ast": "*",
+    "@bpm/diagram-runtime": "*",
+    "@bpm/layout-core": "*",
+    "@bpm/print-dsl": "*",
+    "@bpm/review": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0"
+  }
+}

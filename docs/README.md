@@ -11,9 +11,11 @@ The stable product surface remains at the `docs/` root:
 
 - [`STATUS.md`](STATUS.md) — current capabilities, limitations, and verification
 - [`LANGUAGE.md`](LANGUAGE.md) — diagram language reference
+- [`EXTENDING-DIAGRAM-FAMILIES.md`](EXTENDING-DIAGRAM-FAMILIES.md) — adapter contract and DFD extension guide
 - [`CLI.md`](CLI.md) — CLI usage and checks
 - [`AI_REVIEW.md`](AI_REVIEW.md) and [`AI-DATA-HANDLING.md`](AI-DATA-HANDLING.md) — optional AI behavior and data handling
 - [`MANUAL_AI_AGENT.md`](MANUAL_AI_AGENT.md) and [`MANUAL_LAYOUT_AI.md`](MANUAL_LAYOUT_AI.md) — browser agent and geometry-aware AI workflows
+- [`ARCHITECTURE-DIAGRAM-ASSESSMENT.md`](ARCHITECTURE-DIAGRAM-ASSESSMENT.md) — architecture layout, edit modes, C4 views, and complexity-aware agent routing
 - [`BROWSER-SUPPORT.md`](BROWSER-SUPPORT.md) — v1 browser and viewport contract
 - [`RELEASING.md`](RELEASING.md) — exact verification and GitHub publication sequence
 - [`COMING-FROM-DRAWIO-BPMNJS.md`](COMING-FROM-DRAWIO-BPMNJS.md) — draw.io/bpmn-js-to-`bpm` migration path

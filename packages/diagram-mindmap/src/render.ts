@@ -13,15 +13,15 @@ function renderLabel(node: PositionedMindmapNode): string {
   const tspans = node.labelLines
     .map((line, index) => `<tspan x="${centerX}" y="${startY + index * LINE_HEIGHT}">${escapeXml(line)}</tspan>`)
     .join('');
-  return `<text text-anchor="middle" dominant-baseline="middle" font-size="${FONT_SIZE}">${tspans}</text>`;
+  return `<text data-node-label-id="${escapeXml(node.id)}" text-anchor="middle" dominant-baseline="middle" font-size="${FONT_SIZE}">${tspans}</text>`;
 }
 
 export function renderMindmap(positioned: PositionedMindmap): string {
   const all = nodes(positioned.root);
   const width = positioned.width + MARGIN * 2;
   const height = positioned.height + MARGIN * 2;
-  const edgeMarkup = positioned.edges.map((edge) => `<path d="${polylinePathD(edge.points.map((point) => ({ x: point.x + MARGIN, y: point.y + MARGIN })), 'round')}" stroke="black" stroke-width="1.5" fill="none"/>`).join('');
-  const boxMarkup = all.map((node) => `<rect x="${node.x + MARGIN}" y="${node.y + MARGIN}" width="${node.width}" height="${node.height}" rx="8" fill="white" stroke="black" stroke-width="${node.depth === 0 ? 3 : 1.5}"/>`).join('');
+  const edgeMarkup = positioned.edges.map((edge) => `<path data-edge-id="${escapeXml(edge.id)}" d="${polylinePathD(edge.points.map((point) => ({ x: point.x + MARGIN, y: point.y + MARGIN })), 'round')}" stroke="black" stroke-width="1.5" fill="none"/>`).join('');
+  const boxMarkup = all.map((node) => `<rect x="${node.x + MARGIN}" y="${node.y + MARGIN}" width="${node.width}" height="${node.height}" data-node-id="${escapeXml(node.id)}" rx="8" fill="white" stroke="black" stroke-width="${node.depth === 0 ? 3 : 1.5}"/>`).join('');
   const labelMarkup = all.map(renderLabel).join('');
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${edgeMarkup}${boxMarkup}${labelMarkup}</svg>`;
 }

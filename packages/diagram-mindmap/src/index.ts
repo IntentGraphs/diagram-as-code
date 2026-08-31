@@ -3,4 +3,5 @@ export * from './limits.js';
 export { parseMindmap } from './parser.js';
 export { layoutMindmap, type PositionedMindmap, type PositionedMindmapEdge, type PositionedMindmapNode } from './layout.js';
 export { renderMindmap } from './render.js';
+export { mindmapScene } from './scene.js';
 export { mindmapAdapter } from './adapter.js';

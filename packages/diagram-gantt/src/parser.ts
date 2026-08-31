@@ -8,6 +8,7 @@ const diagnostic = (line: number, message: string, code: string, token?: string)
 const durationPattern = /^(\d+)d$/;
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 const dateFields = /\b(start|end)\s+(\S+)/g;
+function sourceLocation(line: number, text: string) { return { line, startColumn: 1, endColumn: text.length + 1 }; }
 
 function parseDate(value: string, line: number, semanticErrors: DiagramDiagnostic[], field: string): PlainDate | undefined {
   if (!datePattern.test(value) || !isPlainDate(value)) { semanticErrors.push(diagnostic(line, `${field} must be a valid ISO date in YYYY-MM-DD form`, 'invalid_date', value)); return undefined; }
@@ -31,7 +32,8 @@ export function parseGantt(source: string): FamilyParseResult<GanttDiagram> {
   const ast: GanttDiagram = { kind: 'ganttDiagram', calendar: 'weekdays', tasks: [], dependencies: [], groups: [] };
   const errors: DiagramDiagnostic[] = [];
   const semanticErrors: DiagramDiagnostic[] = [];
-  if (source.length > MAX_SOURCE_CHARS) { semanticErrors.push(diagnostic(1, `Diagram source exceeds the maximum of ${MAX_SOURCE_CHARS} characters`, 'source_too_large')); return { ast, errors, semanticErrors }; }
+  const sourceLocations = { nodes: {}, edges: {}, pools: {}, lanes: {} } as import('@bpm/ast').DiagramSourceMap;
+  if (source.length > MAX_SOURCE_CHARS) { semanticErrors.push(diagnostic(1, `Diagram source exceeds the maximum of ${MAX_SOURCE_CHARS} characters`, 'source_too_large')); return { ast, errors, semanticErrors, sourceLocations }; }
   const ids = new Map<string, { kind: 'task' | 'group'; line: number }>();
   const groupsByIndent: Array<{ indent: number; group: GanttGroup; depth: number }> = [];
   let dependencyNumber = 0;
@@ -55,7 +57,7 @@ export function parseGantt(source: string): FamilyParseResult<GanttDiagram> {
       const depth = parent ? parent.depth + 1 : 0;
       if (depth > MAX_NESTING_DEPTH) semanticErrors.push(diagnostic(line, `Gantt nesting exceeds the maximum depth of ${MAX_NESTING_DEPTH}`, 'max_depth_exceeded'));
       const group: GanttGroup = { id, label, ...(parent ? { parentId: parent.group.id } : {}), line };
-      if (ast.groups.length < MAX_TASKS && !ids.has(id)) { ast.groups.push(group); ids.set(id, { kind: 'group', line }); groupsByIndent.push({ indent, group, depth }); }
+      if (ast.groups.length < MAX_TASKS && !ids.has(id)) { ast.groups.push(group); ids.set(id, { kind: 'group', line }); sourceLocations.nodes[id] = sourceLocation(line, raw); groupsByIndent.push({ indent, group, depth }); }
       continue;
     }
     const taskMatch = trimmed.match(/^(task|milestone)\s+"([^"\r\n]*)"\s+as\s+(\S+)(.*)$/);
@@ -83,7 +85,7 @@ export function parseGantt(source: string): FamilyParseResult<GanttDiagram> {
       else if (task.end && task.durationDays !== undefined) task.start = addWeekdays(task.end, -Math.max(0, task.durationDays - 1));
       if (task.start && task.end && dateDistance(task.start, task.end) > MAX_TIMELINE_DAYS) semanticErrors.push(diagnostic(line, `Task timeline exceeds the maximum of ${MAX_TIMELINE_DAYS} days`, 'timeline_too_large', id));
       if (ast.tasks.length >= MAX_TASKS) semanticErrors.push(diagnostic(line, `Diagram exceeds the maximum of ${MAX_TASKS} tasks`, 'max_tasks_exceeded'));
-      else if (!ids.has(id)) { ast.tasks.push(task); ids.set(id, { kind: 'task', line }); }
+      else if (!ids.has(id)) { ast.tasks.push(task); ids.set(id, { kind: 'task', line }); sourceLocations.nodes[id] = sourceLocation(line, raw); }
       continue;
     }
     const dependency = trimmed.match(/^(\S+)\s+->\s+(\S+)(?:\s+lag\s+(\S+))?$/);
@@ -92,7 +94,9 @@ export function parseGantt(source: string): FamilyParseResult<GanttDiagram> {
       const [, from, to, lagValue] = dependency;
       const lagDays = lagValue === undefined ? 0 : parseDuration(lagValue, line, semanticErrors) ?? 0;
       if (from === to) semanticErrors.push(diagnostic(line, 'A dependency cannot reference the same task', 'self_dependency', from));
-      ast.dependencies.push({ id: `d${++dependencyNumber}`, from, to, lagDays, line });
+      const id = `d${++dependencyNumber}`;
+      ast.dependencies.push({ id, from, to, lagDays, line });
+      sourceLocations.edges[id] = sourceLocation(line, raw);
       continue;
     }
     const calendarMatch = trimmed.match(/^calendar(?::|\s+)(.+)$/i);
@@ -115,5 +119,5 @@ export function parseGantt(source: string): FamilyParseResult<GanttDiagram> {
   for (const task of ast.tasks) visitTask(task.id);
   const dates = ast.tasks.flatMap((task) => [task.start, task.end]).filter((value): value is string => value !== undefined);
   if (dates.length) { const earliest = dates.reduce((a, b) => (compareDates(a, b) <= 0 ? a : b)); const latest = dates.reduce((a, b) => (compareDates(a, b) >= 0 ? a : b)); if (dateDistance(earliest, latest) > MAX_TIMELINE_DAYS) semanticErrors.push(diagnostic(1, `Timeline exceeds the maximum of ${MAX_TIMELINE_DAYS} days`, 'timeline_too_large')); }
-  return { ast, errors, semanticErrors };
+  return { ast, errors, semanticErrors, sourceLocations };
 }

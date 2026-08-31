@@ -11,6 +11,7 @@ BPMN 2.0, SVG, or editable PowerPoint. Use the browser editor or the `bpm` CLI.
 - [Quick start](#quick-start)
 - [Examples](examples/)
 - [CLI guide](docs/CLI.md)
+- [Family extension guide](docs/EXTENDING-DIAGRAM-FAMILIES.md)
 - [Public roadmap](ROADMAP.md)
 
 ![IntentGraphs Diagram Editor showing the Workspace Tour project, named BPMN diagrams, text source, and rendered preview](docs/assets/diagram-editor-workspace-tour.png)
@@ -80,7 +81,7 @@ depending on browser DOM events.
 
 ## Scope and limitations
 
-- Supported families are BPMN, architecture, flowcharts, mind maps, and bounded Gantt timelines.
+- Supported families are BPMN, architecture, flowcharts, mind maps, bounded Gantt timelines, and a bounded Level-0 DFD notation. Follow the [family extension guide](docs/EXTENDING-DIAGRAM-FAMILIES.md) for the supported DFD scope and extension contract.
 - BPMN support covers the documented notation and structural legality subset, not full execution semantics or
   universal BPMN 2.0 compatibility.
 - Projects persist in browser IndexedDB. Save Project/Open Source use portable `.bpm-project.json` bundles.
@@ -98,8 +99,10 @@ See [`docs/STATUS.md`](docs/STATUS.md) for the current capability and limitation
 | [`docs/README.md`](docs/README.md) | Documentation map |
 | [`docs/STATUS.md`](docs/STATUS.md) | Current capabilities and limitations |
 | [`docs/LANGUAGE.md`](docs/LANGUAGE.md) | Diagram grammar |
+| [`docs/EXTENDING-DIAGRAM-FAMILIES.md`](docs/EXTENDING-DIAGRAM-FAMILIES.md) | Family contract, supported DFD scope, and future extensions |
 | [`docs/CLI.md`](docs/CLI.md) | Validate, render, export, review, repair, generate, and import |
 | [`docs/AI_REVIEW.md`](docs/AI_REVIEW.md) | Optional AI review, repair, and generation |
+| [`docs/MCP.md`](docs/MCP.md) | Local MCP server and agent integration contract |
 | [`docs/AI-DATA-HANDLING.md`](docs/AI-DATA-HANDLING.md) | AI and local data boundaries |
 | [`docs/COMING-FROM-DRAWIO-BPMNJS.md`](docs/COMING-FROM-DRAWIO-BPMNJS.md) | Migration from visual BPMN tools |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Development and pull requests |

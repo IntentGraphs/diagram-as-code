@@ -7,8 +7,8 @@ import {
   type Side,
 } from '@bpm/ast';
 import type { PositionedDiagram, PositionedNode, RoutedEdge } from './types.js';
-import { createSequentialRouter } from '@bpm/diagram-core';
-import { sideOf, stubFrom } from './anchors.js';
+import { createSequentialRouter, segmentIntersectsRect } from '@bpm/diagram-core';
+import { facingSides, portOnShape, sideOf, stubFrom } from './anchors.js';
 
 const TARGET_ENTRY_STUB = 14;
 
@@ -72,6 +72,10 @@ function rightBorder(node: PositionedNode): { x: number; y: number } {
 
 function bottomBorder(node: PositionedNode): { x: number; y: number } {
   return { x: node.x + node.width / 2, y: node.y + node.height };
+}
+
+function pathIntersectsRect(points: Array<{ x: number; y: number }>, rect: PositionedNode): boolean {
+  return points.slice(0, -1).some((point, index) => segmentIntersectsRect(point, points[index + 1], rect));
 }
 
 /** Enter the target via whichever border (left or right) faces the incoming edge. */
@@ -224,20 +228,86 @@ export function positionBoundaryEvents(diagram: Diagram, positioned: PositionedD
     push(addedEdges, route.scope.containerId, { ...route.edge, points });
   }
 
+  // Boundary events are added after the main layout engine has routed ordinary edges. A
+  // newly-positioned circle can therefore invalidate an otherwise legal route (most often a
+  // cross-lane edge leaving the host's bottom border). Repair only paths that actually intersect
+  // a boundary event, keeping the normal route stable and avoiding a diagram-wide re-layout.
+  const poolIdByNodeId = new Map<string, string>();
+  const positionedBoundaries = [...boundaryPositionById.values()];
+  for (const pool of diagram.pools) {
+    for (const lane of pool.lanes) {
+      for (const nodeId of lane.nodeIds) poolIdByNodeId.set(nodeId, pool.id);
+    }
+  }
+  const boundaryByPoolId = new Map<string, PositionedNode[]>();
+  for (const boundary of boundaryPositionById.values()) {
+    const hostId = (boundary as PositionedNode & { attachedToId?: string }).attachedToId;
+    const poolId = hostId ? poolIdByNodeId.get(hostId) : undefined;
+    if (!poolId) continue;
+    const boundaries = boundaryByPoolId.get(poolId) ?? [];
+    boundaries.push(boundary);
+    boundaryByPoolId.set(poolId, boundaries);
+  }
+  const repairRouter = createSequentialRouter();
+  const repairEdges = (edges: RoutedEdge[], scopeNodes: PositionedNode[]): RoutedEdge[] => edges.map((edge) => {
+    if (positionedBoundaries.every((boundary) => !pathIntersectsRect(edge.points, boundary))) return edge;
+
+    const source = findPositioned(positioned, edge.sourceId);
+    const target = findPositioned(positioned, edge.targetId);
+    if (!source || !target) return edge;
+    const sourcePool = poolIdByNodeId.get(edge.sourceId);
+    const targetPool = poolIdByNodeId.get(edge.targetId);
+    const baseObstacles = sourcePool && sourcePool === targetPool
+      ? poolObstaclesByNodeId.get(edge.sourceId) ?? scopeNodes
+      : scopeNodes;
+    const scopeNodeIds = new Set(scopeNodes.map((node) => node.id));
+    const scopedBoundaries = positionedBoundaries.filter((boundary) => {
+      const hostId = (boundary as PositionedNode & { attachedToId?: string }).attachedToId;
+      return hostId ? scopeNodeIds.has(hostId) : false;
+    });
+    const boundaryObstacles = sourcePool && sourcePool === targetPool
+      ? boundaryByPoolId.get(sourcePool) ?? scopedBoundaries
+      : scopedBoundaries;
+    const obstacles = [...baseObstacles, ...boundaryObstacles]
+      .filter((node, index, nodes) => node.id !== edge.sourceId && node.id !== edge.targetId && nodes.findIndex((candidate) => candidate.id === node.id) === index);
+    const sides = facingSides(source, target);
+    const from = edge.from ?? sides.from;
+    const to = edge.to ?? sides.to;
+    const start = portOnShape(source, from);
+    const end = portOnShape(target, to);
+    const middle = repairRouter.route(
+      stubFrom(start, from, TARGET_ENTRY_STUB),
+      stubFrom(end, to, TARGET_ENTRY_STUB),
+      obstacles,
+      from === 'left' || from === 'right' ? 'vertical' : 'horizontal',
+    );
+    return { ...edge, points: [start, ...middle, end] };
+  });
+  const repairedEdges = repairEdges(positioned.edges, allNodes);
+  const repairedChildEdgesByOwner = new Map<string, RoutedEdge[]>();
+  const collectRepairedChildEdges = (nodes: PositionedNode[]): void => {
+    for (const node of nodes) {
+      if (node.childEdges) repairedChildEdgesByOwner.set(node.id, repairEdges(node.childEdges, flattenPositioned(node.children ?? [])));
+      if (node.children) collectRepairedChildEdges(node.children);
+    }
+  };
+  collectRepairedChildEdges(positioned.nodes);
+
   const applyAdditions = (node: PositionedNode): PositionedNode => {
     const extraNodes = addedNodes.get(node.id);
     const extraEdges = addedEdges.get(node.id);
-    if (!node.children && !extraNodes && !extraEdges) return node;
+    const childEdges = repairedChildEdgesByOwner.get(node.id) ?? node.childEdges;
+    if (!node.children && !extraNodes && !extraEdges && !repairedChildEdgesByOwner.has(node.id)) return node;
     return {
       ...node,
       children: [...(node.children ?? []).map(applyAdditions), ...(extraNodes ?? [])],
-      childEdges: [...(node.childEdges ?? []), ...(extraEdges ?? [])],
+      childEdges: [...(childEdges ?? []), ...(extraEdges ?? [])],
     } as PositionedNode;
   };
 
   return {
     pools: positioned.pools,
     nodes: [...positioned.nodes.map(applyAdditions), ...(addedNodes.get(ROOT_SCOPE) ?? [])],
-    edges: [...positioned.edges, ...(addedEdges.get(ROOT_SCOPE) ?? [])],
+    edges: [...repairedEdges, ...(addedEdges.get(ROOT_SCOPE) ?? [])],
   };
 }

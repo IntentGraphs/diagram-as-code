@@ -9,7 +9,7 @@ command.
 
 The CLI contract is implemented in `packages/cli` and covered by `packages/cli/test`.
 
-## Current CLI contract (2026-08-22)
+## Current CLI contract (2026-08-27)
 
 The CLI keeps semantic verbs, with a small set of safe aliases:
 
@@ -115,7 +115,7 @@ Generation uses auto-layout by default. Pass `--positioning manual` to freeze th
 
 `import-diagram` converts a BPMN 2.0 XML file (e.g. from Diagram mode's Save/Export, or any standards-compliant BPMN tool) into `.bpm` text via `@bpm/import-xml`, always emitting `positioning: manual`. Supported BPMN DI geometry includes pool/lane frames, node bounds, edge waypoints, endpoint sides, and non-central port offsets. This is the CLI counterpart to the web app's **Import to Text** action — it validates the *converted text* with `@bpm/validate` as its own portable success gate, since the browser-only DOM/`bpmn-js` round-trip check is not available in Node.
 
-`validate --json` uses the `@bpm/validate` shape: `{ valid, errors, semanticErrors, warnings, metrics?, inspection? }`. Successful layouts for all five built-in families include `inspection.nodes`, `inspection.edges`, content/render bounds, resolved route statistics, and machine-readable geometry issue details used to explain warnings. The JSON also reports `effectiveFamily`, the resolved `direction`, BPMN `laneDirection`, `capabilities`, `pageDimensions`, and `fitMode`. BPMN keeps its richer legacy inspection fields; the other families use the same common fields and metrics contract. Unsupported direction/lane combinations are blocking structured diagnostics. Do not invent a second schema.
+`validate --json` uses the `@bpm/validate` shape: `{ valid, errors, semanticErrors, warnings, metrics?, inspection? }`. Successful layouts for all six built-in families include `inspection.nodes`, `inspection.edges`, content/render bounds, resolved route statistics, and machine-readable geometry issue details used to explain warnings. The JSON also reports `effectiveFamily`, the resolved `direction`, BPMN `laneDirection`, `capabilities`, `pageDimensions`, and `fitMode`. BPMN keeps its richer legacy inspection fields; the other families use the same common fields and metrics contract. Unsupported direction/lane combinations are blocking structured diagnostics. Do not invent a second schema.
 
 ### Changed-file checks and SARIF
 
@@ -142,7 +142,7 @@ or geometry errors do.
 
 ### Diagram families
 
-Put `diagram: mindmap`, `diagram: flowchart`, `diagram: architecture`, or `diagram: gantt` on the first non-blank line to select the family; omit it for backwards-compatible BPMN. `validate` and `render` resolve and process all five families, including SVG/PNG rendering. `export` accepts `--target <format>` for a family's structured exports; for example:
+Put `diagram: mindmap`, `diagram: flowchart`, `diagram: architecture`, `diagram: gantt`, or `diagram: dfd` on the first non-blank line to select the family; omit it for backwards-compatible BPMN. `validate` and `render` resolve and process all six shipped families, including SVG/PNG rendering. `bpm capabilities --json` is the authoritative runtime discovery surface for family IDs, AI operations, PPTX support, and structured export descriptors. DFD supports lossless `dfd-json` export and intentionally does not advertise PPTX. `export` accepts `--target <format>` for a family's structured exports; for example:
 
 ```bash
 bpm export --target architecture-c4-json diagram.bpm
@@ -152,6 +152,8 @@ bpm export --target pptx -o diagram.pptx diagram.bpm
 ```
 
 Architecture also supports `architecture-drawio-xml`; the web toolbar exposes the family-supported structured exports. Mindmap and flowchart draw.io XML exports likewise remain available through their family-aware web toolbar entries. `pptx` is a binary editable visual projection only for families that declare PPTX capability and requires `-o`; unsupported families fail at the CLI boundary. BPMN XML remains the semantic round-trip format.
+
+Adding a family is not complete when a parser alone works. The adapter must be registered, capability metadata must agree with CLI/web actions, common inspection and source locations must be available, and representative CLI/export/E2E fixtures must pass. See [`EXTENDING-DIAGRAM-FAMILIES.md`](EXTENDING-DIAGRAM-FAMILIES.md).
 
 PPTX export separates correctness from editability warnings. Invalid source, unsupported families/directions, invalid geometry, hard size limits, and Gantt slide-count limits fail without writing a deck. If the native PPTX geometry is valid but projected editable labels or a declared page may be too small, export still writes the `.pptx` and exits `0`: normal CLI output prints warnings to stderr, while `--json` prints a completed payload with `output.generated: true` and `warnings` to stdout. The web editor downloads the deck and shows the same warnings in the warning area while keeping the SVG preview available.
 

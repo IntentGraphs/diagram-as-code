@@ -24,3 +24,10 @@ export type { RepairSuggestion, RepairProvider, RepairDiagramResult } from './re
 export { applyTextPatch } from './applyPatch.js';
 export { createOpenAIRepairProvider } from './providers/repairOpenAI.js';
 export { ProviderRequestError, type ProviderRequestOptions } from './request.js';
+export {
+  assessDiagramComplexity,
+  recommendAgentWorkflow,
+  type AgentModelTier,
+  type AgentWorkflowRecommendation,
+  type DiagramComplexityAssessment,
+} from './complexity.js';

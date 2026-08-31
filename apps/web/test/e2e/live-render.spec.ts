@@ -58,7 +58,7 @@ test('manual DSL uses the same hover tooltip and source-line navigation', async 
   })).toBe('task "Manual A" as manualA at (40, 40)');
 });
 
-test('typing a mindmap renders through the family-neutral preview and disables BPMN editing/export', async ({ page }) => {
+test('typing a mindmap renders through the family-neutral preview and offers a draw.io handoff', async ({ page }) => {
   await page.goto('/');
   const editor = page.locator('#editor');
   await editor.fill('diagram: mindmap\nmindmap "Roadmap" as root\n  mindmap as child');
@@ -72,10 +72,11 @@ test('typing a mindmap renders through the family-neutral preview and disables B
   await expect(page.locator('#family-badge-label')).toHaveText('Mindmap');
   await expect(page.locator('#generate-btn')).toBeDisabled();
   await expect(page.locator('#generate-btn')).toHaveAttribute('title', 'Generate is not available for Mindmap diagrams.');
-  await expect(page.locator('#edit-as-diagram')).toBeDisabled();
+  await expect(page.locator('#edit-as-diagram')).toBeEnabled();
+  await expect(page.locator('#edit-as-diagram')).toHaveText('Open in draw.io / diagrams.net');
 });
 
-test('typing a flowchart renders through the family-neutral preview and disables BPMN editing/Generate', async ({ page }) => {
+test('typing a flowchart renders through the family-neutral preview and offers a draw.io handoff', async ({ page }) => {
   await page.goto('/');
   await page.locator('#editor').fill('diagram: flowchart\nbox "Start" as start\ndecision "Approved?" as approved\nbox "Done" as done\nstart -> approved\napproved => done: "yes"');
   await page.waitForTimeout(500);
@@ -88,10 +89,24 @@ test('typing a flowchart renders through the family-neutral preview and disables
   await expect(page.locator('#family-badge-label')).toHaveText('Flowchart');
   await expect(page.locator('#generate-btn')).toBeDisabled();
   await expect(page.locator('#generate-btn')).toHaveAttribute('title', 'Generate is not available for Flowchart diagrams.');
-  await expect(page.locator('#edit-as-diagram')).toBeDisabled();
+  await expect(page.locator('#edit-as-diagram')).toBeEnabled();
+  await expect(page.locator('#edit-as-diagram')).toHaveText('Open in draw.io / diagrams.net');
   await page.locator('#settings-btn').click();
   await expect(page.locator('#engine-override')).toHaveAttribute('title', 'Flowchart layout does not support BPMN engine overrides.');
   await page.locator('#settings-btn').click();
+});
+
+test('typing a DFD renders through the family-neutral preview and exposes its JSON export', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#editor').fill('diagram: dfd\nexternal "Customer" as customer\nprocess "Submit" as submit\ndataStore "Orders" as orders\ndataFlow customer -> submit: "order"\ndataFlow submit -> orders: "new order"');
+  await page.waitForTimeout(500);
+  await expect(page.locator('#preview svg')).toBeVisible();
+  await expect(page.locator('[data-node-id="customer"]')).toBeVisible();
+  await expect(page.locator('[data-edge-id="f0"]')).toBeVisible();
+  await expect(page.locator('#family-badge-label')).toHaveText('DFD');
+  await page.locator('#export-menu-btn').click();
+  await expect(page.locator('#export-item-structured')).toBeVisible();
+  await expect(page.locator('#edit-as-diagram')).toBeDisabled();
 });
 
 test('mindmap draw.io export is reachable from the toolbar', async ({ page }) => {
@@ -143,7 +158,13 @@ test('typing an architecture diagram renders with the family badge and draw.io e
   await expect(page.locator('[data-node-id="ordering"]')).toBeVisible();
   await expect(page.locator('[data-node-id="orders"]')).toBeVisible();
   await expect(page.locator('#family-badge-label')).toHaveText('Architecture');
-  await expect(page.locator('#edit-as-diagram')).toBeDisabled();
+  await expect(page.locator('#edit-as-diagram')).toBeEnabled();
+  await expect(page.locator('#edit-as-diagram')).toHaveText('Open in draw.io / diagrams.net');
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.locator('#edit-as-diagram').click(),
+  ]);
+  expect(download.suggestedFilename()).toBe('diagram.drawio');
   await expect(page.locator('#generate-btn')).toBeDisabled();
   await page.locator('#export-menu-btn').click();
   await expect(page.locator('#export-item-svg')).toBeVisible();

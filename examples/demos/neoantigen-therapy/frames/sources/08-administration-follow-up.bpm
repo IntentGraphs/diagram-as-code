@@ -1,0 +1,98 @@
+layoutSpacing: compact
+render: auto
+shapeSize: task (150, 52)
+shapeSize: gateway (64, 64)
+shapeSize: event (46, 46)
+pool "Elena Torres — Personalized mRNA Neoantigen Therapy"
+  lane "Clinic"
+    event start none "Diagnosis & staging" as c1
+    task "Consent for diagnostics + therapy" as c2
+    c1 -> c2
+    task "Order molecular profiling" as c3
+    c2 -> c3
+
+  lane "Specimen Intake"
+    gateway parallel "Split specimen collection" as li0
+    c3 -> li0
+    task "Accession tumor specimen" as li1
+    li0 -> li1
+    task "Draw germline blood" as li2
+    li0 -> li2
+
+  lane "Histology + Sequencing"
+    task "Confirm tumor content" as h1
+    task "Merge assay inputs" as s0
+    task "Sequence tumor WES/WGS" as s1
+    task "Sequence germline + HLA" as s2
+    gateway parallel "Merge sequencing outputs" as s3
+    li1 -> h1: "Tumor specimen"
+    li2 -> s0: "Germline sample"
+    h1 -> s0: "Confirmed tumor"
+    s0 -> s1
+    s0 -> s2
+    s1 -> s3
+    s2 -> s3
+
+  lane "Bioinformatics"
+    task "Call somatic variants" as b1
+    s3 -> b1: "Sequencing + HLA data"
+    task "Predict + rank neoantigens" as b2
+    b1 -> b2
+
+  lane "Tumor Board"
+    task "Multidisciplinary review" as tb1
+    b2 -> tb1: "Ranked candidates"
+    gateway exclusive "Vaccine candidate approved?" as tb2
+    tb1 -> tb2
+    task "Refer to alternate therapy" as tb3
+    tb2 ->> tb3: "No"
+    event end none "Alternate pathway" as tb4
+    tb3 -> tb4
+
+  lane "Vaccine Design + GMP"
+    task "Select final neoantigen targets" as vd1
+    tb2 => vd1: "Yes"
+    task "Design patient-specific mRNA" as vd2
+    vd1 -> vd2
+    task "Synthesize mRNA" as mf1
+    vd2 -> mf1: "Construct sequence"
+    task "Formulate lipid nanoparticle" as mf2
+    mf1 -> mf2
+    task "Fill + finish" as mf3
+    mf2 -> mf3
+
+  lane "QC + Supply Chain"
+    task "Test identity, potency, sterility" as qc1
+    mf3 -> qc1
+    gateway exclusive "Release approved?" as qc2
+    qc1 -> qc2
+    task "Quarantine + investigate" as qc3
+    qc2 ->> qc3: "Fail"
+    event end none "Batch rejected" as qc4
+    qc3 -> qc4
+    task "Pack + ship cold-chain" as sc1
+    qc2 => sc1: "Pass"
+    task "Verify chain of identity" as sc2
+    sc1 -> sc2
+
+  lane "Administration + Follow-up"
+    task "Schedule administration visit" as ad1 at (0, 55)
+    sc2 -> ad1: "Product at site"
+    task "Administer dose" as ad2 at (185, 55)
+    ad1 -> ad2
+    gateway exclusive "Dosing series complete?" as ad3 at (370, 53)
+    ad2 -> ad3
+    task "Monitor response + recurrence" as fu1
+    ad3 => fu1: "Yes"
+    ad3 ->> ad1: "No" [via: (402, 20) (32, 20)]
+    gateway exclusive "Relapse or new lesion?" as fu2
+    fu1 -> fu2
+    task "Trigger re-biopsy for redesign" as fu4
+    fu2 => fu4: "Relapse"
+    event end none "New profiling cycle" as fu4b
+    fu4 -> fu4b
+    task "Continue surveillance" as fu3
+    fu2 ->> fu3: "Stable"
+    event end none "Long-term surveillance" as fu_end
+    fu3 -> fu_end
+

@@ -45,7 +45,7 @@ export async function runExportCommand(args: ParsedArgs): Promise<CommandResult>
       const warnings: PptxExportWarning[] = [];
       const bytes = args.target === 'docx'
         ? await exportDocx(executed.paginated!, { family: 'bpmn', title: 'BPMN diagram' })
-        : await exportPptx(snapshotFromRuntime({ family: executed.header.family, positioned: executed.positioned, page: executed.header.page, paginated: executed.paginated }), { warnings });
+        : await exportPptx(snapshotFromRuntime({ family: executed.header.family as Exclude<typeof executed.header.family, 'dfd'>, positioned: executed.positioned, page: executed.header.page, paginated: executed.paginated }), { warnings });
       writeFileAtomically(args.out, Buffer.from(bytes));
       const allWarnings = [...executed.warnings, ...warnings.filter((warning) => {
         const duplicateCode = warning.code === 'pagination_continuation' ? 'pagination_cross_page_edge' : warning.code === 'page_scale' ? 'pagination_readability' : warning.code;

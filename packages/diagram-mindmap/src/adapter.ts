@@ -4,11 +4,13 @@ import { layoutMindmap, type PositionedMindmap, type PositionedMindmapNode } fro
 import { parseMindmap } from './parser.js';
 import { renderMindmap } from './render.js';
 import { exportToDrawioXml, type DrawioNode } from '@bpm/export-drawio';
+import { mindmapScene } from './scene.js';
 
 export const MINDMAP_DRAWIO_EXPORT_FORMAT = 'mindmap-drawio-xml';
 
 export const mindmapAdapter: DiagramFamilyAdapter<MindmapDiagram, PositionedMindmap> = {
-  id: 'mindmap', parse: parseMindmap, layout: layoutMindmap, render: renderMindmap,
+  id: 'mindmap', parse: parseMindmap, layout: layoutMindmap, render: renderMindmap, scene: mindmapScene,
+  async validate(source) { const result = parseMindmap(source); return { valid: result.errors.length === 0 && result.semanticErrors.length === 0, errors: result.errors, semanticErrors: result.semanticErrors, warnings: result.warnings ?? [] }; },
   exportStructured(_ast, positioned, format) {
     if (format !== MINDMAP_DRAWIO_EXPORT_FORMAT) throw new Error(`Unsupported structured export "${format}" for mindmap`);
     const nodes: DrawioNode[] = [];

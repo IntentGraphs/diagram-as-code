@@ -1,9 +1,9 @@
-export const DIAGRAM_FAMILIES = ['bpmn', 'mindmap', 'flowchart', 'architecture', 'gantt'] as const;
+export const DIAGRAM_FAMILIES = ['bpmn', 'mindmap', 'flowchart', 'architecture', 'gantt', 'dfd'] as const;
 
 export type DiagramFamilyId = typeof DIAGRAM_FAMILIES[number];
 
 import type { ValidationMetrics } from '@bpm/validate';
-import type { GanttTimescale, PageSpec } from '@bpm/diagram-core';
+import type { DiagramScene, GanttTimescale, PageSpec } from '@bpm/diagram-core';
 import type { PaginatedScene } from '@bpm/diagram-core';
 import type { DiagramDirection, DiagramSourceMap, LaneDirection, PageBreakStrategy, PaginationMode, RoutingMode } from '@bpm/ast';
 export type { PageFit, PageSpec, PageUnit } from '@bpm/diagram-core';
@@ -66,6 +66,7 @@ export interface DiagramInspectionEdge {
   points: Array<{ x: number; y: number }>;
   label?: string;
   labelRect?: DiagramInspectionRect;
+  routeStatus?: string;
 }
 
 export interface DiagramInspectionIssue {
@@ -185,7 +186,10 @@ export interface DiagramFamilyAdapter<Ast = unknown, Positioned = unknown> {
   parse(source: string): FamilyParseResult<Ast>;
   layout(ast: Ast, options?: FamilyLayoutOptions): Promise<Positioned>;
   render(positioned: Positioned): string;
-  validate?(source: string, options?: FamilyLayoutOptions): Promise<FamilyValidationResult>;
+  /** Converts family-specific layout output into the shared inspection/integration scene. */
+  scene(positioned: Positioned): DiagramScene;
+  /** Performs family parsing and semantic validation at the adapter boundary. */
+  validate(source: string, options?: FamilyLayoutOptions): Promise<FamilyValidationResult>;
   exportStructured?(ast: Ast, positioned: Positioned, format: string): string;
   capabilities: FamilyCapabilities;
   aiCapabilities?: AiCapabilities;
@@ -222,6 +226,7 @@ export interface ParsedDiagramSource<Ast = unknown, Positioned = unknown> extend
 
 export interface DiagramExecutionResult<Ast = unknown, Positioned = unknown> extends ParsedDiagramSource<Ast, Positioned> {
   positioned: Positioned | null;
+  scene: DiagramScene | null;
   svg: string | null;
   diagnostics: DiagramDiagnostic[];
   /** Non-blocking diagnostics produced by pagination or export preparation. */

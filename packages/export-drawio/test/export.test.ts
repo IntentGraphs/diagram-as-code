@@ -65,4 +65,27 @@ describe('@bpm/export-drawio', () => {
     expect(() => exportToDrawioXml({ nodes: fixture.nodes, edges: [{ id: 'e', source: 'root', target: 'missing' }] })).toThrow(/missing node/);
     expect(() => exportToDrawioXml({ nodes: [{ ...fixture.nodes[0], shape: 'hexagon' as never }], edges: [] })).toThrow(/Unsupported draw.io shape/);
   });
+
+  it('preserves nested hierarchy and converts absolute child geometry to local coordinates', () => {
+    const xml = exportToDrawioXml({
+      nodes: [
+        { id: 'system', label: 'Ordering', x: 100, y: 80, width: 480, height: 300, container: true, metadata: { architectureKind: 'system' } },
+        { id: 'api', label: 'API', x: 140, y: 130, width: 200, height: 100, parentId: 'system', container: true, metadata: { architectureKind: 'container' } },
+        { id: 'checkout', label: 'Checkout', x: 180, y: 180, width: 120, height: 50, parentId: 'api', metadata: { architectureKind: 'component' } },
+      ],
+      edges: [],
+    });
+    expect(xml).toContain('id="system" value="Ordering" architectureKind="system"');
+    expect(xml).toContain('id="api" value="API" architectureKind="container" style="swimlane;');
+    expect(xml).toContain('id="checkout" value="Checkout" architectureKind="component"');
+    expect(xml).toContain('parent="system"><mxGeometry x="40" y="50"');
+    expect(xml).toContain('parent="api"><mxGeometry x="40" y="50"');
+  });
+
+  it('rejects a self-parent relationship', () => {
+    expect(() => exportToDrawioXml({
+      nodes: [{ id: 'node', label: 'Node', x: 0, y: 0, width: 100, height: 40, parentId: 'node' }],
+      edges: [],
+    })).toThrow(/own parent/);
+  });
 });

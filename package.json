@@ -14,6 +14,7 @@
     "build": "node scripts/build-workspaces.mjs",
     "build:cli": "node scripts/build-cli.mjs",
     "test": "vitest run --passWithNoTests",
+    "test:mcp:e2e": "node scripts/mcp-e2e.mjs",
     "test:coverage": "node scripts/check-coverage.mjs",
     "check:style": "node scripts/check-style.mjs",
     "check:third-party-notices": "node scripts/check-third-party-notices.mjs",

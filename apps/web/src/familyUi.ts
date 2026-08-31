@@ -6,6 +6,7 @@ export function familyLabel(family: DiagramFamilyId | null): string {
   if (family === 'flowchart') return 'Flowchart';
   if (family === 'architecture') return 'Architecture';
   if (family === 'gantt') return 'Gantt';
+  if (family === 'dfd') return 'DFD';
   return 'No family';
 }
 

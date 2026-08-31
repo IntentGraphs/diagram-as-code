@@ -6,14 +6,16 @@ const diagnostic = (line: number, message: string, code: string, token?: string)
 const edgeKinds = { '->': 'sequence', '=>': 'conditionalSequence', '->>': 'defaultSequence' } as const;
 const directionLine = /^direction:\s*(\S+)$/;
 const directions = ['right', 'left', 'down', 'up'] as const;
+function sourceLocation(line: number, text: string) { return { line, startColumn: 1, endColumn: text.length + 1 }; }
 
 export function parseFlowchart(source: string): FamilyParseResult<FlowchartDiagram> {
   const ast: FlowchartDiagram = { kind: 'flowchartDiagram', nodes: [], edges: [] };
   const errors: DiagramDiagnostic[] = [];
   const semanticErrors: DiagramDiagnostic[] = [];
+  const sourceLocations = { nodes: {}, edges: {}, pools: {}, lanes: {} } as import('@bpm/ast').DiagramSourceMap;
   if (source.length > MAX_SOURCE_CHARS) {
     semanticErrors.push(diagnostic(1, `Diagram source exceeds the maximum of ${MAX_SOURCE_CHARS} characters (got ${source.length})`, 'source_too_large'));
-    return { ast, errors, semanticErrors };
+    return { ast, errors, semanticErrors, sourceLocations };
   }
   const ids = new Map<string, number>();
   let nodeLimitReported = false;
@@ -39,7 +41,10 @@ export function parseFlowchart(source: string): FamilyParseResult<FlowchartDiagr
       if (ast.nodes.length >= MAX_NODES) {
         if (!nodeLimitReported) semanticErrors.push(diagnostic(line, `Diagram exceeds the maximum of ${MAX_NODES} nodes (got ${MAX_NODES + 1})`, 'max_nodes_exceeded'));
         nodeLimitReported = true;
-      } else if (label !== undefined) ast.nodes.push({ kind: kind as FlowchartNode['kind'], id, label, line });
+      } else if (label !== undefined) {
+        ast.nodes.push({ kind: kind as FlowchartNode['kind'], id, label, line });
+        sourceLocations.nodes[id] = sourceLocation(line, rawLine.replace(/\r$/, ''));
+      }
       continue;
     }
     const edge = text.match(/^(\S+)\s+(->>|=>|->|~>|\.\.>)\s+(\S+)(?:\s*:\s*"([^"\r\n]*)")?$/);
@@ -51,7 +56,9 @@ export function parseFlowchart(source: string): FamilyParseResult<FlowchartDiagr
         if (!edgeLimitReported) semanticErrors.push(diagnostic(line, `Diagram exceeds the maximum of ${MAX_EDGES} edges (got ${MAX_EDGES + 1})`, 'max_edges_exceeded'));
         edgeLimitReported = true;
       } else {
+        const id = `e${ast.edges.length}`;
         ast.edges.push({ kind: edgeKinds[token as keyof typeof edgeKinds], from, to, ...(label === undefined ? {} : { label }), line });
+        sourceLocations.edges[id] = sourceLocation(line, rawLine.replace(/\r$/, ''));
       }
       continue;
     }
@@ -65,5 +72,5 @@ export function parseFlowchart(source: string): FamilyParseResult<FlowchartDiagr
     if (!ids.has(edge.from)) semanticErrors.push(diagnostic(edge.line, `Edge references unknown node "${edge.from}"`, 'unknown_edge_endpoint', edge.from));
     if (!ids.has(edge.to)) semanticErrors.push(diagnostic(edge.line, `Edge references unknown node "${edge.to}"`, 'unknown_edge_endpoint', edge.to));
   }
-  return { ast, errors, semanticErrors };
+  return { ast, errors, semanticErrors, sourceLocations };
 }

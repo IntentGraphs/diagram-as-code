@@ -4,7 +4,7 @@ Generated from package-lock.json and the installed workspace tree. This file int
 
 The inventory records the exact lockfile version, package-declared license metadata, source/repository metadata where available, and the license file found in the installed package. Platform-specific optional binaries intentionally use lockfile metadata plus an explicit review marker so the inventory is stable across runner operating systems. A package with missing metadata or a missing license file is explicitly marked for manual legal review; that marker is not a license determination.
 
-Generated package entries: 212.
+Generated package entries: 214.
 
 ## @bpm/web 0.0.1
 
@@ -14974,6 +14974,43 @@ SOFTWARE.
 
 </details>
 
+## @bpm/diagram-dfd 0.0.1
+
+- License: MIT (repository LICENSE)
+- Source/repository: Source URL unavailable in package metadata.
+- Lockfile path: ~~~packages/diagram-dfd~~~
+
+### Applicable license text
+
+<details>
+<summary>License text</summary>
+
+~~~~text
+MIT License
+
+Copyright (c) 2026 IntentGraphs
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+~~~~
+
+</details>
+
 ## @bpm/diagram-flowchart 0.0.1
 
 - License: MIT (repository LICENSE)
@@ -15497,6 +15534,43 @@ SOFTWARE.
 - License: MIT (repository LICENSE)
 - Source/repository: Source URL unavailable in package metadata.
 - Lockfile path: ~~~packages/layout-engine-swimlane~~~
+
+### Applicable license text
+
+<details>
+<summary>License text</summary>
+
+~~~~text
+MIT License
+
+Copyright (c) 2026 IntentGraphs
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+~~~~
+
+</details>
+
+## @bpm/mcp 0.0.1
+
+- License: MIT (repository LICENSE)
+- Source/repository: Source URL unavailable in package metadata.
+- Lockfile path: ~~~packages/mcp~~~
 
 ### Applicable license text
 

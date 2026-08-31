@@ -22,7 +22,7 @@ export async function runValidateCommand(args: ParsedArgs): Promise<CommandResul
   const executed = result.valid
     ? await executeDiagramSource(text, args.engine ? { engineOverride: args.engine } : undefined)
     : undefined;
-  const payload = validationPayload(resolved.header, resolved.adapter, result, executed?.positioned ?? undefined, executed?.routeFallbacks);
+  const payload = validationPayload(resolved.header, resolved.adapter, result, executed?.scene ?? undefined, executed?.routeFallbacks);
   return args.json
     ? jsonResult(result.valid ? 0 : 1, payload)
     : { exitCode: result.valid ? 0 : 1, stdout: humanValidation(args.file, payload), stderr: '' };

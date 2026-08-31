@@ -5,7 +5,7 @@ import {
 } from './project/store.js';
 
 /** Bump when the serialized PipelineResult contract or renderer output changes. */
-export const RENDERER_VERSION = 'web-render-v4';
+export const RENDERER_VERSION = 'web-render-v5';
 
 export interface RenderCacheIdentity {
   projectId?: string;
@@ -50,14 +50,12 @@ function hasSourceMap(value: unknown): boolean {
 function isUsableResult(value: unknown): value is PipelineResult {
   if (!value || typeof value !== 'object') return false;
   const result = value as Partial<PipelineResult>;
-  // BPMN results participate in diagram-to-source navigation. A cached SVG without its source
-  // map is visually usable but unsafe for this feature, so force one fresh render after the
-  // cache contract changes. Other families may not expose source locations yet and retain the
-  // existing render-cache UX.
+  // Every built-in family participates in diagram-to-source navigation. A cached SVG without
+  // its source map is visually usable but unsafe for this feature, so force one fresh render.
   return typeof result.svg === 'string'
     && Array.isArray(result.errors)
     && result.errors.length === 0
-    && (result.family !== 'bpmn' || hasSourceMap(result.sourceLocations));
+    && hasSourceMap(result.sourceLocations);
 }
 
 export interface RenderCache {

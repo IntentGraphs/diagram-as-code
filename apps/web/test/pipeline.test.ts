@@ -74,6 +74,17 @@ describe('runPipeline', () => {
     expect(result.errors).toEqual([]);
   });
 
+  it('runs the DFD family through the same web pipeline', async () => {
+    const result = await runPipeline('diagram: dfd\nexternal "Customer" as customer\nprocess "Submit" as submit\ndataFlow customer -> submit: "order"');
+    expect(result.family).toBe('dfd');
+    expect(result.capabilities?.structuredExport).toContain('dfd-json');
+    expect(result.capabilities?.pptx).toBeUndefined();
+    expect(result.svg).toContain('data-node-id="customer"');
+    expect(result.executionPositioned).not.toBeNull();
+    expect(result.sourceLocations?.nodes.customer).toMatchObject({ line: 2 });
+    expect(result.errors).toEqual([]);
+  });
+
   it('preserves family identity when a known family has invalid body text', async () => {
     const result = await runPipeline('diagram: mindmap\nmindmap "Root" as root\n   mindmap "Bad" as bad');
     expect(result.family).toBe('mindmap');

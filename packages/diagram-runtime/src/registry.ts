@@ -4,6 +4,7 @@ import { architectureAdapter } from '@bpm/diagram-architecture';
 import { mindmapAdapter } from '@bpm/diagram-mindmap';
 import { flowchartAdapter } from '@bpm/diagram-flowchart';
 import { ganttAdapter } from '@bpm/diagram-gantt';
+import { dfdAdapter } from '@bpm/diagram-dfd';
 import { fitSvgToPage, getRouteFallbackCount, MIN_PAGE_SCALE, resetRouteFallbackCount } from '@bpm/diagram-core';
 import type { DiagramDiagnostic, DiagramExecutionPhase, DiagramExecutionResult, DiagramFamilyAdapter, DiagramFamilyId, FamilyValidationResult, ParsedDiagramSource, ResolvedDiagramFamily, FamilyLayoutOptions } from './types.js';
 import { inspectPositionedDiagram } from './inspection.js';
@@ -16,6 +17,7 @@ const defaultAdapters = new Map<DiagramFamilyId, DiagramFamilyAdapter>([
   [flowchartAdapter.id, flowchartAdapter],
   [architectureAdapter.id, architectureAdapter],
   [ganttAdapter.id, ganttAdapter],
+  [dfdAdapter.id, dfdAdapter],
 ]);
 const adapters = new Map<DiagramFamilyId, DiagramFamilyAdapter>(defaultAdapters);
 
@@ -127,7 +129,7 @@ export async function executeDiagramSource<Ast = unknown, Positioned = unknown>(
   const diagnostics = [...parsed.result.errors, ...parsed.result.semanticErrors];
   const parseWarnings = parsed.result.warnings ?? [];
   if (diagnostics.length > 0) {
-    return { ...parsed, positioned: null, svg: null, diagnostics, warnings: parseWarnings };
+    return { ...parsed, positioned: null, scene: null, svg: null, diagnostics, warnings: parseWarnings };
   }
   if (parsed.header.paginate === 'tile' || parsed.header.paginate === 'hybrid' || (parsed.header.paginate === 'semantic' && parsed.header.family !== 'bpmn')) {
     const diagnostic: DiagramDiagnostic = {
@@ -137,7 +139,7 @@ export async function executeDiagramSource<Ast = unknown, Positioned = unknown>(
       code: 'pagination_unsupported_combination',
       severity: 'error',
     };
-    return { ...parsed, positioned: null, svg: null, diagnostics: [diagnostic], warnings: parseWarnings };
+    return { ...parsed, positioned: null, scene: null, svg: null, diagnostics: [diagnostic], warnings: parseWarnings };
   }
   try {
     resetRouteFallbackCount();
@@ -151,6 +153,7 @@ export async function executeDiagramSource<Ast = unknown, Positioned = unknown>(
       // override is supplied, preserve the AST's routing choice.
       routing: layoutOptions.routing ?? astOptions.routing,
     }));
+    const scene = parsed.adapter.scene(positioned);
     const routeFallbacks = getRouteFallbackCount();
     onPhase?.('rendering');
     const rawSvg = parsed.adapter.render(positioned);
@@ -164,16 +167,16 @@ export async function executeDiagramSource<Ast = unknown, Positioned = unknown>(
         code: 'page_too_dense',
         severity: 'error',
       };
-      return { ...parsed, positioned: null, svg: null, diagnostics: [diagnostic], warnings: parseWarnings, routeFallbacks };
+      return { ...parsed, positioned: null, scene: null, svg: null, diagnostics: [diagnostic], warnings: parseWarnings, routeFallbacks };
     }
     if (semanticBpmn) {
       const pagination = paginateBpmn(positioned as never, parsed.header.page, parsed.header.pageBreak);
       const toDiagnostic = (diagnostic: typeof pagination.diagnostics[number]): DiagramDiagnostic => ({ line: 1, column: 1, message: diagnostic.message, code: diagnostic.code, severity: diagnostic.severity });
       const paginationErrors = pagination.diagnostics.filter((diagnostic) => diagnostic.severity === 'error').map(toDiagnostic);
       const paginationWarnings = pagination.diagnostics.filter((diagnostic) => diagnostic.severity === 'warning').map(toDiagnostic);
-      return { ...parsed, positioned, svg: fitted?.svg ?? rawSvg, diagnostics: paginationErrors, warnings: [...parseWarnings, ...paginationWarnings], paginated: pagination.scene, routeFallbacks };
+      return { ...parsed, positioned, scene, svg: fitted?.svg ?? rawSvg, diagnostics: paginationErrors, warnings: [...parseWarnings, ...paginationWarnings], paginated: pagination.scene, routeFallbacks };
     }
-    return { ...parsed, positioned, svg: fitted?.svg ?? rawSvg, diagnostics: [], warnings: parseWarnings, routeFallbacks };
+    return { ...parsed, positioned, scene, svg: fitted?.svg ?? rawSvg, diagnostics: [], warnings: parseWarnings, routeFallbacks };
   } catch (err) {
     const diagnostic: DiagramDiagnostic = {
       line: 1,
@@ -181,7 +184,7 @@ export async function executeDiagramSource<Ast = unknown, Positioned = unknown>(
       message: err instanceof Error ? err.message : String(err),
       severity: 'error',
     };
-    return { ...parsed, positioned: null, svg: null, diagnostics: [diagnostic], warnings: parseWarnings };
+    return { ...parsed, positioned: null, scene: null, svg: null, diagnostics: [diagnostic], warnings: parseWarnings };
   }
 }
 
@@ -194,7 +197,7 @@ export async function validateDiagramSource<Ast = unknown, Positioned = unknown>
     const diagnostic: DiagramDiagnostic = { line: 1, column: 1, message: `Pagination mode "${resolved.header.paginate}" is not supported for family "${resolved.header.family}"`, code: 'pagination_unsupported_combination', severity: 'error' };
     return { valid: false, errors: [diagnostic], semanticErrors: [], warnings: [] };
   }
-  if (resolved.adapter.validate) {
+  {
     const validated = await resolved.adapter.validate(resolved.header.sourceWithoutDirective, scopedLayoutOptions(resolved.adapter, {
       ...options,
       ...(resolved.header.directionSpecified ? { direction: resolved.header.direction } : {}),
@@ -205,8 +208,8 @@ export async function validateDiagramSource<Ast = unknown, Positioned = unknown>
     // semantic diagnostics into `errors` and duplicate them in the CLI contract.
     if (!validated.valid) return validated;
     const fitted = await executeDiagramSource<Ast, Positioned>(source, options);
-    const inspection = fitted.positioned
-      ? inspectPositionedDiagram(resolved.header.family, fitted.positioned, fitted.routeFallbacks)
+    const inspection = fitted.scene
+      ? inspectPositionedDiagram(fitted.scene, fitted.routeFallbacks)
       : undefined;
     const geometryWarnings = inspection?.issueDetails.map((issue) => ({ line: 1, column: 1, message: issue.message, severity: 'warning' as const, code: issue.code })) ?? [];
     const fallbackWarnings = inspection && inspection.metrics.routeFallbacks > 0
@@ -222,21 +225,6 @@ export async function validateDiagramSource<Ast = unknown, Positioned = unknown>
       ...(inspection ? { metrics: inspection.metrics, inspection } : {}),
     };
   }
-  const executed = await executeDiagramSource<Ast, Positioned>(source, options);
-  const inspection = executed.positioned
-    ? inspectPositionedDiagram(resolved.header.family, executed.positioned, executed.routeFallbacks)
-    : undefined;
-  const geometryWarnings = inspection?.issueDetails.map((issue) => ({ line: 1, column: 1, message: issue.message, severity: 'warning' as const, code: issue.code })) ?? [];
-  return {
-    valid: executed.diagnostics.length === 0,
-    errors: executed.diagnostics,
-    semanticErrors: [],
-    warnings: [
-      ...geometryWarnings,
-      ...(inspection && inspection.metrics.routeFallbacks > 0 ? [{ line: 1, column: 1, message: `${inspection.metrics.routeFallbacks} route fallback(s) used an L-corner after clearance search failed`, severity: 'warning' as const, code: 'route_fallback' }] : []),
-    ],
-    ...(inspection ? { metrics: inspection.metrics, inspection } : {}),
-  };
 }
 
 export async function exportStructuredDiagram<Ast = unknown, Positioned = unknown>(

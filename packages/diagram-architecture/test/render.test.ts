@@ -14,6 +14,8 @@ personA -> orders: "reads & writes"`);
     expect(svg).toContain('data-node-id="orders"');
     expect(svg).toContain('&amp;');
     expect(svg).toContain('data-edge-label="r1"');
+    expect(svg).toContain('data-node-label-id="personA"');
+    expect(svg).toContain('fill="white" opacity="0.92"');
   });
 
   it('exports project-specific C4 JSON and draw.io XML', async () => {
@@ -27,5 +29,6 @@ ordering -> orders: "stores"`);
     expect(JSON.parse(json).elements.find((element: { type: string }) => element.type === 'Database')).toBeTruthy();
     expect(xml).toContain('<mxfile');
     expect(xml).toContain('source="ordering"');
+    expect(xml).toContain('architectureKind="system"');
   });
 });

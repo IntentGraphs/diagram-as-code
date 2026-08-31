@@ -1,4 +1,4 @@
-import { pageSizeInPixels } from '@bpm/diagram-core';
+import { pageSizeInPixels, type DiagramScene } from '@bpm/diagram-core';
 import {
   getFamily,
   inspectPositionedDiagram,
@@ -48,10 +48,10 @@ export function validationPayload(
   header: DiagramHeader,
   adapter: DiagramFamilyAdapter,
   result: FamilyValidationResult,
-  positioned?: unknown,
+  scene?: DiagramScene,
   routeFallbacks?: number,
 ): Record<string, unknown> {
-  const inspection = result.inspection ?? (positioned ? inspectPositionedDiagram(header.family, positioned, routeFallbacks) : undefined);
+  const inspection = result.inspection ?? (scene ? inspectPositionedDiagram(scene, routeFallbacks) : undefined);
   const errors = result.errors;
   return {
     ...result,

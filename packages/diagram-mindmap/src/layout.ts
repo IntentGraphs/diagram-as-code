@@ -15,7 +15,7 @@ const ROW_GAP = 16;
 const CHAR_WIDTH = FONT_SIZE * 0.58;
 
 export interface PositionedMindmapNode { id: string; label: string; labelLines: string[]; x: number; y: number; width: number; height: number; depth: number; children: PositionedMindmapNode[]; }
-export interface PositionedMindmapEdge { from: string; to: string; points: Point[]; }
+export interface PositionedMindmapEdge { id: string; from: string; to: string; points: Point[]; }
 export interface PositionedMindmap { root: PositionedMindmapNode; edges: PositionedMindmapEdge[]; width: number; height: number; }
 
 interface Sized { node: MindmapNode; labelLines: string[]; width: number; height: number; subtreeHeight: number; subtreeWidth: number; children: Sized[]; }
@@ -92,13 +92,13 @@ export async function layoutMindmap(ast: MindmapDiagram, options?: { direction?:
         const toX = direction === 'right' ? child.x : child.x + child.width;
         const fromY = node.y + node.height / 2;
         const toY = child.y + child.height / 2;
-        edges.push({ from: node.id, to: child.id, points: [{ x: fromX, y: fromY }, { x: Math.round((fromX + toX) / 2), y: toY }, { x: toX, y: toY }] });
+        edges.push({ id: `${node.id}->${child.id}`, from: node.id, to: child.id, points: [{ x: fromX, y: fromY }, { x: Math.round((fromX + toX) / 2), y: toY }, { x: toX, y: toY }] });
       } else {
         const fromY = direction === 'down' ? node.y + node.height : node.y;
         const toY = direction === 'down' ? child.y : child.y + child.height;
         const fromX = node.x + node.width / 2;
         const toX = child.x + child.width / 2;
-        edges.push({ from: node.id, to: child.id, points: [{ x: fromX, y: fromY }, { x: toX, y: Math.round((fromY + toY) / 2) }, { x: toX, y: toY }] });
+        edges.push({ id: `${node.id}->${child.id}`, from: node.id, to: child.id, points: [{ x: fromX, y: fromY }, { x: toX, y: Math.round((fromY + toY) / 2) }, { x: toX, y: toY }] });
       }
       connect(child);
     }

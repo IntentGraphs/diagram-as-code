@@ -9,13 +9,13 @@ function renderLabel(node: PositionedFlowchartNode): string {
   const centerX = node.x + MARGIN + node.width / 2;
   const centerY = node.y + MARGIN + node.height / 2;
   const startY = centerY - ((node.labelLines.length - 1) * LINE_HEIGHT) / 2;
-  return `<text data-node-label="${escapeXml(node.id)}" text-anchor="middle" dominant-baseline="middle" font-size="${FONT_SIZE}">${node.labelLines.map((line, index) => `<tspan x="${centerX}" y="${startY + index * LINE_HEIGHT}">${escapeXml(line)}</tspan>`).join('')}</text>`;
+  return `<text data-node-label-id="${escapeXml(node.id)}" data-node-label="${escapeXml(node.id)}" text-anchor="middle" dominant-baseline="middle" font-size="${FONT_SIZE}">${node.labelLines.map((line, index) => `<tspan x="${centerX}" y="${startY + index * LINE_HEIGHT}">${escapeXml(line)}</tspan>`).join('')}</text>`;
 }
 
 export function renderFlowchart(positioned: PositionedFlowchart): string {
   const edgeMarkup = positioned.edges.map((edge) => {
     const points = edge.points.map((point) => ({ x: point.x + MARGIN, y: point.y + MARGIN }));
-    const label = edge.label === undefined ? '' : (() => { const p = edge.labelPosition ? { x: edge.labelPosition.x + MARGIN, y: edge.labelPosition.y + MARGIN } : pointAlongPolyline(points, 0.5); return `<text data-edge-label="${escapeXml(edge.id)}" x="${p.x}" y="${p.y}" text-anchor="middle" font-size="${FONT_SIZE}" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">${escapeXml(edge.label)}</text>`; })();
+    const label = edge.label === undefined ? '' : (() => { const p = edge.labelPosition ? { x: edge.labelPosition.x + MARGIN, y: edge.labelPosition.y + MARGIN } : pointAlongPolyline(points, 0.5); return `<text data-edge-label-id="${escapeXml(edge.id)}" data-edge-label="${escapeXml(edge.id)}" x="${p.x}" y="${p.y}" text-anchor="middle" font-size="${FONT_SIZE}" paint-order="stroke" stroke="white" stroke-width="4" stroke-linejoin="round">${escapeXml(edge.label)}</text>`; })();
     return `<path data-edge-id="${escapeXml(edge.id)}" d="${polylinePathD(points, 'round')}" stroke="black" stroke-width="1.5" fill="none" marker-end="url(#flowchart-arrow)"/>${label}`;
   }).join('');
   const nodeMarkup = positioned.nodes.map((node) => node.kind === 'decision'

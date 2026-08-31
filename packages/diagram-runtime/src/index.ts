@@ -33,6 +33,7 @@ export {
   type ResolvedDiagramFamily,
   type DiagramExecutionPhase,
 } from './types.js';
+export type { DiagramScene, DiagramSceneContainer, DiagramSceneEdge, DiagramSceneNode } from '@bpm/diagram-core';
 export { inspectPositionedDiagram } from './inspection.js';
 export { paginateBpmn } from './bpmnPagination.js';
 export { readDiagramHeader } from './header.js';

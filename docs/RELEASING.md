@@ -26,6 +26,11 @@ The release commit must be clean after these checks. Update `CHANGELOG.md` and
 the release line in `docs/STATUS.md` to the exact tag being created. Choose a
 new semantic-version tag; never move or reuse an existing release tag.
 
+When a diagram family changes, also verify the accepted family list in
+`docs/LANGUAGE.md`, the capability and CLI contract in `docs/CLI.md`, the current
+limitations in `docs/STATUS.md`, and the extension requirements in
+`docs/EXTENDING-DIAGRAM-FAMILIES.md`. Do not document a planned family as shipped.
+
 The public launch uses a new clean repository created from the verified
 snapshot, so the public product starts at `v1.0.0`. The existing private
 workspace history retains its earlier internal tags and is not copied into the

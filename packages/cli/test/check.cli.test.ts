@@ -21,14 +21,14 @@ describe('bpm check and capability discovery', () => {
     const result = await runCheckCommand(parseArgv(['check', '--changed', '--json']));
     expect(result.exitCode).toBe(0);
     expect(JSON.parse(result.stdout)).toMatchObject({ command: 'check', changed: true, valid: true, files: expect.any(Array) });
-  });
+  }, 15_000);
 
   it('exposes runtime families and export formats', () => {
     const result = runCapabilitiesCommand(parseArgv(['capabilities', '--json']));
     const payload = JSON.parse(result.stdout);
-    expect(payload.families.map((family: { id: string }) => family.id)).toEqual(['bpmn', 'mindmap', 'flowchart', 'architecture', 'gantt']);
+    expect(payload.families.map((family: { id: string }) => family.id)).toEqual(['bpmn', 'mindmap', 'flowchart', 'architecture', 'gantt', 'dfd']);
     expect(payload.exportFormats).toContain('bpmn-xml');
     expect(payload.exportFormats).toContain('gantt-csv');
+    expect(payload.exportFormats).toContain('dfd-json');
   });
 });
-

@@ -1,4 +1,5 @@
 export type { Point, Rect } from './geometry.js';
+export type { DiagramScene, DiagramSceneContainer, DiagramSceneEdge, DiagramSceneNode } from './scene.js';
 export {
   segmentIntersectsRect,
   inflateRect,

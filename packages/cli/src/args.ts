@@ -202,14 +202,14 @@ export function parseArgv(argv: string[]): ParsedArgs {
   }
   if (command === 'generate') {
     file = positionals.join(' ');
-  } else if (command === 'capabilities') {
+  } else if (command === 'capabilities' || command === 'mcp') {
     file = '';
     if (positionals.length > 0) throw new Error(`unexpected argument "${positionals[0]}"`);
   } else {
     file = positionals[0] ?? '';
     if (positionals.length > 1) throw new Error(`unexpected argument "${positionals[1]}"`);
   }
-  if (!file && command !== 'capabilities' && !changed) {
+  if (!file && command !== 'capabilities' && command !== 'mcp' && !changed) {
     throw new Error(command === 'generate' ? 'missing "<description>" for bpm generate' : `missing <file> for bpm ${command}`);
   }
   if (base && !changed) throw new Error('--base requires --changed');

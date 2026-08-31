@@ -12,6 +12,7 @@ import { runImportDiagramCommand } from './commands/importDiagram.js';
 import { runFreezeCommand } from './commands/freeze.js';
 import { runCheckCommand } from './commands/check.js';
 import { runCapabilitiesCommand } from './commands/capabilities.js';
+import { runMcpCommand } from './commands/mcp.js';
 
 const PACKAGE = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string };
 
@@ -32,6 +33,10 @@ async function main(): Promise<number> {
     return 0;
   }
   try {
+    if (args.command === 'mcp') {
+      await runMcpCommand(args);
+      return 0;
+    }
     const runner =
       args.command === 'capabilities' ? runCapabilitiesCommand
       : args.command === 'validate' && (args.changed || args.outputFormat === 'sarif') ? runCheckCommand

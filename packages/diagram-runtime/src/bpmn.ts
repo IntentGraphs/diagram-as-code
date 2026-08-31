@@ -4,6 +4,8 @@ import { parse } from '@bpm/parser';
 import { render } from '@bpm/render';
 import { checkDiagramResourceLimits, layoutComplexityWarning, MAX_SOURCE_CHARS, shapeSizeOverrideWarnings, validate } from '@bpm/validate';
 import { exportToXml } from '@bpm/export-xml';
+import type { DiagramScene } from '@bpm/diagram-core';
+import type { PositionedNode, PositionedPool } from '@bpm/layout';
 import type { DiagramFamilyAdapter } from './types.js';
 
 export const BPMN_EXPORT_FORMAT = 'bpmn-xml';
@@ -11,6 +13,7 @@ export const BPMN_EXPORT_FORMAT = 'bpmn-xml';
 function emptyDiagram(): Diagram {
   return { pools: [], nodes: [], edges: [] };
 }
+function emptySourceLocations() { return { nodes: {}, edges: {}, pools: {}, lanes: {} }; }
 
 function limitDiagnostics(text: string, diagram: Diagram) {
   return checkDiagramResourceLimits(text, diagram).map((issue) => ({
@@ -42,6 +45,29 @@ function warningDiagnostics(diagram: Diagram) {
   return [...complexityWarnings, ...shapeWarnings];
 }
 
+function bpmnScene(positioned: PositionedDiagram): DiagramScene {
+  const nodes: DiagramScene['nodes'] = [];
+  const edges: DiagramScene['edges'] = [];
+  const visit = (node: PositionedNode, parentId?: string): void => {
+    nodes.push({ id: node.id, kind: node.kind, label: node.label, x: node.x, y: node.y, width: node.width, height: node.height, ...(parentId ? { parentId } : {}) });
+    node.childEdges?.forEach((edge) => edges.push({ id: edge.id, sourceId: edge.sourceId, targetId: edge.targetId, points: edge.points, kind: edge.flowType, ...(edge.label ? { label: edge.label } : {}) }));
+    node.children?.forEach((child) => visit(child, node.id));
+  };
+  positioned.nodes.forEach((node) => visit(node));
+  positioned.edges.forEach((edge) => {
+    if (!edges.some((candidate) => candidate.id === edge.id)) edges.push({ id: edge.id, sourceId: edge.sourceId, targetId: edge.targetId, points: edge.points, kind: edge.flowType, ...(edge.label ? { label: edge.label } : {}) });
+  });
+  const containers: DiagramScene['containers'] = [];
+  const addPool = (pool: PositionedPool): void => {
+    containers.push({ id: pool.id, kind: 'pool', label: pool.name, x: pool.x, y: pool.y, width: pool.width, height: pool.height });
+    pool.lanes.forEach((lane) => containers.push({ id: lane.id, kind: 'lane', label: lane.name, parentId: pool.id, x: lane.x, y: lane.y, width: lane.width, height: lane.height }));
+  };
+  positioned.pools.forEach(addPool);
+  const width = Math.max(1, ...nodes.map((node) => node.x + node.width), ...containers.map((container) => container.x + container.width));
+  const height = Math.max(1, ...nodes.map((node) => node.y + node.height), ...containers.map((container) => container.y + container.height));
+  return { width, height, nodes, edges, ...(containers.length ? { containers } : {}) };
+}
+
 export const bpmnAdapter: DiagramFamilyAdapter<Diagram, PositionedDiagram> = {
   id: 'bpmn',
   parse(source) {
@@ -53,6 +79,7 @@ export const bpmnAdapter: DiagramFamilyAdapter<Diagram, PositionedDiagram> = {
         ast: emptyDiagram(),
         errors: limitDiagnostics(source, emptyDiagram()),
         semanticErrors: [],
+        sourceLocations: emptySourceLocations(),
       };
     }
     const result = parse(source);
@@ -75,6 +102,7 @@ export const bpmnAdapter: DiagramFamilyAdapter<Diagram, PositionedDiagram> = {
   render(positioned) {
     return render(positioned);
   },
+  scene: bpmnScene,
   validate(source, options) {
     // Keep the established BPMN validation JSON contract intact. The runtime
     // exposes the same shape while family adapters remain free to add fields.

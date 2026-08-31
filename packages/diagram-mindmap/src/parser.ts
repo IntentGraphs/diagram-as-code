@@ -9,6 +9,7 @@ function diagnostic(line: number, message: string, code: string, token?: string)
 function emptyDiagram(): MindmapDiagram {
   return { kind: 'mindmapDiagram', root: { kind: 'mindmapNode', id: '', label: '', hasExplicitLabel: false, depth: 0, children: [], line: 1 }, nodeCount: 0, maxDepth: 0 };
 }
+function sourceLocation(line: number, text: string) { return { line, startColumn: 1, endColumn: text.length + 1 }; }
 const directionLine = /^direction:\s*(\S+)$/;
 const directions = ['right', 'left', 'down', 'up'] as const;
 
@@ -16,9 +17,10 @@ export function parseMindmap(source: string): FamilyParseResult<MindmapDiagram> 
   const ast = emptyDiagram();
   const errors: DiagramDiagnostic[] = [];
   const semanticErrors: DiagramDiagnostic[] = [];
+  const sourceLocations = { nodes: {}, edges: {}, pools: {}, lanes: {} } as import('@bpm/ast').DiagramSourceMap;
   if (source.length > MAX_SOURCE_CHARS) {
     semanticErrors.push(diagnostic(1, `Diagram source exceeds the maximum of ${MAX_SOURCE_CHARS} characters (got ${source.length})`, 'source_too_large'));
-    return { ast, errors, semanticErrors };
+    return { ast, errors, semanticErrors, sourceLocations };
   }
 
   const stack: MindmapNode[] = [];
@@ -104,10 +106,18 @@ export function parseMindmap(source: string): FamilyParseResult<MindmapDiagram> 
     }
     stack.length = depth;
     stack.push(node);
+    sourceLocations.nodes[id] = sourceLocation(lineNumber, raw);
   }
   if (!root) semanticErrors.push(diagnostic(1, 'A mind map diagram requires exactly one root node; none was found', 'missing_root'));
   ast.root = root ?? ast.root;
   ast.nodeCount = nodeCount;
   ast.maxDepth = maxDepth;
-  return { ast, errors, semanticErrors };
+  function mapEdges(node: MindmapNode): void {
+    for (const child of node.children) {
+      sourceLocations.edges[`${node.id}->${child.id}`] = sourceLocation(child.line, lines[child.line - 1]?.replace(/\r$/, '') ?? '');
+      mapEdges(child);
+    }
+  }
+  if (root) mapEdges(root);
+  return { ast, errors, semanticErrors, sourceLocations };
 }

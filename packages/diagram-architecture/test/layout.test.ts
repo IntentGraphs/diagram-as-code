@@ -30,6 +30,8 @@ checkout -> orders: "stores order"`);
     expect(all.find((node) => node.id === 'checkout')?.parentId).toBe('api');
     expect(positioned.edges).toHaveLength(2);
     expect(positioned.edges.every((edge) => edge.points.length >= 2)).toBe(true);
+    expect(positioned.edges.every((edge) => edge.labelRect)).toBe(true);
+    expect(positioned.edges.every((edge) => edge.routeStatus)).toBe(true);
     expect(positioned.width).toBeGreaterThan(0);
     expect(positioned.height).toBeGreaterThan(0);
   });

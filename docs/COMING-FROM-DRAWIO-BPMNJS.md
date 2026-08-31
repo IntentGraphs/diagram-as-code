@@ -54,6 +54,7 @@ npm run bpm -- export order.bpm --target pptx -o order.pptx
 
 - A visual layout is not always recoverable as identical text coordinates. The import path preserves supported geometry where possible and reports both conversion warnings and structured preserved/transformed/dropped loss accounting.
 - `bpm` currently supports BPMN, mind maps, flowcharts, architecture, and bounded Gantt timelines; it is not a general replacement for every draw.io shape library.
+- DFD is now accepted as a bounded Level-0 family with explicit external/process/data-store nodes, labeled data flows, SVG/PNG, family-neutral inspection, and lossless JSON export. It does not advertise PPTX or draw.io round-tripping; see [`EXTENDING-DIAGRAM-FAMILIES.md`](EXTENDING-DIAGRAM-FAMILIES.md) for the supported scope.
 - BPMN XML is the semantic export. PPTX is an editable visual projection, not a semantic round-trip.
 - `bpm` is local-first and has no hosted collaboration or workflow execution service in v1.
 

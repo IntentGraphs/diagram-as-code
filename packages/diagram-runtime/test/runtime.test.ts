@@ -16,6 +16,9 @@ import {
   type DiagramFamilyAdapter,
 } from '../src/index.js';
 
+const emptyScene = { width: 1, height: 1, nodes: [], edges: [] };
+const validTestSource = async () => ({ valid: true, errors: [], semanticErrors: [], warnings: [] });
+
 describe('@bpm/diagram-runtime', () => {
   beforeEach(() => resetFamilies());
 
@@ -57,20 +60,18 @@ describe('@bpm/diagram-runtime', () => {
     expect(readDiagramHeader('diagram: bpmn\ndirection: left\ntask "A" as a').diagnostics).toEqual(expect.arrayContaining([
       expect.objectContaining({ code: 'unsupported_direction', token: 'left' }),
     ]));
-    expect(readDiagramHeader('diagram: architecture\ndirection: right\nsystem "A" as a').diagnostics).toEqual(expect.arrayContaining([
-      expect.objectContaining({ code: 'unsupported_direction', token: 'right' }),
-    ]));
+    expect(readDiagramHeader('diagram: architecture\ndirection: right\nsystem "A" as a').diagnostics).toEqual([]);
+    expect(readDiagramHeader('diagram: architecture\ndirection: up\nsystem "A" as a').diagnostics).toEqual([]);
     expect(readDiagramHeader('diagram: flowchart\ndirection: left\nbox "A" as a').diagnostics).toEqual([]);
   });
 
   it('reports structured lane readability findings from positioned BPMN containers', async () => {
     const { inspectPositionedDiagram } = await import('../src/inspection.js');
-    const inspection = inspectPositionedDiagram('bpmn', {
-      pools: [{ id: 'p', name: 'P', x: 0, y: 0, width: 100, height: 100, lanes: [
-        { id: 'l1', name: 'A label that cannot fit', x: 0, y: 0, width: 40, height: 100 },
-        { id: 'l2', name: 'B', x: 30, y: 0, width: 40, height: 100 },
-      ] }], nodes: [], edges: [],
-    });
+    const inspection = inspectPositionedDiagram({ width: 100, height: 100, nodes: [], edges: [], containers: [
+      { id: 'p', kind: 'pool', label: 'P', x: 0, y: 0, width: 100, height: 100 },
+      { id: 'l1', kind: 'lane', label: 'A label that cannot fit', parentId: 'p', x: 0, y: 0, width: 40, height: 100 },
+      { id: 'l2', kind: 'lane', label: 'B', parentId: 'p', x: 30, y: 0, width: 40, height: 100 },
+    ] });
     expect(inspection.issueDetails).toEqual(expect.arrayContaining([
       expect.objectContaining({ code: 'lane_label_too_narrow' }),
       expect.objectContaining({ code: 'lane_overlap' }),
@@ -79,13 +80,13 @@ describe('@bpm/diagram-runtime', () => {
 
   it('reports degraded routes, label conflicts, bounds overflow, and containment violations', async () => {
     const { inspectPositionedDiagram } = await import('../src/inspection.js');
-    const inspection = inspectPositionedDiagram('flowchart', {
-      width: 100, height: 100,
+    const inspection = inspectPositionedDiagram({ width: 100, height: 100,
       nodes: [
-        { id: 'parent', kind: 'container', label: 'Parent', x: 0, y: 0, width: 50, height: 50, children: [{ id: 'child', label: 'Child', x: 40, y: 40, width: 20, height: 20 }] },
-        { id: 'other', label: 'Other', x: 70, y: 70, width: 20, height: 20 },
+        { id: 'parent', kind: 'container', label: 'Parent', x: 0, y: 0, width: 50, height: 50 },
+        { id: 'child', kind: 'node', label: 'Child', parentId: 'parent', x: 40, y: 40, width: 20, height: 20 },
+        { id: 'other', kind: 'node', label: 'Other', x: 70, y: 70, width: 20, height: 20 },
       ],
-      edges: [{ id: 'e1', sourceId: 'child', targetId: 'other', points: [{ x: 45, y: 45 }, { x: 80, y: 80 }], routeStatus: 'degraded', label: 'bad', labelGeometry: { x: 75, y: 85, width: 40, height: 20 } }],
+      edges: [{ id: 'e1', sourceId: 'child', targetId: 'other', points: [{ x: 45, y: 45 }, { x: 80, y: 80 }], routeStatus: 'degraded', label: 'bad', labelRect: { x: 75, y: 85, width: 40, height: 20 } }],
     });
     expect(inspection.metrics).toMatchObject({ degradedRoutes: 1, labelOverlaps: 1, boundsOverflows: 1, containmentViolations: 1 });
     expect(inspection.issueDetails.map((issue) => issue.code)).toEqual(expect.arrayContaining(['route_degraded', 'label_overlap', 'bounds_overflow', 'containment_violation']));
@@ -93,13 +94,14 @@ describe('@bpm/diagram-runtime', () => {
 
   it('reports degraded routes, label collisions, bounds overflow, and containment violations', async () => {
     const { inspectPositionedDiagram } = await import('../src/inspection.js');
-    const inspection = inspectPositionedDiagram('flowchart', {
+    const inspection = inspectPositionedDiagram({
       width: 100, height: 100,
       nodes: [
-        { id: 'parent', kind: 'container', label: 'Parent', x: 0, y: 0, width: 50, height: 50, children: [{ id: 'child', label: 'Child', x: 40, y: 40, width: 30, height: 30 }] },
+        { id: 'parent', kind: 'container', label: 'Parent', x: 0, y: 0, width: 50, height: 50 },
+        { id: 'child', kind: 'node', label: 'Child', parentId: 'parent', x: 40, y: 40, width: 30, height: 30 },
         { id: 'target', label: 'Target', x: 80, y: 80, width: 30, height: 30 },
       ],
-      edges: [{ id: 'e1', sourceId: 'child', targetId: 'target', routeStatus: 'degraded', points: [{ x: 45, y: 45 }, { x: 90, y: 90 }], label: 'x', labelGeometry: { x: 85, y: 85, width: 20, height: 10 } }],
+      edges: [{ id: 'e1', sourceId: 'child', targetId: 'target', routeStatus: 'degraded', points: [{ x: 45, y: 45 }, { x: 90, y: 90 }], label: 'x', labelRect: { x: 85, y: 85, width: 20, height: 10 } }],
     });
     expect(inspection.metrics).toMatchObject({ degradedRoutes: 1, labelOverlaps: expect.any(Number), boundsOverflows: expect.any(Number), containmentViolations: 1 });
     expect(inspection.issueDetails).toEqual(expect.arrayContaining([
@@ -114,7 +116,7 @@ describe('@bpm/diagram-runtime', () => {
     const layoutSpy = vi.fn(async () => ({}));
     registerFamily({
       id: 'mindmap', parse: () => ({ ast: {}, errors: [], semanticErrors: [] }), layout: layoutSpy,
-      render: () => '<svg />', capabilities: { svg: true, png: true, structuredExport: [], editorMode: 'none', engineOverride: false },
+      render: () => '<svg />', scene: () => emptyScene, validate: validTestSource, capabilities: { svg: true, png: true, structuredExport: [], editorMode: 'none', engineOverride: false },
     });
     await executeDiagramSource('diagram: mindmap\ndirection: left\nmindmap "Root" as root');
     expect(layoutSpy.mock.calls[0][1]).toEqual({ direction: 'left' });
@@ -143,12 +145,13 @@ describe('@bpm/diagram-runtime', () => {
   });
 
   it('registers the built-in family adapters through the runtime composition layer', () => {
-    expect(listFamilies()).toEqual(['bpmn', 'mindmap', 'flowchart', 'architecture', 'gantt']);
+    expect(listFamilies()).toEqual(['bpmn', 'mindmap', 'flowchart', 'architecture', 'gantt', 'dfd']);
     expect(getFamily('bpmn').capabilities.structuredExport).toEqual(['bpmn-xml']);
     expect(getFamily('mindmap').capabilities.structuredExport).toEqual(['mindmap-drawio-xml']);
     expect(getFamily('flowchart').capabilities.structuredExport).toEqual(['flowchart-drawio-xml']);
     expect(getFamily('architecture').capabilities.structuredExport).toEqual(['architecture-drawio-xml', 'architecture-c4-json']);
     expect(getFamily('gantt').capabilities.structuredExport).toEqual(['gantt-json', 'gantt-csv']);
+    expect(getFamily('dfd').capabilities.structuredExport).toEqual(['dfd-json']);
   });
 
   it('advertises capability metadata that distinguishes bpmn-js editing from other editor modes', () => {
@@ -159,6 +162,25 @@ describe('@bpm/diagram-runtime', () => {
     expect(getFamily('mindmap').capabilities.editorMode).toBe('external-export');
     expect(getFamily('mindmap').capabilities.pptx).toBe(true);
     expect(getFamily('mindmap').capabilities.structuredExports?.[0]).toMatchObject({ format: 'mindmap-drawio-xml', editable: true, roundTrip: 'none', fidelity: 'lossy' });
+  });
+
+  it('keeps each registered family adapter internally consistent', () => {
+    for (const family of listFamilies()) {
+      const adapter = getFamily(family);
+      const capabilities = adapter.capabilities;
+      expect(adapter.id).toBe(family);
+      expect(capabilities.svg).toBe(true);
+      expect(capabilities.png).toBe(true);
+      expect(typeof adapter.parse).toBe('function');
+      expect(typeof adapter.layout).toBe('function');
+      expect(typeof adapter.render).toBe('function');
+      expect(typeof adapter.scene).toBe('function');
+      expect(typeof adapter.validate).toBe('function');
+
+      for (const format of capabilities.structuredExport) {
+        expect(capabilities.structuredExports?.some((descriptor) => descriptor.format === format) ?? family === 'bpmn').toBe(true);
+      }
+    }
   });
 
   it('exports mindmap draw.io XML only through its declared capability', async () => {
@@ -186,8 +208,10 @@ describe('@bpm/diagram-runtime', () => {
   it('dispatches mindmap sources through the registered adapter', async () => {
     const result = await executeDiagramSource('diagram: mindmap\nmindmap "Root" as root\n  mindmap as child');
     expect(result.adapter.id).toBe('mindmap');
-    expect(result.diagnostics).toEqual([]);
-    expect(result.svg).toContain('<svg');
+      expect(result.diagnostics).toEqual([]);
+      expect(result.svg).toContain('<svg');
+      expect(result.scene).toMatchObject({ nodes: expect.any(Array), edges: expect.any(Array) });
+      expect(result.result.sourceLocations).toMatchObject({ nodes: expect.any(Object), edges: expect.any(Object), pools: expect.any(Object), lanes: expect.any(Object) });
   });
 
   it('returns common geometry inspection for every non-BPMN family', async () => {
@@ -196,8 +220,12 @@ describe('@bpm/diagram-runtime', () => {
       'diagram: flowchart\nbox "Start" as start\nbox "End" as end\nstart -> end',
       'diagram: architecture\nperson "Customer" as customer\nsystem "Ordering" as ordering\n  container "API" as api\ncustomer -> api',
       'diagram: gantt\ntask "Release" as release start 2026-01-01 duration 3d',
+      'diagram: dfd\nexternal "Customer" as customer\nprocess "Submit order" as submit\ndataStore "Orders" as orders\ndataFlow customer -> submit: "order details"\ndataFlow submit -> orders: "new order"',
     ];
     for (const source of sources) {
+      const executed = await executeDiagramSource(source);
+      expect(executed.scene).toMatchObject({ nodes: expect.any(Array), edges: expect.any(Array) });
+      expect(executed.result.sourceLocations).toMatchObject({ nodes: expect.any(Object), edges: expect.any(Object), pools: expect.any(Object), lanes: expect.any(Object) });
       const result = await validateDiagramSource(source);
       expect(result.valid).toBe(true);
       expect(result.metrics).toMatchObject({ edgeCrossings: expect.any(Number), nodeOverlaps: expect.any(Number), edgeThroughNode: expect.any(Number), edgeOvershootsOwnEndpoint: expect.any(Number), routeFallbacks: expect.any(Number) });
@@ -257,6 +285,8 @@ describe('@bpm/diagram-runtime', () => {
       parse: () => ({ ast: {}, errors: [], semanticErrors: [] }),
       layout: async () => ({}),
       render: () => '<svg />',
+      scene: () => emptyScene,
+      validate: validTestSource,
       exportStructured: () => { invoked = true; return 'must not be reached'; },
       capabilities: { svg: true, png: true, structuredExport: [], editorMode: 'none', engineOverride: false },
     });
@@ -272,6 +302,8 @@ describe('@bpm/diagram-runtime', () => {
       parse: () => ({ ast: {}, errors: [], semanticErrors: [] }),
       layout: layoutSpy,
       render: () => '<svg />',
+      scene: () => emptyScene,
+      validate: validTestSource,
       capabilities: { svg: true, png: true, structuredExport: [], editorMode: 'none', engineOverride: false },
     });
     await executeDiagramSource('diagram: mindmap\nroot', { engineOverride: 'flat' });
@@ -287,6 +319,8 @@ describe('@bpm/diagram-runtime', () => {
       parse: () => ({ ast: {}, errors: [], semanticErrors: [] }),
       layout: layoutSpy,
       render: () => '<svg />',
+      scene: () => emptyScene,
+      validate: validTestSource,
       capabilities: { svg: true, png: true, structuredExport: [], editorMode: 'none', engineOverride: true },
     });
     await executeDiagramSource('diagram: mindmap\nroot', { engineOverride: 'flat' });
@@ -302,6 +336,7 @@ describe('@bpm/diagram-runtime', () => {
       layout: async () => ({}),
       render: () => '<svg />',
       validate: validateSpy,
+      scene: () => emptyScene,
       capabilities: { svg: true, png: true, structuredExport: [], editorMode: 'none', engineOverride: false },
     });
     await validateDiagramSource('diagram: mindmap\nroot', { engineOverride: 'flat' });
@@ -323,6 +358,8 @@ describe('@bpm/diagram-runtime', () => {
       parse: () => ({ ast: {}, errors: [], semanticErrors: [] }),
       layout: async () => ({}),
       render: () => '<svg />',
+      scene: () => emptyScene,
+      validate: validTestSource,
       exportStructured: () => { invoked = true; return 'must not be reached'; },
       capabilities: { svg: true, png: true, structuredExport: [], editorMode: 'none', engineOverride: false },
     });
@@ -337,6 +374,8 @@ describe('@bpm/diagram-runtime', () => {
       parse: () => ({ ast: {}, errors: [], semanticErrors: [] }),
       layout: async () => ({}),
       render: () => rendered,
+      scene: () => emptyScene,
+      validate: validTestSource,
       capabilities: { svg: true, png: true, structuredExport: [], editorMode: 'none', engineOverride: false },
     });
     registerFamily(adapter('first'));

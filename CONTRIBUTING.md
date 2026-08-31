@@ -4,7 +4,7 @@ Thanks for helping improve bpm. This document covers local development and contr
 
 ## Prerequisites
 
-- Node.js **20+** (LTS)
+- Node.js **20 or 22** (supported LTS lines)
 - npm (workspaces; use the lockfile at the repo root)
 
 ## Setup
@@ -32,7 +32,9 @@ CLI-only checks: [`docs/CLI.md`](docs/CLI.md).
 ## Package map
 
 The monorepo is `packages/*` + `apps/web`. For the current package map and product
-boundaries, start with [`docs/STATUS.md`](docs/STATUS.md) and the package READMEs.
+boundaries, start with [`docs/STATUS.md`](docs/STATUS.md), the package READMEs, and
+[`docs/EXTENDING-DIAGRAM-FAMILIES.md`](docs/EXTENDING-DIAGRAM-FAMILIES.md) when changing
+family support.
 
 ## Supported development environment
 
@@ -46,6 +48,8 @@ The repository does not currently impose an opinionated formatter. The CI style 
 
 For non-trivial features, explain the design and scope in the pull request, update the
 relevant stable documentation, then verify with `npm test` and the focused CLI/web checks.
+Adding or changing a diagram family also requires updating the language reference,
+status, CLI capability documentation, and extension/release notes in the same change.
 Release verification is documented in [`docs/RELEASING.md`](docs/RELEASING.md).
 
 ## Pull requests

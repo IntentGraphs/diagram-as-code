@@ -24,7 +24,7 @@ import { setGenerationDisabled } from './generatePanel.js';
 import { mountImportPanel, showImportPanel, hideImportPanel, showExternalImportPreview, setImportInsertHandler, setCloseHandler as setImportCloseHandler } from './importPanel.js';
 import { mountSettingsPanel, showSettingsPanel, hideSettingsPanel, getEngineOverrideSelect, setCloseHandler as setSettingsCloseHandler } from './settingsPanel.js';
 import { createExportMenu, type ExportMenuItem } from './exportMenu.js';
-import { familyLabel, structuredExports, unsupportedActionMessage } from './familyUi.js';
+import { familyLabel, firstStructuredExport, structuredExports, unsupportedActionMessage } from './familyUi.js';
 import { createRenderController, type RenderControllerSnapshot } from './renderController.js';
 import { createProjectController, type ProjectController } from './projectController.js';
 import { createDiagramModeController } from './diagramModeController.js';
@@ -359,14 +359,28 @@ window.addEventListener('resize', updateEditorSourceHighlight);
 function updateRenderDependentActions(): void {
   const committedSourceIsCurrent = Boolean(lastResult && lastResultSource === editor.value);
   const actionsReady = !renderBusy && committedSourceIsCurrent;
+  const externalEdit = lastResult?.capabilities?.editorMode === 'external-export'
+    ? firstStructuredExport(lastResult.capabilities)
+    : null;
+  const canExternalEdit = actionsReady
+    && Boolean(lastResult?.ast)
+    && Boolean(lastResult?.executionPositioned)
+    && Boolean(externalEdit?.editable)
+    && Boolean(externalEdit?.externalEditor);
+  const canBpmnEdit = actionsReady
+    && Boolean(lastResult?.diagram && lastResult.diagram.nodes.length > 0)
+    && Boolean(lastResult?.positioned)
+    && lastResult?.family === 'bpmn'
+    && lastResult.capabilities?.editorMode === 'bpmn-js';
   renderBtn.disabled = renderBusy;
   modeDiagramBtn.disabled = !actionsReady || lastResult?.capabilities?.editorMode !== 'bpmn-js';
-  editAsDiagramBtn.disabled = !actionsReady
-    || !lastResult?.diagram
-    || lastResult.diagram.nodes.length === 0
-    || !lastResult.positioned
-    || lastResult.family !== 'bpmn'
-    || lastResult.capabilities?.editorMode !== 'bpmn-js';
+  editAsDiagramBtn.disabled = !canBpmnEdit && !canExternalEdit;
+  editAsDiagramBtn.textContent = canExternalEdit ? `Open in ${externalEdit?.externalEditor}` : 'Edit as Diagram';
+  editAsDiagramBtn.title = canExternalEdit
+    ? `Download an editable ${externalEdit?.label} handoff for ${externalEdit?.externalEditor}.`
+    : canBpmnEdit
+      ? 'Open the current BPMN diagram in the in-app editor.'
+      : 'Render a supported diagram before opening an editor.';
   const canFreezeAsManual = actionsReady
     && Boolean(lastResult?.diagram)
     && Boolean(lastResult?.executionPositioned)
@@ -506,6 +520,23 @@ diagramZoomFitBtn.addEventListener('click', () => diagramModeController.fitDiagr
 
 editAsDiagramBtn.addEventListener('click', async () => {
   if (renderBusy || lastResultSource !== editor.value) return;
+  if (
+    lastResult?.capabilities?.editorMode === 'external-export'
+    && lastResult.family
+    && lastResult.ast
+    && lastResult.executionPositioned
+  ) {
+    const descriptor = firstStructuredExport(lastResult.capabilities);
+    if (!descriptor?.editable) return;
+    try {
+      const content = exportPositionedDiagram(lastResult.family, lastResult.ast, lastResult.executionPositioned, descriptor.format);
+      downloadFile(`diagram${descriptor.fileExtension}`, content, descriptor.mimeType);
+      diagramStatusEl.textContent = `Editable ${descriptor.label} handoff downloaded for ${descriptor.externalEditor ?? 'an external editor'}.`;
+    } catch (err) {
+      renderErrors([{ line: 1, column: 1, message: err instanceof Error ? err.message : String(err) }]);
+    }
+    return;
+  }
   if (!lastResult?.diagram || !lastResult.positioned || !lastResult.family || lastResult.capabilities?.editorMode !== 'bpmn-js') return;
   let operation: ReturnType<typeof operationState.begin>;
   try {
@@ -855,7 +886,7 @@ async function commitRender(snapshot: RenderControllerSnapshot): Promise<void> {
   const generateUnsupported = aiCapabilities?.generation !== true;
   const reviewUnsupported = aiCapabilities?.visualReview !== true;
   modeDiagramBtn.disabled = renderBusy || result.capabilities?.editorMode !== 'bpmn-js';
-  modeDiagramBtn.title = modeDiagramBtn.disabled ? 'Diagram mode supports BPMN diagrams only.' : 'Open the BPMN-only visual editor.';
+  modeDiagramBtn.title = modeDiagramBtn.disabled ? 'The in-app visual editor currently supports BPMN diagrams only.' : 'Open the in-app BPMN visual editor.';
   engineOverrideSelect.disabled = result.capabilities?.engineOverride !== true;
   engineOverrideSelect.title = engineOverrideSelect.disabled
     ? `${familyLabel(result.family)} layout does not support BPMN engine overrides.`
@@ -990,7 +1021,6 @@ async function commitRender(snapshot: RenderControllerSnapshot): Promise<void> {
   textExportMenu.setDisabled(false);
   textExportMenu.setItems(exportItems);
   renderPaginationDiagnostics(result);
-  editAsDiagramBtn.disabled = renderBusy || !isBpmnDiagram || result.capabilities?.editorMode !== 'bpmn-js';
   generateBtn.disabled = generateUnsupported;
   generateBtn.title = generateUnsupported ? unsupportedActionMessage('Generate', result.family) : '';
   reviewBtn.disabled = reviewUnsupported;
