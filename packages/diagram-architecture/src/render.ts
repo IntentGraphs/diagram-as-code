@@ -34,7 +34,9 @@ function renderNode(node: PositionedArchitectureNode, colors: ArchitecturePalett
   const detailMetrics = detail ? measureLabel(detail, node.width - 20, 10, 2) : undefined;
   const footerHeight = 14 + (detailMetrics ? detailMetrics.height + 4 : 0);
   const centerY = node.y + MARGIN + (node.height - footerHeight) / 2 + (node.kind === 'person' ? 8 : 0);
-  const label = node.children.length
+  const label = node.kind === 'person'
+    ? wrappedTextBelow(centerX, node.y + MARGIN + 56, node.width - 20, node.label, FONT_SIZE, 2).replace('<text ', `<text data-node-label-id="${escapeXml(node.id)}" `)
+    : node.children.length
     ? wrappedTextBelow(centerX, node.y + MARGIN + 18, node.width - 20, node.label, FONT_SIZE, 2).replace('<text ', `<text data-node-label-id="${escapeXml(node.id)}" `)
     : wrappedTextCentered(centerX, centerY, node.width - 20, node.label, FONT_SIZE, 5).replace('<text ', `<text data-node-label-id="${escapeXml(node.id)}" `);
   const typeY = node.y + MARGIN + node.height - (detailMetrics ? detailMetrics.height + 17 : 12);
@@ -59,7 +61,11 @@ export function renderArchitecture(positioned: PositionedArchitecture): string {
   }).join('');
   const edgeLabels = positioned.edges.map((edge) => {
     const displayLabel = edge.displayLabel ?? edge.label;
-    if (displayLabel === undefined || !edge.labelRect || (positioned.viewType === 'systemLandscape' && edge.labelPlacement === 'fallback')) return '';
+    // A system landscape is the orientation page, not the relationship catalogue.
+    // Keeping every projected label here turns many-to-one mappings into large text
+    // blocks on long routes. Detailed context/container views retain labels only when
+    // the layout found a collision-free position for them.
+    if (displayLabel === undefined || !edge.labelRect || positioned.viewType === 'systemLandscape') return '';
     const label = (() => {
       const rect = { ...edge.labelRect, x: edge.labelRect.x + MARGIN, y: edge.labelRect.y + MARGIN };
       const centerX = rect.x + rect.width / 2;

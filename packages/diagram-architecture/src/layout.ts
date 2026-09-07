@@ -49,12 +49,12 @@ interface ElkArchitectureGraph extends ElkArchitectureNode {
 }
 
 function sizeNode(node: ArchitectureNode, includeDetails = true) {
-  const labelLines = wrapLabel(node.label, MAX_WIDTH - NODE_PADDING_X, FONT_SIZE, 5);
+  const labelLines = wrapLabel(node.label, MAX_WIDTH - NODE_PADDING_X, FONT_SIZE, node.kind === 'person' ? 2 : 5);
   const width = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, Math.max(...labelLines.map((line) => line.length * CHAR_WIDTH), 0) + NODE_PADDING_X));
   const detail = includeDetails ? node.technology ?? node.description : undefined;
   const detailLines = detail ? wrapLabel(detail, MAX_WIDTH - NODE_PADDING_X, DETAIL_FONT_SIZE, DETAIL_MAX_LINES).length : 0;
   const footerHeight = 14 + (detailLines ? detailLines * DETAIL_LINE_HEIGHT + 4 : 0);
-  const height = Math.max(68, labelLines.length * LINE_HEIGHT + NODE_PADDING_Y + footerHeight);
+  const height = Math.max(node.kind === 'person' ? 92 : 68, labelLines.length * LINE_HEIGHT + NODE_PADDING_Y + footerHeight);
   return { node, labelLines, width, height };
 }
 const ELK_DIRECTIONS: Record<DiagramDirection, 'DOWN' | 'UP' | 'RIGHT' | 'LEFT'> = { down: 'DOWN', up: 'UP', right: 'RIGHT', left: 'LEFT' };
@@ -145,7 +145,7 @@ export async function layoutArchitecture(ast: ArchitectureDiagram, options?: { d
   const nodes = viewAst.nodes.map((node) => absoluteNode(node, laid.children.find((entry) => entry.id === node.id) ?? { id: node.id }, 0, 0, undefined, includeDetails));
   const flat = flatten(nodes);
   const byId = new Map(flat.map((node) => [node.id, node]));
-  const router = createSequentialRouter({ edgeObstaclePolicy: 'soft', readableEdgeGap: 16, shapeReadableGap: 12, experimental: true });
+  const router = createSequentialRouter({ edgeObstaclePolicy: selected.view?.type === 'systemLandscape' ? 'none' : 'soft', readableEdgeGap: 16, shapeReadableGap: 12, experimental: true });
   const obstacles = flat.map(({ id, x, y, width, height }) => ({ id, x, y, width, height }));
   const labelRects: Rect[] = [];
   const routedPaths: Point[][] = [];
@@ -174,7 +174,7 @@ export async function layoutArchitecture(ast: ArchitectureDiagram, options?: { d
     const excluded = new Set([source.id, target.id, ...ancestorIds(source, byId), ...ancestorIds(target, byId)]);
     const routeObstacles = obstacles.filter((node) => !excluded.has(node.id));
     const fallbackCountBefore = getRouteFallbackCount();
-    const points = router.route(start, end, routeObstacles);
+    const points = router.route(start, end, routeObstacles, source.x === target.x ? 'vertical' : 'horizontal');
     const routeStatus = getRouteFallbackCount() > fallbackCountBefore ? 'fallback' as const : 'clean' as const;
     const displayLabel = [edge.label, edge.protocol ?? edge.technology].filter(Boolean).join(' · ');
     const positionedEdge: PositionedArchitectureEdge = { id: edge.id, sourceId: edge.sourceId, targetId: edge.targetId, ...(edge.label === undefined ? {} : { label: edge.label }), ...(displayLabel ? { displayLabel } : {}), ...(edge.technology ? { technology: edge.technology } : {}), ...(edge.protocol ? { protocol: edge.protocol } : {}), ...(edge.tags ? { tags: edge.tags } : {}), points, routeStatus };
@@ -182,7 +182,7 @@ export async function layoutArchitecture(ast: ArchitectureDiagram, options?: { d
       const placedLabel = placeEdgeLabel(positionedEdge, flat, labelRects, routedPaths);
       if (placedLabel) {
         positionedEdge.labelPlacement = placedLabel.placement;
-        if (placedLabel.placement === 'clean' || selected.view?.type !== 'systemLandscape') {
+        if (placedLabel.placement === 'clean' || !selected.view) {
           positionedEdge.labelRect = placedLabel.rect;
           labelRects.push(placedLabel.rect);
         }

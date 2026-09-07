@@ -62,4 +62,16 @@ view systemLandscape as landscape "Planning Landscape"`);
     expect(svg).not.toContain('Owns demand, supply, production');
     expect(svg).not.toContain('Enterprise planning, procurement, logistics');
   });
+
+  it('keeps relationship text in detailed views instead of the system landscape', async () => {
+    const parsed = parseArchitecture(`person "Planner" as planner
+system "Planning" as planning
+planner -> planning: "owns demand, supply and capacity planning"
+view systemLandscape as landscape "Planning Landscape"`);
+    const positioned = await layoutArchitecture(parsed.ast);
+    const svg = renderArchitecture(positioned);
+    expect(positioned.edges).toHaveLength(1);
+    expect(svg).toContain('data-edge-id="r1"');
+    expect(svg).not.toContain('data-edge-label="r1"');
+  });
 });
