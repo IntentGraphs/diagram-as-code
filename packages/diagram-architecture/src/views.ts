@@ -1,4 +1,4 @@
-import type { ArchitectureDiagram, ArchitectureNode, ArchitectureView } from './ast.js';
+import type { ArchitectureDiagram, ArchitectureEdge, ArchitectureNode, ArchitectureView } from './ast.js';
 
 function flatten(nodes: ArchitectureNode[], into: ArchitectureNode[] = []): ArchitectureNode[] {
   for (const node of nodes) {
@@ -66,6 +66,28 @@ function endpointForView(id: string, visible: Set<string>, byId: Map<string, Arc
   return undefined;
 }
 
+function aggregateProjectedEdges(edges: ArchitectureEdge[]): ArchitectureEdge[] {
+  const projected = new Map<string, ArchitectureEdge>();
+  for (const edge of edges) {
+    const key = `${edge.sourceId}\u0000${edge.targetId}`;
+    const existing = projected.get(key);
+    if (!existing) {
+      projected.set(key, { ...edge, ...(edge.tags ? { tags: [...edge.tags] } : {}) });
+      continue;
+    }
+
+    const labels = [existing.label, edge.label].filter((label): label is string => Boolean(label?.trim()));
+    existing.label = [...new Set(labels)].join(' · ') || undefined;
+    const tags = [...(existing.tags ?? []), ...(edge.tags ?? [])];
+    existing.tags = [...new Set(tags)];
+    const technologies = [existing.technology, edge.technology].filter((value): value is string => Boolean(value?.trim()));
+    existing.technology = [...new Set(technologies)].join(' · ') || undefined;
+    const protocols = [existing.protocol, edge.protocol].filter((value): value is string => Boolean(value?.trim()));
+    existing.protocol = [...new Set(protocols)].join(' · ') || undefined;
+  }
+  return [...projected.values()];
+}
+
 /** Projects one canonical architecture model into a bounded C4-style view. */
 export function selectArchitectureView(ast: ArchitectureDiagram): { ast: ArchitectureDiagram; view?: ArchitectureView } {
   const view = ast.activeView ? ast.views?.find((candidate) => candidate.key === ast.activeView) : ast.views?.[0];
@@ -88,6 +110,5 @@ export function selectArchitectureView(ast: ArchitectureDiagram): { ast: Archite
     if (!sourceId || !targetId || sourceId === targetId) return [];
     return [{ ...edge, sourceId, targetId }];
   });
-  const uniqueEdges = edges.filter((edge, index) => edges.findIndex((candidate) => candidate.sourceId === edge.sourceId && candidate.targetId === edge.targetId && candidate.label === edge.label) === index);
-  return { ast: { ...ast, nodes: projectedRoots, edges: uniqueEdges, activeView: undefined }, view };
+  return { ast: { ...ast, nodes: projectedRoots, edges: aggregateProjectedEdges(edges), activeView: undefined }, view };
 }

@@ -54,6 +54,33 @@ view systemContext ordering as context "Ordering Context"`);
     expect(positioned.edges).toHaveLength(1);
   });
 
+  it('aggregates relationships that collapse onto the same landscape endpoints', async () => {
+    const parsed = parseArchitecture(`person "Planner" as planner
+system "Planning" as planning
+  container "Demand" as demand
+  container "Capacity" as capacity
+planner -> demand: "owns demand"
+planner -> capacity: "owns capacity"
+view systemLandscape as landscape "Planning Landscape"`);
+    expect(parsed.semanticErrors).toEqual([]);
+    const positioned = await layoutArchitecture(parsed.ast);
+    expect(positioned.viewType).toBe('systemLandscape');
+    expect(positioned.edges).toHaveLength(1);
+    expect(positioned.edges[0].label).toContain('owns demand');
+    expect(positioned.edges[0].label).toContain('owns capacity');
+  });
+
+  it('separates parallel relationships when a view keeps the same endpoints', async () => {
+    const parsed = parseArchitecture(`person "Planner" as planner
+system "Planning" as planning
+planner -> planning: "owns demand"
+planner -> planning: "owns capacity"`);
+    expect(parsed.semanticErrors).toEqual([]);
+    const positioned = await layoutArchitecture(parsed.ast);
+    expect(positioned.edges).toHaveLength(2);
+    expect(new Set(positioned.edges.map((edge) => JSON.stringify(edge.points))).size).toBe(2);
+  });
+
   it.each(['right', 'left', 'down', 'up'] as const)('honors the %s direction', async (direction) => {
     const ast = parseArchitecture('person "A" as a\nperson "B" as b\na -> b').ast;
     const positioned = await layoutArchitecture(ast, { direction });

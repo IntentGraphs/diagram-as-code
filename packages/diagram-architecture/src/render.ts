@@ -1,4 +1,4 @@
-import { escapeXml, polylinePathD, wrappedTextBelow, wrappedTextCentered } from '@bpm/render-core';
+import { escapeXml, measureLabel, polylinePathD, wrappedTextBelow, wrappedTextCentered } from '@bpm/render-core';
 import type { PositionedArchitecture, PositionedArchitectureNode } from './layout.js';
 
 const MARGIN = 24;
@@ -28,17 +28,22 @@ function shape(node: PositionedArchitectureNode, colors: ArchitecturePalette): s
   const fill = node.external ? colors.external : node.kind === 'system' ? colors.system : node.kind === 'container' ? colors.container : colors.component;
   return `<rect data-node-id="${escapeXml(node.id)}" x="${x}" y="${y}" width="${node.width}" height="${node.height}" rx="${radius}" fill="${fill}" stroke="${colors.edge}" stroke-width="1.5"/>`;
 }
-function renderNode(node: PositionedArchitectureNode, colors: ArchitecturePalette): string {
+function renderNode(node: PositionedArchitectureNode, colors: ArchitecturePalette, showDetails: boolean): string {
   const centerX = node.x + MARGIN + node.width / 2;
-  const centerY = node.y + MARGIN + node.height / 2 + (node.kind === 'person' ? 8 : 0);
+  const detail = showDetails ? node.technology ?? node.description : undefined;
+  const detailMetrics = detail ? measureLabel(detail, node.width - 20, 10, 2) : undefined;
+  const footerHeight = 14 + (detailMetrics ? detailMetrics.height + 4 : 0);
+  const centerY = node.y + MARGIN + (node.height - footerHeight) / 2 + (node.kind === 'person' ? 8 : 0);
   const label = node.children.length
     ? wrappedTextBelow(centerX, node.y + MARGIN + 18, node.width - 20, node.label, FONT_SIZE, 2).replace('<text ', `<text data-node-label-id="${escapeXml(node.id)}" `)
     : wrappedTextCentered(centerX, centerY, node.width - 20, node.label, FONT_SIZE, 5).replace('<text ', `<text data-node-label-id="${escapeXml(node.id)}" `);
-  const detail = node.technology ?? node.description;
-  const typeY = node.y + MARGIN + node.height - (detail ? 25 : 12);
+  const typeY = node.y + MARGIN + node.height - (detailMetrics ? detailMetrics.height + 17 : 12);
   const type = `<text data-node-type-id="${escapeXml(node.id)}" x="${centerX}" y="${typeY}" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="${colors.muted}">${escapeXml(nodeTypeLabel(node.kind))}</text>`;
-  const detailText = detail ? `<text data-node-detail-id="${escapeXml(node.id)}" x="${centerX}" y="${node.y + MARGIN + node.height - 10}" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="${colors.muted}">${escapeXml(detail)}</text>` : '';
-  return `${shape(node, colors)}${label}${type}${detailText}${node.children.map((child) => renderNode(child, colors)).join('')}`;
+  const detailText = detailMetrics
+    ? wrappedTextCentered(centerX, node.y + MARGIN + node.height - detailMetrics.height / 2 - 4, node.width - 20, detail!, 10, 2)
+      .replace('<text ', `<text data-node-detail-id="${escapeXml(node.id)}" font-family="Arial,sans-serif" fill="${colors.muted}" `)
+    : '';
+  return `${shape(node, colors)}${label}${type}${detailText}${node.children.map((child) => renderNode(child, colors, showDetails)).join('')}`;
 }
 export function renderArchitecture(positioned: PositionedArchitecture): string {
   const colors = palette(positioned.theme);
@@ -54,7 +59,7 @@ export function renderArchitecture(positioned: PositionedArchitecture): string {
   }).join('');
   const edgeLabels = positioned.edges.map((edge) => {
     const displayLabel = edge.displayLabel ?? edge.label;
-    if (displayLabel === undefined || !edge.labelRect) return '';
+    if (displayLabel === undefined || !edge.labelRect || (positioned.viewType === 'systemLandscape' && edge.labelPlacement === 'fallback')) return '';
     const label = (() => {
       const rect = { ...edge.labelRect, x: edge.labelRect.x + MARGIN, y: edge.labelRect.y + MARGIN };
       const centerX = rect.x + rect.width / 2;
@@ -66,5 +71,6 @@ export function renderArchitecture(positioned: PositionedArchitecture): string {
   }).join('');
   const legendItems = [['Person', colors.external], ['Software System', colors.system], ['Container', colors.container], ['Component', colors.component], ['Database / Queue', colors.data]];
   const legend = positioned.legend ? `<g data-architecture-legend="true" transform="translate(${MARGIN} ${TITLE_HEIGHT + contentHeight + 22})">${legendItems.map(([label, fill], index) => `<rect x="${index * 145}" y="-11" width="12" height="12" rx="2" fill="${fill}" stroke="${colors.edge}"/><text x="${index * 145 + 18}" y="0" font-family="Arial,sans-serif" font-size="10" fill="${colors.text}">${label}</text>`).join('')}</g>` : '';
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${positioned.width + MARGIN * 2}" height="${svgHeight}" viewBox="0 0 ${positioned.width + MARGIN * 2} ${svgHeight}"><defs><marker id="architecture-arrow" markerWidth="8" markerHeight="8" refX="7" refY="3.5" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,7 L7,3.5 z" fill="${colors.edge}"/></marker></defs><text x="${MARGIN}" y="22" font-family="Arial,sans-serif" font-size="16" font-weight="600" fill="${colors.text}">${title}</text><text x="${MARGIN}" y="36" font-family="Arial,sans-serif" font-size="10" fill="${colors.muted}">${subtitle}</text><g transform="translate(0 ${TITLE_HEIGHT})">${edgePaths}${positioned.nodes.map((node) => renderNode(node, colors)).join('')}${edgeLabels}</g>${legend}</svg>`;
+  const showDetails = positioned.viewType !== 'systemLandscape';
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${positioned.width + MARGIN * 2}" height="${svgHeight}" viewBox="0 0 ${positioned.width + MARGIN * 2} ${svgHeight}"><defs><marker id="architecture-arrow" markerWidth="8" markerHeight="8" refX="7" refY="3.5" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,7 L7,3.5 z" fill="${colors.edge}"/></marker></defs><text x="${MARGIN}" y="22" font-family="Arial,sans-serif" font-size="16" font-weight="600" fill="${colors.text}">${title}</text><text x="${MARGIN}" y="36" font-family="Arial,sans-serif" font-size="10" fill="${colors.muted}">${subtitle}</text><g transform="translate(0 ${TITLE_HEIGHT})">${edgePaths}${positioned.nodes.map((node) => renderNode(node, colors, showDetails)).join('')}${edgeLabels}</g>${legend}</svg>`;
 }

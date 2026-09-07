@@ -51,4 +51,15 @@ ordering -> events: "publishes"`);
     expect(xml).toContain('source="ordering"');
     expect(xml).toContain('architectureKind="system"');
   });
+
+  it('keeps verbose node details out of a system landscape', async () => {
+    const parsed = parseArchitecture(`person "Planner" as planner [description: "Owns demand, supply, production, purchasing, transport and master data planning"]
+system "Planning" as planning [description: "Enterprise planning, procurement, logistics and warehouse capabilities"]
+planner -> planning: "uses"
+view systemLandscape as landscape "Planning Landscape"`);
+    const positioned = await layoutArchitecture(parsed.ast);
+    const svg = renderArchitecture(positioned);
+    expect(svg).not.toContain('Owns demand, supply, production');
+    expect(svg).not.toContain('Enterprise planning, procurement, logistics');
+  });
 });
